@@ -73,7 +73,7 @@ function Monitor:Update()
             local left = evt.paused or math.max(0, evt.expiresAt - now)
             row.icon:SetTexture(evt.icon or 134400)
             row.text:SetText((evt.mechanic and evt.mechanic.title or evt.text or "?") .. Tags(evt.mechanic))
-            row.time:SetText(evt.paused and "||" or (left < 10 and ("%.1f"):format(left) or ("%d"):format(left)))
+            row.time:SetText(evt.paused and "||" or (left < 10 and ("%.1f"):format(left) or ("%d"):format(math.floor(left))))
             row:Show()
         else
             row:Hide()

@@ -52,6 +52,9 @@ function _G.UnitClass() return "Death Knight", "DEATHKNIGHT", 6 end
 function _G.UnitFullName() return "Tester", "Realm" end
 function _G.GetNormalizedRealmName() return "Realm" end
 function _G.GetInstanceInfo() return "World", "none" end
+function _G.GetBuildInfo() return "12.1.0", "69933" end
+function _G.GetLocale() return "enUS" end
+_G.Enum.JournalEncounterIconFlags = { Tank = 1, Dps = 2, Healer = 4, Heroic = 8, Deadly = 16, Important = 32 }
 
 -- Frames: any unknown method is a no-op returning the frame, so UI code loads.
 local function NewFrame()
@@ -87,8 +90,16 @@ _G.C_Timer = {
     NewTimer = function(d, fn) return AddTimer(d, fn, 1) end,
     NewTicker = function(d, fn, n) return AddTimer(d, fn, n or math.huge) end,
 }
+-- Moves the clock in 0.1s steps so timers fire at (about) their due time.
 function mock.Advance(seconds)
-    mock.now = mock.now + seconds
+    local target = mock.now + seconds
+    while mock.now < target - 1e-9 do
+        mock.now = math.min(target, mock.now + 0.1)
+        mock.RunDue()
+    end
+end
+
+function mock.RunDue()
     local ran = true
     while ran do
         ran = false

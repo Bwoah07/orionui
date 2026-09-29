@@ -54,18 +54,20 @@ end
 
 -- /oui test reminder: fake timers through the real pipeline (CLAUDE.md §6.9).
 function Bridge:Test()
-    local tank = { tank = true, buster = true }
     local fake = {
-        { id = "test-buster", key = "test-buster", text = ns.L["Test: tank buster"], duration = 6, icon = 136105 },
-        { id = "test-raid", key = "test-raid", text = ns.L["Test: group damage"], duration = 10, icon = 135808 },
+        { id = "test-buster", text = ns.L["Test: tank buster"], duration = 8, icon = 136105,
+          tags = { tank = true, buster = true }, testMode = "defensive" },
+        { id = "test-raid", text = ns.L["Test: group damage"], duration = 12, icon = 135808,
+          tags = { important = true }, testMode = "warn" },
     }
     for _, t in ipairs(fake) do
-        t.source = "Test"
-        self:Timer(t)
+        -- Test mechanics are ad-hoc; tag them before the timer goes out so every consumer
+        -- sees the tags, and say which reminder mode the test expects.
+        local cur = ns.EncounterManager.current
+        local m = ns.MechanicRegistry:Resolve("Test", t.id, cur and cur.encounterID, t.text)
+        m.tags, m.testMode = t.tags, t.testMode
+        self:Timer({ source = "Test", id = t.id, key = t.id, text = t.text, duration = t.duration, icon = t.icon })
     end
-    -- Test mechanics are ad-hoc; tag the buster so tank-only consumers react to it.
-    local evt = self.timers["Test:test-buster"]
-    if evt and evt.mechanic then evt.mechanic.tags = tank end
     ns.Events:Fire("OUI_MECHANIC_TEST")
 end
 

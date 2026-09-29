@@ -271,17 +271,15 @@ repo-root/
 │   │   ├── EncounterMonitor.lua   ← debug list of live mechanics, /oui test reminder, /oui catalog
 │   │   └── TankOwnership.lua      ← bossN ownership, threat, grace, fail-open (§7.6)
 │   ├── Reminders/
+│   │   ├── Reminders.lua          ← module: settings, per spec×encounter×mechanic bindings
+│   │   ├── TankOwnership.lua      ← bossN threat, grace, fail-open (§7.6)
+│   │   ├── Readiness.lua          ← cooldown readiness, tri-state (§4.2)
 │   │   ├── DefensiveResolver.lua  ← preset chain + readiness strategy + coverage (§7.7)
 │   │   ├── Coverage.lua           ← "already covered by an active defensive" (§7.8)
 │   │   ├── Scheduler.lua          ← lead times, retrigger guards, queueing (§7.9)
 │   │   ├── CustomReminders.lua    ← user-authored reminders (§7.10)
 │   │   ├── ObservedTimings.lua    ← (later) learn timings from pulls (§7.11)
-│   │   └── Output/
-│   │       ├── Host.lua           ← output router: icon/bar/text/sound/TTS
-│   │       ├── Icon.lua
-│   │       ├── Bar.lua
-│   │       ├── Text.lua
-│   │       └── Sound.lua
+│   │   └── Output.lua             ← icon + text + countdown, sound, speech (split when it grows)
 │   ├── Classes/
 │   │   ├── Framework/
 │   │   │   ├── SpecModule.lua     ← base for class/spec modules (§8.1)
@@ -682,7 +680,11 @@ Bindings are **opt-in** by default except tank-tagged mechanics for tank specs (
 ### 7.8 Coverage
 
 Skip "press Vampiric Blood" if Vampiric Blood (or an equivalent-or-better defensive) is already
-active. Sources, in order of preference: readable player aura data (`C_UnitAuras` [VERIFY
+active. **As built (2026-09-29):** player auras are withheld in combat and UNIT_SPELLCAST_SUCCEEDED is
+secret-when-restricted, so the main signal is a tracked defensive's cooldown flipping from not active to
+active inside SPELL_UPDATE_COOLDOWN (isActive is readable), which starts a local clock for its
+`duration` from Data/Defensives.lua. A readable cast event also counts. Original plan, for reference:
+sources, in order of preference: readable player aura data (`C_UnitAuras` [VERIFY
 secrecy for player's own auras]), our own recent-cast tracking (`UNIT_SPELLCAST_SUCCEEDED` for
 the player), then unknown → do not suppress (fail open). Configurable: "skip when covered" (default on).
 
@@ -1140,7 +1142,8 @@ Waiting on Stig's in-game check before Phase 2.
 9. DBM adapter.
 10. `/oui test reminder` end-to-end with a fake mechanic.
 
-**Phase 3: Defensive reminders for Blood DK**
+**Phase 3: Defensive reminders for Blood DK** (items 11-13 built 2026-09-29; defensive durations
+unverified; item 14 next)
 11. Data for Blood DK + Stig's current dungeons (authored by us).
 12. TankOwnership, DefensiveResolver (strategy chosen from Phase 0 results), Coverage, Scheduler, Output.
 13. Encounter ability browser + preset editor UI.

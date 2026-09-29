@@ -10,7 +10,7 @@
 -- still resolve (as ad-hoc) so custom reminders can target anything a boss mod emits.
 local _, ns = ...
 
-local Registry = { byEncounter = {} }
+local Registry = { byEncounter = {}, looseAdhoc = {} }
 ns.MechanicRegistry = Registry
 
 local function Tags(base, override)
@@ -76,7 +76,7 @@ function Registry:Resolve(source, key, encounterID, text)
     end
     -- Ad-hoc: stable per encounter + source + key so bindings can still target it.
     local adhocKey = source .. ":" .. tostring(key or text)
-    local store = reg and reg.adhoc or {}
+    local store = reg and reg.adhoc or self.looseAdhoc -- outside encounters (trash, tests)
     if not store[adhocKey] then
         store[adhocKey] = {
             id = tostring(encounterID or 0) .. ":" .. adhocKey, encounterID = encounterID,
@@ -90,4 +90,5 @@ end
 -- Forget built encounters (e.g. after the catalog cache was rebuilt).
 function Registry:Reset()
     self.byEncounter = {}
+    self.looseAdhoc = {}
 end

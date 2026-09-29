@@ -29,6 +29,7 @@ read_globals = {
     "UnitAffectingCombat", "UnitCanAttack", "UnitDetailedThreatSituation", "UnitExists",
     "UnitGUID", "UnitIsUnit", "UnitThreatSituation",
     "canaccesstable", "canaccessvalue", "issecrettable", "issecretvalue",
+    "C_VoiceChat", "PlaySound", "SOUNDKIT",
     "date", "geterrorhandler", "tinsert", "wipe",
 }
 

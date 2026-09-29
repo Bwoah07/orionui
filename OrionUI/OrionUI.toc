@@ -54,6 +54,17 @@ Integrations\BigWigs.lua
 Integrations\DBM.lua
 Encounters\EncounterMonitor.lua
 
+Data\Defensives.lua
+Reminders\TankOwnership.lua
+Reminders\Readiness.lua
+Reminders\Coverage.lua
+Reminders\DefensiveResolver.lua
+Reminders\Reminders.lua
+Reminders\Scheduler.lua
+Reminders\Output.lua
+Options\Pages\Encounters.lua
+Options\Pages\Defensives.lua
+
 Modules\CombatAlert.lua
 
 # Last: starts everything on PLAYER_LOGIN
