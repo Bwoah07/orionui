@@ -17,7 +17,7 @@ local function ProbeAura(entry)
     local okS, sec = Try(S.GetSpellAuraSecrecy, id)
     local okB, should = Try(S.ShouldSpellAuraBeSecret, id)
     Report:Line("-- %d %s [%s] auraSecrecy=%s shouldBeSecret=%s", id, entry.label or "?", entry.status or "custom",
-        okS and Describe(sec) or ("ERR " .. tostring(sec)), okB and Describe(should) or ("ERR " .. tostring(should)))
+        okS and ns.EnumName(Enum.SecrecyLevel, sec) or ("ERR " .. tostring(sec)), okB and Describe(should) or ("ERR " .. tostring(should)))
     local ok, aura = Try(C_UnitAuras.GetPlayerAuraBySpellID, id)
     if not ok then
         Report:Line("   ERR %s", tostring(aura))

@@ -4,19 +4,20 @@
 --
 -- status: "xref" = the ID also appears with the same meaning in another addon's source
 --         we cloned (cross-reference only, nothing copied), "unverified" = from memory.
--- Nothing here is verified in game yet; see docs/verification-log.md.
+--         "ingame" = the client returned the expected spell name (2026-09-29, 12.1.0).
+-- See docs/verification-log.md.
 local _, ns = ...
 
 ns.SpellLists = {
     [250] = { -- Blood Death Knight
-        { id = 55233,  label = "Vampiric Blood",       status = "xref" },
-        { id = 48707,  label = "Anti-Magic Shell",     status = "xref" },
-        { id = 48792,  label = "Icebound Fortitude",   status = "xref" },
-        { id = 49028,  label = "Dancing Rune Weapon",  status = "xref" },
-        { id = 194679, label = "Rune Tap",             status = "xref" },
-        { id = 219809, label = "Tombstone",            status = "xref" },
-        { id = 51052,  label = "Anti-Magic Zone",      status = "xref" },
-        { id = 49039,  label = "Lichborne",            status = "xref" },
+        { id = 55233,  label = "Vampiric Blood",       status = "ingame" },
+        { id = 48707,  label = "Anti-Magic Shell",     status = "ingame" },
+        { id = 48792,  label = "Icebound Fortitude",   status = "ingame" },
+        { id = 49028,  label = "Dancing Rune Weapon",  status = "ingame" },
+        { id = 194679, label = "Rune Tap",             status = "ingame" },
+        { id = 219809, label = "Tombstone",            status = "ingame" },
+        { id = 51052,  label = "Anti-Magic Zone",      status = "ingame" },
+        { id = 49039,  label = "Lichborne",            status = "ingame" },
     },
     [66] = { -- Protection Paladin
         { id = 31850,  label = "Ardent Defender",      status = "xref" },

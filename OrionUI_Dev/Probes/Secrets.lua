@@ -6,19 +6,11 @@ local _, ns = ...
 
 local Report = ns.Report
 local Describe, DescribeFields, SecretSummary, Try = ns.Describe, ns.DescribeFields, ns.SecretSummary, ns.Try
+local EnumName = ns.EnumName
 
 -- Field lists from SpellSharedDocumentation.lua (12.1.0 build 69933).
 local COOLDOWN_FIELDS = { "startTime", "duration", "isEnabled", "isActive", "modRate", "activeCategory", "timeUntilEndOfStartRecovery", "isOnGCD" }
 local CHARGE_FIELDS = { "currentCharges", "maxCharges", "cooldownStartTime", "cooldownDuration", "chargeModRate", "isActive" }
-
--- Enum value -> name, only for readable values.
-local function EnumName(enumTable, v)
-    if ns.IsSecret(v) or v == nil or not enumTable then return Describe(v) end
-    for name, value in pairs(enumTable) do
-        if value == v then return name end
-    end
-    return tostring(v)
-end
 
 local function Call(fn, ...)
     local ok, a = Try(fn, ...)

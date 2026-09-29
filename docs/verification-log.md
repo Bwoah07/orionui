@@ -90,3 +90,26 @@ change and boss-mod/timeline event. `/ouidev log` shows it all in a copy box.
 
 Paste each copy box back into the project thread. The raw log is also in
 `WTF/Account/<ACCOUNT>/SavedVariables/OrionUI_Dev.lua`.
+
+## 2026-09-29: In-game results, open world (build 12.1.0 69933, Blood DK)
+
+Ran `/ouidev all`, `/ouidev auras list`, `/ouidev threat` out of combat and on a training dummy.
+
+- **Out of combat:** every restriction type is off, but `C_Secrets.HasSecretRestrictions()` = true and
+  **`C_CombatLog.IsCombatLogRestricted()` = true even in the open world out of combat.** Treat CLEU as
+  unavailable by default. Every cooldown/charge field is readable.
+- **In combat (Combat restriction ON only):** `ShouldCooldownsBeSecret` and `ShouldAurasBeSecret` = true.
+  In `GetSpellCooldown`, `startTime`, `duration`, `modRate` and `timeUntilEndOfStartRecovery` are secret, but
+  **`isActive` and `isEnabled` stay readable**, as documented. In `GetSpellCharges`, `maxCharges` and
+  `isActive` are readable and everything else is secret. So `ReadinessStrategy.API` works in combat on a
+  dummy: we can tell "on cooldown or not" but not "how long is left".
+  Still to confirm: Encounter and ChallengeMode restriction states.
+- `isOnGCD` came back nil outside `SPELL_UPDATE_COOLDOWN`, matching the docs.
+- Every Blood spell in the list has `GetSpellCooldownSecrecy` = ContextuallySecret (none is flagged
+  NeverSecret or AlwaysSecret).
+- **Spell IDs confirmed by name in game:** 55233 Vampiric Blood, 48707 Anti-Magic Shell, 48792 Icebound
+  Fortitude, 49028 Dancing Rune Weapon, 194679 Rune Tap, 219809 Tombstone, 51052 Anti-Magic Zone,
+  49039 Lichborne. (Rune Tap and Tombstone were known=false because they aren't talented.)
+- Bone Shield (195181): not tested yet. It wasn't active during the test.
+- Threat on the training dummy: `UnitThreatSituation` / `UnitDetailedThreatSituation` returned nil (not
+  secret) for `target`. This probably means the dummy has no threat table. Needs a real boss.

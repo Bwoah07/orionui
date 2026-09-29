@@ -55,6 +55,15 @@ function ns.Describe(v)
     return "<" .. t .. ">"
 end
 
+-- Enum value -> name, only for readable values.
+function ns.EnumName(enumTable, v)
+    if ns.IsSecret(v) or v == nil or not enumTable then return ns.Describe(v) end
+    for name, value in pairs(enumTable) do
+        if value == v then return name end
+    end
+    return tostring(v)
+end
+
 -- "field=value(S)" for a list of known struct fields, (S) marking secret values,
 -- followed by any fields we did not expect so API changes show up in the log.
 function ns.DescribeFields(tbl, fields)
