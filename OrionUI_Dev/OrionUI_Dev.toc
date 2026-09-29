@@ -1,0 +1,21 @@
+## Interface: 120100, 120105
+## Title: OrionUI |cff9d7bffDev|r
+## Notes: Developer probes for OrionUI. Read-only: logs what the 12.x API lets addons see. Not for release.
+## Author: Stig
+## Version: @project-version@
+## Category: Development Tools
+## SavedVariables: OrionUIDevDB
+## OptionalDeps: BigWigs, DBM-Core
+
+Core.lua
+Report.lua
+CopyWindow.lua
+SpellLists.lua
+Probes\Secrets.lua
+Probes\Restrictions.lua
+Probes\Auras.lua
+Probes\Threat.lua
+Probes\BossMod.lua
+Probes\Journal.lua
+Watch.lua
+Slash.lua

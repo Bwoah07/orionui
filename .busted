@@ -1,0 +1,6 @@
+return {
+  _all = {
+    ROOT = { "tests/spec" },
+    helper = "tests/mocks/wow.lua",
+  },
+}

@@ -1,0 +1,12 @@
+## Interface: 120100, 120105
+## Title: OrionUI
+## Notes: Free, all-included UI pack core for EllesmereUI.
+## Author: Stig
+## Version: @project-version@
+## Category: User Interface
+## SavedVariables: OrionUIDB
+## SavedVariablesPerCharacter: OrionUICharDB
+## OptionalDeps: EllesmereUI, BigWigs, DBM-Core
+
+# Phase 1 adds the rest of Core/ here (CLAUDE.md §18).
+Core\Init.lua

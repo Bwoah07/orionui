@@ -1,0 +1,18 @@
+# Pushing a version tag packages the release addons and uploads to CurseForge (CLAUDE.md §17).
+# Needs repository secrets CF_API_KEY (and WAGO_API_TOKEN if we publish to Wago).
+# The TOCs also need ## X-Curse-Project-ID once the project exists.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: BigWigsMods/packager@v2

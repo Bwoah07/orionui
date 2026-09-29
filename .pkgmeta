@@ -1,0 +1,27 @@
+# BigWigs packager config. One tag builds one zip containing the release addons.
+# OrionUI_Dev is never shipped (CLAUDE.md §17).
+package-as: OrionUI
+
+enable-nolib-creation: no
+
+move-folders:
+  OrionUI/OrionUI: OrionUI
+  # OrionUI/OrionUI_Installer: OrionUI_Installer   # enable in phase 5
+
+# Libraries are fetched at package time, never committed. [VERIFY] URLs at phase 1.
+externals:
+  OrionUI/Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+  OrionUI/Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  OrionUI/Libs/LibSharedMedia-3.0: https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+  OrionUI/Libs/LibSerialize: https://github.com/rossnichols/LibSerialize.git
+  OrionUI/Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate.git
+
+ignore:
+  - OrionUI_Dev
+  - OrionUI_Installer
+  - docs
+  - tests
+  - CLAUDE.md
+  - .luacheckrc
+  - .editorconfig
+  - .busted

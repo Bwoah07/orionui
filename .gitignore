@@ -1,0 +1,11 @@
+# Private competitor analyses: never publish
+/docs-private/
+# Reference repos (cloned for grepping, not part of this project)
+/refs/
+# Libraries are fetched by the packager via .pkgmeta
+*/Libs/
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
