@@ -52,7 +52,7 @@ ns.SpellLists = {
 -- Player auras worth probing per spec (buff IDs can differ from the cast IDs above).
 ns.AuraLists = {
     [250] = {
-        { id = 195181, label = "Bone Shield",          status = "unverified" },
+        { id = 195181, label = "Bone Shield",          status = "ingame" },
         { id = 55233,  label = "Vampiric Blood (buff)", status = "unverified" },
         { id = 81256,  label = "Dancing Rune Weapon (buff)", status = "unverified" },
         { id = 48707,  label = "Anti-Magic Shell (buff)", status = "unverified" },

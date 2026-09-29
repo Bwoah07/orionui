@@ -168,3 +168,9 @@ Encounter 3071 "Arcanotron Custos", with watch mode on.
   `canAttack=false` and nil threat, so treat an attackable unit with nil threat as "not on its threat table".
 - `CanCompareUnitTokens` = true and `UnitIsUnit(target, bossN)` is readable in M+ encounters.
 - Player auras are withheld in M+ combat as elsewhere.
+
+## 2026-09-29: Bone Shield confirmed
+
+Out of combat, `/ouidev auras list` shows **Bone Shield = 195181** (stacks 12, expiry readable) and
+**Ossuary = 219788** as player auras. Both are readable out of combat only (auras are withheld in combat,
+see above).
