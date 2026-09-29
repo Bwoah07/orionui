@@ -100,7 +100,8 @@ eventually published on CurseForge. It consists of multiple addon folders:
 
 ## 3. Ground-truth sources and how to use them
 
-Clone these into a sibling folder (on Stig's machine: `C:efs`, never inside the repo) and grep
+Clone these into a sibling folder (on Stig's machine: `C:
+efs`, never inside the repo) and grep
 them instead of guessing APIs:
 
 | Source | URL | Use it for |
@@ -184,7 +185,12 @@ So readiness may be branchable for some defensives and not others. The resolver 
 `HasSecretRestrictions()`, `GetSpellAuraSecrecy(spell)`, `CanCompareUnitTokens(u1, u2)`.
 See `docs/verification-log.md`.
 
-**Therefore the very first dev task** is an `OrionUI_Dev` probe (§16.2) that, in and out of
+**Answered in game (2026-09-29, see verification log):** in combat and during a dungeon boss encounter,
+`isActive` and `isEnabled` stay readable while all timing fields are secret. `ReadinessStrategy.API` is the
+default ("on cooldown or not" is known, "time left" is not). Mythic+ (ChallengeMode) is still to be confirmed.
+Player auras are withheld in combat (`GetAuraDataByIndex` throws), so Coverage (§7.8) relies on cast tracking.
+
+**Originally, the very first dev task** was an `OrionUI_Dev` probe (§16.2) that, in and out of
 combat and inside an encounter/M+, logs for a list of defensives:
 `issecretvalue()` on each field of `GetSpellCooldown`, plus `C_Spell.GetSpellCharges` results
 [VERIFY charges API annotations too]. The `DefensiveResolver` (§7.7) is designed with a
@@ -624,9 +630,9 @@ InternalMechanic = {
 
 Answers "should *this* player react to *this* mechanic?".
 
-1. If the mechanic has an `ownerUnit` (curated), ask "am I tanking `bossN`?"
-   (`UnitDetailedThreatSituation("player", "bossN")` / `UnitThreatSituation`) [VERIFY
-   secrecy annotations].
+1. If the mechanic has an `ownerUnit` (curated), ask "am I tanking `bossN`?" with
+   `UnitThreatSituation("player", "bossN")`. It is readable in encounters (verified 2026-09-29), while
+   `UnitDetailedThreatSituation` on bossN returns only secrets.
 2. Else if a readable cast-source → boss unit association exists, use it (only when CLEU is
    permitted).
 3. Else fall back to "am I tanking any boss?".

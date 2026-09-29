@@ -119,3 +119,38 @@ Ran `/ouidev all`, `/ouidev auras list`, `/ouidev threat` out of combat and on a
   Consequences: never iterate auras by index while auras are secret. Coverage (§7.8) can't read active
   defensives from auras in combat and has to rely on cast tracking or fail open. Bone Shield stacks and expiry
   (§8.3) must be displayed by engine widgets (CDM / aura containers), not computed in Lua.
+
+## 2026-09-29: In-game results, dungeon boss (Magisters' Terrace, follower dungeon diff 205, BigWigs)
+
+Encounter 3071 "Arcanotron Custos", with watch mode on.
+
+- **Restriction states in a dungeon:** `Map` is ON the whole time inside the instance. During the boss,
+  Combat, Encounter, Map and **Chat** are all ON. `ADDON_RESTRICTION_STATE_CHANGED` fires "activating" at
+  ENCOUNTER_START and "off" at ENCOUNTER_END, as documented.
+- **Cooldown readiness during a boss fight:** same as in open-world combat. `isActive` and `isEnabled` are
+  readable, and the timing fields are secret. **ReadinessStrategy.API works under the Encounter restriction.**
+  Only ChallengeMode (M+) is still unconfirmed.
+- **Player auras:** withheld in dungeon combat and in the encounter (same as in the open world).
+- **Threat (important for TankOwnership §7.6):**
+  - `UnitThreatSituation("player", "boss1")` = 3, **readable** during the encounter.
+  - `UnitDetailedThreatSituation("player", "boss1")`: **every return is secret**.
+  - Oddly, `UnitDetailedThreatSituation("player", "target")` was readable while the target was boss1. Don't
+    rely on this: use `UnitThreatSituation(player, bossN)` (status 3 = securely tanking, 2 = tanking but insecure).
+  - On dungeon trash (no encounter) both threat calls were readable on `target`.
+  - `C_Secrets.CanCompareUnitTokens("target","boss1")` = true and `UnitIsUnit` is readable in the encounter.
+  - `UnitGUID` is secret on every enemy inside the instance, trash included. Unit tokens it is.
+- **BigWigs payloads are plain even when Blizzard's timeline is secret:**
+  - The Blizzard timeline `EVENT_ADDED` has spellID, spellName, icon, severity and isApproximate **secret**.
+    Only `id`, `source`, `duration` and `maxQueueDuration` are plain.
+  - BigWigs still sends plain keys (spell IDs like 474496 "Tank Knockback", 1214081, 1214032, 474345),
+    plain durations, text and icon.
+  - `BigWigs_StartBar`'s **9th argument is the Blizzard timeline event id** (1, 2, 3...). It links a BigWigs
+    bar to a timeline event.
+  - **Every timer fires both `BigWigs_StartBar` and `BigWigs_Timer`**, so the bridge must dedupe.
+  - **`BigWigs_StopBar(mod, text)` carries only the bar text, not the key.** The bridge has to remember
+    text → key from StartBar to cancel the right mechanic.
+  - When a bar ends, BigWigs sends `BigWigs_Message(mod, key, text, color, icon, false, nil)` with the same key.
+  - Non-boss BigWigs modules also send messages ("Victory", "Statistics", "BossBlock"). Filter by module.
+  - End of fight: `ENCOUNTER_END(3071, name, 205, 5, success=1, unitStatus)`, then `BigWigs_OnBossWin`,
+    then `BigWigs_OnBossDisable` about 1 s later.
+- `/ouidev ej` wasn't run, so the 7th return of `EJ_GetEncounterInfoByIndex` is still unconfirmed.
