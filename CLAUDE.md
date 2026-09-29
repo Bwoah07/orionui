@@ -187,7 +187,7 @@ See `docs/verification-log.md`.
 
 **Answered in game (2026-09-29, see verification log):** in combat and during a dungeon boss encounter,
 `isActive` and `isEnabled` stay readable while all timing fields are secret. `ReadinessStrategy.API` is the
-default ("on cooldown or not" is known, "time left" is not). Mythic+ (ChallengeMode) is still to be confirmed.
+default ("on cooldown or not" is known, "time left" is not). Confirmed in Mythic+ as well (2026-09-29).
 Player auras are withheld in combat (`GetAuraDataByIndex` throws), so Coverage (§7.8) relies on cast tracking.
 
 **Originally, the very first dev task** was an `OrionUI_Dev` probe (§16.2) that, in and out of

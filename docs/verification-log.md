@@ -154,3 +154,17 @@ Encounter 3071 "Arcanotron Custos", with watch mode on.
   - End of fight: `ENCOUNTER_END(3071, name, 205, 5, success=1, unitStatus)`, then `BigWigs_OnBossWin`,
     then `BigWigs_OnBossDisable` about 1 s later.
 - `/ouidev ej` wasn't run, so the 7th return of `EJ_GetEncounterInfoByIndex` is still unconfirmed.
+
+## 2026-09-29: In-game results, Mythic+ (Den of Nalorakk, 4 bosses, BigWigs)
+
+- `ChallengeMode` restriction goes to "activating" when the key starts and "off" after the last boss.
+  During the key, Map and Chat are also ON. In boss fights, all of Combat, Encounter, ChallengeMode, Map and
+  Chat are ON.
+- **Cooldown readiness:** all 168 `/ouidev secrets` verdicts in the log (open world, dungeon, M+ trash and
+  M+ bosses 3207, 3208, 3209) say `isActive` was readable. **ReadinessStrategy.API is confirmed for every
+  PvE restriction state.**
+- **Threat:** `UnitThreatSituation("player", "boss1")` stayed readable (3 = tanking) in every M+ boss.
+  `UnitDetailedThreatSituation` on bossN was always secret. On Nalorakk, boss2 existed with
+  `canAttack=false` and nil threat, so treat an attackable unit with nil threat as "not on its threat table".
+- `CanCompareUnitTokens` = true and `UnitIsUnit(target, bossN)` is readable in M+ encounters.
+- Player auras are withheld in M+ combat as elsewhere.
