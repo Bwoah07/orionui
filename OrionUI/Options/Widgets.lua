@@ -1,19 +1,29 @@
 -- Widget factory for the options window (CLAUDE.md §9.1). Every widget is a row frame
 -- with a fixed height, created from a spec:
 --   { label, desc, get = fn() -> value, set = fn(value), disabled = fn() -> bool, ... }
--- and exposes :Refresh() to re-read get(). Styling comes from ns.Theme.
+-- and exposes :Refresh() to re-read get(). Rows are "label left, control right";
+-- the window groups them into cards. Styling comes from ns.Theme.
 local _, ns = ...
 
-local T -- ns.Theme, resolved on first use (Theme loads earlier in the TOC)
-local Widgets = {}
+local Widgets = { ROW = 36, CONTROL_W = 220 }
 ns.Widgets = Widgets
 
-local function Theme() T = T or ns.Theme return T end
+local function T() return ns.Theme end
 
 local function Row(parent, height)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(height)
+    row:SetHeight(height or Widgets.ROW)
     return row
+end
+
+-- Label on the left, vertically centred; desc (if any) shows as a tooltip on the row.
+local function Label(row, spec)
+    local label = T():Text(row, 13)
+    label:SetPoint("LEFT", 0, 0)
+    label:SetPoint("RIGHT", row, "RIGHT", -(Widgets.CONTROL_W + 16), 0)
+    label:SetWordWrap(false)
+    label:SetText(spec.label or "")
+    return label
 end
 
 local function Tooltip(owner, spec)
@@ -28,100 +38,114 @@ local function Tooltip(owner, spec)
 end
 
 local function IsDisabled(spec) return spec.disabled and spec.disabled() or false end
-
-local function SetDim(row, dim)
-    row:SetAlpha(dim and 0.45 or 1)
-end
+local function SetDim(row, dim) row:SetAlpha(dim and 0.4 or 1) end
 
 ---------------------------------------------------------------------------
 
+-- Section title (the window turns these into card headings; this is the fallback).
 function Widgets.Header(parent, spec)
-    local row = Row(parent, 30)
-    local text = Theme():Text(row, 14)
+    local row = Row(parent, 28)
+    local text = T():Text(row, 11, T().colors.muted)
     text:SetPoint("BOTTOMLEFT", 0, 6)
-    text:SetText(spec.label)
-    local line = row:CreateTexture(nil, "ARTWORK")
-    line:SetHeight(1)
-    line:SetPoint("BOTTOMLEFT")
-    line:SetPoint("BOTTOMRIGHT")
-    function row:Refresh()
-        local r, g, b = Theme():Accent()
-        line:SetColorTexture(r, g, b, 0.6)
-    end
+    text:SetText((spec.label or ""):upper())
+    function row:Refresh() end
     return row
 end
 
 function Widgets.Description(parent, spec)
-    local text = Theme():Text(parent, 12, Theme().colors.muted)
     local row = Row(parent, 20)
-    text:SetParent(row)
-    text:SetPoint("TOPLEFT")
+    local text = T():Text(row, 12, T().colors.muted)
+    text:SetPoint("TOPLEFT", 0, -4)
     text:SetPoint("RIGHT")
     text:SetText(spec.label)
     function row:Refresh()
-        self:SetHeight(math.max(16, text:GetStringHeight() + 6))
+        self:SetHeight(math.max(20, text:GetStringHeight() + 10))
     end
     return row
 end
 
+-- On/off switch: pill track, sliding knob, accent when on. Whole row is clickable.
 function Widgets.Toggle(parent, spec)
-    local row = Row(parent, 26)
-    local box = CreateFrame("Button", nil, row)
-    box:SetSize(16, 16)
-    box:SetPoint("LEFT", 0, 0)
-    Theme():Skin(box, Theme().colors.control)
-    local check = box:CreateTexture(nil, "ARTWORK")
-    check:SetPoint("TOPLEFT", 3, -3)
-    check:SetPoint("BOTTOMRIGHT", -3, 3)
-    local label = Theme():Text(row, 12)
-    label:SetPoint("LEFT", box, "RIGHT", 8, 0)
-    label:SetText(spec.label)
-    -- The whole row is clickable, not only the box.
-    local hit = CreateFrame("Button", nil, row)
-    hit:SetPoint("TOPLEFT", box)
-    hit:SetPoint("BOTTOMRIGHT", label, "BOTTOMRIGHT", 4, -4)
-    hit:SetScript("OnClick", function()
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(Widgets.ROW)
+    Label(row, spec)
+    local track = CreateFrame("Frame", nil, row)
+    track:SetSize(34, 18)
+    track:SetPoint("RIGHT", 0, 0)
+    T():Skin(track, T().colors.control)
+    local knob = track:CreateTexture(nil, "ARTWORK")
+    knob:SetSize(12, 12)
+    local hl = row:CreateTexture(nil, "BACKGROUND")
+    hl:SetPoint("TOPLEFT", -8, 0)
+    hl:SetPoint("BOTTOMRIGHT", 8, 0)
+    hl:SetColorTexture(1, 1, 1, 0.025)
+    hl:Hide()
+    row:SetScript("OnEnter", function() hl:Show() end)
+    row:SetScript("OnLeave", function() hl:Hide() end)
+    row:SetScript("OnClick", function()
         if IsDisabled(spec) then return end
         spec.set(not spec.get())
         row:Refresh()
     end)
-    Tooltip(hit, spec)
+    Tooltip(row, spec)
     function row:Refresh()
-        check:SetColorTexture(Theme():Accent())
-        check:SetShown(spec.get() == true)
+        local on = spec.get() == true
+        local r, g, b = T():Accent()
+        knob:ClearAllPoints()
+        if on then
+            T():Skin(track, { r, g, b, 1 }, { r * 0.6, g * 0.6, b * 0.6, 1 })
+            knob:SetPoint("RIGHT", -3, 0)
+            knob:SetColorTexture(1, 1, 1, 1)
+        else
+            T():Skin(track, T().colors.control)
+            knob:SetPoint("LEFT", 3, 0)
+            knob:SetColorTexture(0.55, 0.55, 0.6, 1)
+        end
         SetDim(row, IsDisabled(spec))
     end
     return row
 end
 
--- spec: min, max, step, fmt (e.g. "%.1f")
+-- spec: min, max, step, fmt (e.g. "%.1f"). Accent fill up to the value.
 function Widgets.Slider(parent, spec)
-    local row = Row(parent, 42)
-    local label = Theme():Text(row, 12)
-    label:SetPoint("TOPLEFT")
-    label:SetText(spec.label)
-    local valueText = Theme():Text(row, 12, Theme().colors.muted)
-    valueText:SetPoint("TOPRIGHT")
+    local row = Row(parent)
+    Label(row, spec)
+    local valueText = T():Text(row, 12, T().colors.muted)
+    valueText:SetPoint("RIGHT", 0, 0)
+    valueText:SetWidth(40)
     valueText:SetJustifyH("RIGHT")
 
     local slider = CreateFrame("Slider", nil, row)
     slider:SetOrientation("HORIZONTAL")
-    slider:SetPoint("TOPLEFT", 0, -20)
-    slider:SetPoint("TOPRIGHT", 0, -20)
-    slider:SetHeight(14)
-    Theme():Skin(slider, Theme().colors.control)
+    slider:SetSize(Widgets.CONTROL_W - 48, 16)
+    slider:SetPoint("RIGHT", valueText, "LEFT", -8, 0)
+    local bar = slider:CreateTexture(nil, "BACKGROUND")
+    bar:SetHeight(4)
+    bar:SetPoint("LEFT")
+    bar:SetPoint("RIGHT")
+    bar:SetColorTexture(unpack(T().colors.control))
+    local fill = slider:CreateTexture(nil, "BORDER")
+    fill:SetHeight(4)
+    fill:SetPoint("LEFT", bar, "LEFT")
     local thumb = slider:CreateTexture(nil, "OVERLAY")
-    thumb:SetSize(8, 14)
+    thumb:SetSize(10, 16)
+    thumb:SetColorTexture(1, 1, 1, 1)
     slider:SetThumbTexture(thumb)
-    slider:SetMinMaxValues(spec.min or 0, spec.max or 100)
+    local lo, hi = spec.min or 0, spec.max or 100
+    slider:SetMinMaxValues(lo, hi)
     slider:SetValueStep(spec.step or 1)
     slider:SetObeyStepOnDrag(true)
     slider:EnableMouseWheel(true)
 
     local fmt = spec.fmt or ((spec.step or 1) < 1 and "%.1f" or "%d")
     local updating = false
-    slider:SetScript("OnValueChanged", function(_, value)
+    local function Show(value)
         valueText:SetText(fmt:format(value))
+        local w = slider:GetWidth() * (hi > lo and (value - lo) / (hi - lo) or 0)
+        fill:SetWidth(math.max(1, w))
+    end
+    slider:SetScript("OnValueChanged", function(_, value)
+        Show(value)
         if updating or IsDisabled(spec) then return end
         spec.set(value)
     end)
@@ -131,10 +155,10 @@ function Widgets.Slider(parent, spec)
     Tooltip(slider, spec)
     function row:Refresh()
         updating = true
-        slider:SetValue(spec.get() or spec.min or 0)
-        valueText:SetText(fmt:format(slider:GetValue()))
+        slider:SetValue(spec.get() or lo)
         updating = false
-        thumb:SetColorTexture(Theme():Accent())
+        Show(slider:GetValue())
+        fill:SetColorTexture(T():Accent())
         slider:SetEnabled(not IsDisabled(spec))
         SetDim(row, IsDisabled(spec))
     end
@@ -149,28 +173,42 @@ local function Popup()
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetClampedToScreen(true)
     popup:EnableMouse(true)
-    Theme():Skin(popup, Theme().colors.bg)
+    T():Skin(popup, T().colors.bg)
     popup.buttons = {}
     popup:Hide()
     popup:SetScript("OnHide", function(self) self.owner = nil end)
     return popup
 end
 
+local function DropButton(parent)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetHeight(22)
+    b.hl = b:CreateTexture(nil, "BACKGROUND")
+    b.hl:SetAllPoints()
+    b.hl:SetColorTexture(1, 1, 1, 0.06)
+    b.hl:Hide()
+    b.label = T():Text(b, 12)
+    b.label:SetPoint("LEFT", 10, 0)
+    b.label:SetPoint("RIGHT", -10, 0)
+    b.label:SetWordWrap(false)
+    b:SetScript("OnEnter", function(self) self.hl:Show() end)
+    b:SetScript("OnLeave", function(self) self.hl:Hide() end)
+    return b
+end
+
 -- spec.values: array of values or of { value = , text = }; or a function returning that.
 function Widgets.Dropdown(parent, spec)
-    local row = Row(parent, 46)
-    local label = Theme():Text(row, 12)
-    label:SetPoint("TOPLEFT")
-    label:SetText(spec.label)
-    local button = Theme():Button(row, "", 200, 22)
-    button:SetPoint("TOPLEFT", 0, -18)
+    local row = Row(parent)
+    Label(row, spec)
+    local button = T():Button(row, "", Widgets.CONTROL_W, 24)
     button:SetPoint("RIGHT")
     button.label:ClearAllPoints()
-    button.label:SetPoint("LEFT", 8, 0)
-    button.label:SetPoint("RIGHT", -20, 0)
+    button.label:SetPoint("LEFT", 10, 0)
+    button.label:SetPoint("RIGHT", -22, 0)
     button.label:SetJustifyH("LEFT")
-    local arrow = Theme():Text(button, 12, Theme().colors.muted)
-    arrow:SetPoint("RIGHT", -8, 0)
+    button.label:SetWordWrap(false)
+    local arrow = T():Text(button, 10, T().colors.muted)
+    arrow:SetPoint("RIGHT", -9, 0)
     arrow:SetText("v")
     Tooltip(button, spec)
 
@@ -188,29 +226,25 @@ function Widgets.Dropdown(parent, spec)
         local p = Popup()
         if p:IsShown() and p.owner == button then p:Hide() return end
         p.owner = button
-        local choices = Choices()
+        local choices, current = Choices(), spec.get()
+        local r, g, b = T():Accent()
         for i, c in ipairs(choices) do
-            local b = p.buttons[i]
-            if not b then
-                b = Theme():Button(p, "", 100, 20)
-                Theme():Skin(b, { 0, 0, 0, 0 }, { 0, 0, 0, 0 })
-                b.label:ClearAllPoints()
-                b.label:SetPoint("LEFT", 8, 0)
-                p.buttons[i] = b
-            end
-            b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", 1, -1 - (i - 1) * 20)
-            b:SetPoint("RIGHT", -1, 0)
-            b:SetText(c.text)
-            b:SetScript("OnClick", function()
-                spec.set(c.value)
+            local btn = p.buttons[i] or DropButton(p)
+            p.buttons[i] = btn
+            btn:ClearAllPoints()
+            btn:SetPoint("TOPLEFT", 1, -4 - (i - 1) * 22)
+            btn:SetPoint("RIGHT", -1, 0)
+            btn.label:SetText(c.text)
+            if c.value == current then btn.label:SetTextColor(r, g, b) else btn.label:SetTextColor(unpack(T().colors.text)) end
+            btn:SetScript("OnClick", function()
                 p:Hide()
+                spec.set(c.value)
                 row:Refresh()
             end)
-            b:Show()
+            btn:Show()
         end
         for i = #choices + 1, #p.buttons do p.buttons[i]:Hide() end
-        p:SetSize(button:GetWidth(), #choices * 20 + 2)
+        p:SetSize(button:GetWidth(), math.max(1, #choices) * 22 + 8)
         p:ClearAllPoints()
         p:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -2)
         p:Show()
@@ -230,14 +264,14 @@ end
 
 -- Colour as { r, g, b, a }. spec.hasAlpha shows the opacity slider.
 function Widgets.Color(parent, spec)
-    local row = Row(parent, 26)
+    local row = Row(parent)
+    Label(row, spec)
     local swatch = CreateFrame("Button", nil, row)
-    swatch:SetSize(28, 16)
-    swatch:SetPoint("LEFT")
-    Theme():Skin(swatch, { 1, 1, 1, 1 })
-    local label = Theme():Text(row, 12)
-    label:SetPoint("LEFT", swatch, "RIGHT", 8, 0)
-    label:SetText(spec.label)
+    swatch:SetSize(40, 20)
+    swatch:SetPoint("RIGHT")
+    T():Skin(swatch, { 1, 1, 1, 1 })
+    swatch:SetScript("OnEnter", function(self) T():SetBorderColor(self, 1, 1, 1, 0.8) end)
+    swatch:SetScript("OnLeave", function(self) T():SetBorderColor(self, 0, 0, 0, 1) end)
     Tooltip(swatch, spec)
 
     swatch:SetScript("OnClick", function()
@@ -269,18 +303,15 @@ end
 
 -- Single-line text; commits on Enter or focus loss.
 function Widgets.Input(parent, spec)
-    local row = Row(parent, 46)
-    local label = Theme():Text(row, 12)
-    label:SetPoint("TOPLEFT")
-    label:SetText(spec.label)
+    local row = Row(parent)
+    Label(row, spec)
     local box = CreateFrame("EditBox", nil, row)
-    box:SetPoint("TOPLEFT", 0, -18)
+    box:SetSize(Widgets.CONTROL_W, 24)
     box:SetPoint("RIGHT")
-    box:SetHeight(22)
     box:SetAutoFocus(false)
-    box:SetFont(Theme():Font(), 12, "")
-    box:SetTextInsets(6, 6, 0, 0)
-    Theme():Skin(box, Theme().colors.control)
+    box:SetFont(T():Font(), 12, "")
+    box:SetTextInsets(8, 8, 0, 0)
+    T():Skin(box, T().colors.control)
     local function Commit(self)
         if not IsDisabled(spec) then spec.set(self:GetText()) end
         self:ClearFocus()
@@ -289,6 +320,8 @@ function Widgets.Input(parent, spec)
     box:SetScript("OnEnterPressed", Commit)
     box:SetScript("OnEditFocusLost", Commit)
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() row:Refresh() end)
+    box:SetScript("OnEditFocusGained", function(self) T():SetBorderColor(self, T():Accent()) end)
+    box:HookScript("OnEditFocusLost", function(self) T():SetBorderColor(self, 0, 0, 0, 1) end)
     Tooltip(box, spec)
     function row:Refresh()
         if not box:HasFocus() then box:SetText(spec.get() or "") end
@@ -297,46 +330,46 @@ function Widgets.Input(parent, spec)
     return row
 end
 
--- A row of buttons. spec.buttons = { { label, func, disabled = fn } ... }
+-- A row of buttons. spec.buttons = { { label, func, disabled = fn, width, style } ... }
 function Widgets.ButtonBar(parent, spec)
-    local row = Row(parent, 28)
+    local row = Row(parent)
     local x, buttons = 0, {}
     for i, b in ipairs(spec.buttons) do
-        local btn = Theme():Button(row, b.label, b.width or 110, 22)
+        local btn = T():Button(row, b.label, b.width or 96, 24, b.style)
         btn:SetPoint("LEFT", x, 0)
         btn:SetScript("OnClick", function() if not (b.disabled and b.disabled()) then b.func() end end)
-        x = x + (b.width or 110) + 6
+        x = x + (b.width or 96) + 6
         buttons[i] = btn
     end
     function row:Refresh()
-        for i, b in ipairs(spec.buttons) do buttons[i]:SetAlpha(b.disabled and b.disabled() and 0.45 or 1) end
+        for i, b in ipairs(spec.buttons) do buttons[i]:SetAlpha(b.disabled and b.disabled() and 0.4 or 1) end
     end
     return row
 end
 
 -- Text plus one button; spec.text() returns the line or nil (row shows spec.empty).
 function Widgets.ActionRow(parent, spec)
-    local row = Row(parent, 26)
-    local btn = Theme():Button(row, spec.buttonLabel, 90, 20)
+    local row = Row(parent, 32)
+    local btn = T():Button(row, spec.buttonLabel, 84, 22)
     btn:SetPoint("RIGHT")
-    local text = Theme():Text(row, 12)
+    local text = T():Text(row, 12)
     text:SetPoint("LEFT")
-    text:SetPoint("RIGHT", btn, "LEFT", -8, 0)
+    text:SetPoint("RIGHT", btn, "LEFT", -10, 0)
     text:SetWordWrap(false)
     btn:SetScript("OnClick", function() if spec.text() then spec.func() end end)
     function row:Refresh()
         local t = spec.text()
         text:SetText(t or spec.empty or "")
-        text:SetTextColor(unpack(t and Theme().colors.text or Theme().colors.muted))
+        text:SetTextColor(unpack(t and T().colors.text or T().colors.faint))
         btn:SetShown(t ~= nil)
     end
     return row
 end
 
--- spec: label, func, width
+-- spec: label, func, width, style ("accent" for the main action)
 function Widgets.Button(parent, spec)
-    local row = Row(parent, 28)
-    local b = Theme():Button(row, spec.label, spec.width or 160, 22)
+    local row = Row(parent)
+    local b = T():Button(row, spec.label, spec.width or 160, 24, spec.style)
     b:SetPoint("LEFT")
     b:SetScript("OnClick", function() if not IsDisabled(spec) then spec.func() end end)
     Tooltip(b, spec)

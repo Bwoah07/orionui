@@ -17,6 +17,7 @@ ns.Movers = Movers
 
 local M = ns.Modules:New("EditMode", {
     category = "general", label = L["Edit mode"], order = 90,
+    desc = L["Move OrionUI's frames. With EllesmereUI loaded they also appear in its Unlock Mode."],
     profileKey = "layout",
     schema = S.Table{ fields = {
         enabled = S.Bool{ default = true, hidden = true }, -- edit mode can't be switched off
@@ -27,7 +28,7 @@ local M = ns.Modules:New("EditMode", {
         } } },
     } },
     options = function()
-        return { { type = "Button", label = L["Open edit mode"], func = function() ns.EditMode:Toggle() end } }
+        return { { type = "Button", label = L["Open edit mode"], style = "accent", func = function() ns.EditMode:Toggle() end } }
     end,
 })
 Movers.module = M

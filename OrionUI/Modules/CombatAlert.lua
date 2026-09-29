@@ -9,6 +9,7 @@ local S = ns.Schema
 
 local M = ns.Modules:New("CombatAlert", {
     category = "qol", label = L["Combat alert"],
+    desc = L["A short message in the middle of the screen when you enter or leave combat."],
     profileKey = "layout",
     schema = S.Table{ fields = {
         showEnter = S.Bool{ default = true, label = L["Show when entering combat"], order = 1 },

@@ -22,6 +22,7 @@ local function Create()
     frame:SetClampedToScreen(true)
     tinsert(UISpecialFrames, "OrionUICopyBox")
     T:Skin(frame, T.colors.bg)
+    T:Shadow(frame)
 
     frame.title = T:Text(frame, 14)
     frame.title:SetPoint("TOPLEFT", 12, -10)
@@ -30,14 +31,14 @@ local function Create()
     frame.hint:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -4)
     frame.hint:SetPoint("RIGHT", -40, 0)
 
-    local close = T:Button(frame, "X", 22, 22)
-    close:SetPoint("TOPRIGHT", -6, -6)
+    local close = T:TextButton(frame, "x", 16)
+    close:SetPoint("TOPRIGHT", -8, -6)
     close:SetScript("OnClick", function() frame:Hide() end)
 
     local box = CreateFrame("Frame", nil, frame)
     box:SetPoint("TOPLEFT", 12, -52)
     box:SetPoint("BOTTOMRIGHT", -12, 44)
-    T:Skin(box, T.colors.panel)
+    T:Skin(box, T.colors.sidebar)
 
     local scroll = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 6, -6)
@@ -58,7 +59,7 @@ local function Create()
     box:SetScript("OnMouseDown", function() edit:SetFocus() end)
     frame.edit = edit
 
-    frame.action = T:Button(frame, "", 140, 24)
+    frame.action = T:Button(frame, "", 140, 26, "accent")
     frame.action:SetPoint("BOTTOMRIGHT", -12, 12)
 
     frame.status = T:Text(frame, 11, T.colors.muted)

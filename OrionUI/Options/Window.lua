@@ -1,6 +1,7 @@
 -- The options window (CLAUDE.md §9.1): sidebar grouped by category, pages built from
 -- module schemas, hand-written pages for complex editors, and a search box across all
--- option labels. Created lazily on first open.
+-- option labels. Pages are laid out as a title plus cards of "label | control" rows.
+-- Created lazily on first open.
 local _, ns = ...
 
 local L = ns.L
@@ -14,40 +15,88 @@ local CATEGORIES = {
     { key = "qol",       label = L["Quality of life"] },
     { key = "profiles",  label = L["Profiles"] },
 }
-local WIDTH, HEIGHT, SIDEBAR = 860, 580, 190
-local ROW_GAP = 6
+local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 900, 600, 200, 52
+local PAD, CARD_GAP = 16, 20
 
 local frame, current
 
--- Hand-written page: { category, label, order, build(container, addRows, width) -> height,
--- refresh(container) optional }. addRows(specs, y) lays out standard widgets.
+-- Hand-written page: { category, label, order, desc, build(container, addRows, width) -> height,
+-- refresh(container) optional }. addRows(specs, y) lays out standard widgets and cards.
 function Options:RegisterPage(id, page)
     page.id = id
     self.pages[id] = page
 end
 
 ---------------------------------------------------------------------------
--- Page content. Every page is built once into its own container and afterwards only
--- refreshed: WoW never frees frames, so rebuilding on every visit would leak.
+-- Layout: Title / Header (starts a new card) / any widget row (goes in the current card).
+-- Every page is built once into its own container and afterwards only refreshed:
+-- WoW never frees frames, so rebuilding on every visit would leak.
 ---------------------------------------------------------------------------
 
 local cache = {} -- id -> { container, rows }
 
--- Lays out widget specs top to bottom in `container`; returns the y after the last row.
+local function Divider(container, y)
+    local t = container:CreateTexture(nil, "BORDER")
+    t:SetColorTexture(unpack(ns.Theme.colors.line))
+    t:SetHeight(1)
+    t:SetPoint("TOPLEFT", PAD, -y)
+    t:SetPoint("TOPRIGHT", -PAD, -y)
+end
+
 local function AddRows(container, rows, specs, y)
+    local T, width = ns.Theme, frame.contentWidth
+    local cardTop, inCard, rowsInCard = 0, false, 0
+    local function Open()
+        cardTop, inCard, rowsInCard = y, true, 0
+        y = y + 6
+    end
+    local function Close()
+        if not inCard then return end
+        y = y + 6
+        T:Box(container):Place(0, cardTop, width, y - cardTop)
+        inCard = false
+        y = y + CARD_GAP
+    end
     for _, spec in ipairs(specs) do
-        local ctor = ns.Widgets[spec.type]
-        if ctor then
-            local row = ctor(container, spec)
-            row.spec = spec
-            row:SetPoint("TOPLEFT", 0, -y)
-            row:SetWidth(frame.contentWidth)
-            row:Refresh()
-            row.homeY = y
-            rows[#rows + 1] = row
-            y = y + row:GetHeight() + ROW_GAP
+        if spec.type == "Title" then
+            Close()
+            local title = T:Text(container, 20)
+            title:SetPoint("TOPLEFT", 0, -y)
+            title:SetText(spec.label)
+            y = y + 28
+            if spec.desc then
+                local d = T:Text(container, 12, T.colors.muted)
+                d:SetPoint("TOPLEFT", 0, -y)
+                d:SetWidth(width)
+                d:SetText(spec.desc)
+                y = y + d:GetStringHeight() + 6
+            end
+            y = y + 14
+        elseif spec.type == "Header" then
+            Close()
+            local h = T:Text(container, 11, T.colors.muted)
+            h:SetPoint("TOPLEFT", 2, -y)
+            h:SetText(spec.label:upper())
+            y = y + 20
+            Open()
+        else
+            local ctor = ns.Widgets[spec.type]
+            if ctor then
+                if not inCard then Open() end
+                if rowsInCard > 0 then Divider(container, y) end
+                local row = ctor(container, spec)
+                row.spec = spec
+                row:SetPoint("TOPLEFT", PAD, -y)
+                row:SetWidth(width - 2 * PAD)
+                row:Refresh()
+                row.homeY = y
+                rows[#rows + 1] = row
+                rowsInCard = rowsInCard + 1
+                y = y + row:GetHeight()
+            end
         end
     end
+    Close()
     return y
 end
 
@@ -59,9 +108,13 @@ local function NewContainer()
 end
 
 local function ModuleSpecs(M)
-    local specs = { { type = "Header", label = M.label } }
-    for _, s in ipairs(ns.OptionsBuilder:Specs(M)) do specs[#specs + 1] = s end
+    local specs = { { type = "Title", label = M.label, desc = M.desc } }
+    local body = ns.OptionsBuilder:Specs(M)
+    -- Settings before the first section heading go in a "General" card.
+    if body[1] and body[1].type ~= "Header" then specs[#specs + 1] = { type = "Header", label = L["Settings"] } end
+    for _, s in ipairs(body) do specs[#specs + 1] = s end
     if M.profileKey then
+        specs[#specs + 1] = { type = "Header", label = L["Reset"] }
         specs[#specs + 1] = { type = "Button", label = L["Reset this module"], func = function()
             ns.Dialog:Confirm(L["Reset all settings of"] .. " " .. M.label .. "?\n" .. L["A backup is made first."], function()
                 M:ResetSettings()
@@ -85,7 +138,7 @@ local function Build(id)
     else
         height = AddRows(entry.container, entry.rows, ModuleSpecs(M), 0)
     end
-    entry.container:SetHeight(math.max(height or 1, 1))
+    entry.container:SetHeight(math.max((height or 0) + 8, 1))
     cache[id] = entry
     return entry
 end
@@ -97,37 +150,42 @@ local function ReturnSearchRows()
     for _, row in ipairs(search.rows) do
         row:SetParent(row.home)
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", 0, -row.homeY)
+        row:SetPoint("TOPLEFT", PAD, -row.homeY)
     end
     wipe(search.rows)
 end
 
 local function ShowSearch(query)
-    search.container = search.container or NewContainer()
-    local c = search.container
-    if not search.title then
-        search.title = ns.Theme:Text(c, 14)
+    local T = ns.Theme
+    if not search.container then
+        search.container = NewContainer()
+        search.title = T:Text(search.container, 20)
         search.title:SetPoint("TOPLEFT")
+        search.box = T:Box(search.container)
     end
+    local c = search.container
     query = query:lower()
-    local y = 26
+    local y = 48
     for _, M in ns.Modules:Iterate() do
         local entry = (M.profileKey or M.options) and Build(M.name)
         for _, row in ipairs(entry and entry.rows or {}) do
             local label = row.spec.label
-            if row.spec.type ~= "Header" and type(label) == "string" and label:lower():find(query, 1, true) then
+            if row.spec.type ~= "Description" and type(label) == "string" and label:lower():find(query, 1, true) then
                 row.home = entry.container
                 row:SetParent(c)
                 row:ClearAllPoints()
-                row:SetPoint("TOPLEFT", 0, -y)
+                row:SetPoint("TOPLEFT", PAD, -y)
                 row:Refresh()
                 search.rows[#search.rows + 1] = row
-                y = y + row:GetHeight() + ROW_GAP
+                y = y + row:GetHeight()
             end
         end
     end
-    search.title:SetText(#search.rows > 0 and (L["Search"] .. ": " .. query) or L["Nothing matches."])
-    c:SetHeight(y)
+    local found = #search.rows > 0
+    search.title:SetText(found and (L["Results for"] .. " \"" .. query .. "\"") or L["Nothing matches."])
+    search.box:SetShown(found)
+    if found then search.box:Place(0, 42, frame.contentWidth, y - 42 + 6) end
+    c:SetHeight(y + 14)
     return c
 end
 
@@ -154,7 +212,7 @@ function Options:Show(target)
     frame.scroll:SetScrollChild(container)
     container:Show()
     frame.shown = container
-    frame.scroll:SetVerticalScroll(0)
+    frame.scroll:ScrollTo(0)
     self:RefreshSidebar()
 end
 
@@ -190,16 +248,18 @@ end
 
 local function SidebarButton(bar)
     local T = ns.Theme
-    local btn = T:Button(bar, "", SIDEBAR - 12, 24)
-    T:Skin(btn, { 0, 0, 0, 0 }, { 0, 0, 0, 0 })
-    btn:SetScript("OnEnter", nil) -- no accent border on sidebar entries
-    btn:SetScript("OnLeave", nil)
-    btn.label:ClearAllPoints()
-    btn.label:SetPoint("LEFT", 14, 0)
-    btn.mark = btn:CreateTexture(nil, "OVERLAY")
+    local btn = CreateFrame("Button", nil, bar)
+    btn:SetSize(SIDEBAR - 16, 28)
+    btn.bg = btn:CreateTexture(nil, "BACKGROUND")
+    btn.bg:SetAllPoints()
+    btn.mark = btn:CreateTexture(nil, "ARTWORK")
     btn.mark:SetPoint("TOPLEFT")
     btn.mark:SetPoint("BOTTOMLEFT")
-    btn.mark:SetWidth(3)
+    btn.mark:SetWidth(2)
+    btn.label = T:Text(btn, 13)
+    btn.label:SetPoint("LEFT", 14, 0)
+    btn:SetScript("OnEnter", function(self) if not self.selected then self.bg:SetColorTexture(1, 1, 1, 0.04) end end)
+    btn:SetScript("OnLeave", function(self) if not self.selected then self.bg:SetColorTexture(0, 0, 0, 0) end end)
     return btn
 end
 
@@ -207,39 +267,48 @@ function Options:RefreshSidebar()
     local T, bar = ns.Theme, frame.sidebar
     for _, b in ipairs(bar.buttons) do b:Hide() end
     for _, h in ipairs(bar.headers) do h:Hide() end
-    local byCat, y, nb, nh = Entries(), 10, 0, 0
+    local byCat, y, nb, nh = Entries(), 14, 0, 0
     local r, g, b = T:Accent()
     local searching = frame.search:GetText() ~= ""
     for _, cat in ipairs(CATEGORIES) do
         local list = byCat[cat.key]
         if list and #list > 0 then
-            nh = nh + 1
-            local h = bar.headers[nh] or T:Text(bar, 11, T.colors.muted)
-            bar.headers[nh] = h
-            h:ClearAllPoints()
-            h:SetPoint("TOPLEFT", 14, -y)
-            h:SetText(cat.label:upper())
-            h:Show()
-            y = y + 18
+            -- A category holding one page of the same name needs no heading.
+            if not (#list == 1 and list[1].label == cat.label) then
+                nh = nh + 1
+                local h = bar.headers[nh] or T:Text(bar, 10, T.colors.faint)
+                bar.headers[nh] = h
+                h:ClearAllPoints()
+                h:SetPoint("TOPLEFT", 22, -y)
+                h:SetText(cat.label:upper())
+                h:Show()
+                y = y + 20
+            end
             for _, e in ipairs(list) do
                 nb = nb + 1
                 local btn = bar.buttons[nb] or SidebarButton(bar)
                 bar.buttons[nb] = btn
                 btn:ClearAllPoints()
-                btn:SetPoint("TOPLEFT", 6, -y)
-                btn:SetText(e.label)
-                local selected = e.id == current and not searching
+                btn:SetPoint("TOPLEFT", 8, -y)
+                btn.label:SetText(e.label)
+                btn.selected = e.id == current and not searching
                 btn.mark:SetColorTexture(r, g, b, 1)
-                btn.mark:SetShown(selected)
-                btn.label:SetTextColor(unpack(selected and T.colors.text or T.colors.muted))
+                btn.mark:SetShown(btn.selected)
+                if btn.selected then
+                    btn.bg:SetColorTexture(r, g, b, 0.12)
+                    btn.label:SetTextColor(unpack(T.colors.text))
+                else
+                    btn.bg:SetColorTexture(0, 0, 0, 0)
+                    btn.label:SetTextColor(unpack(T.colors.muted))
+                end
                 btn:SetScript("OnClick", function()
                     frame.search:SetText("")
                     Options:Show(e.id)
                 end)
                 btn:Show()
-                y = y + 26
+                y = y + 30
             end
-            y = y + 10
+            y = y + 14
         end
     end
 end
@@ -258,60 +327,85 @@ function Options:Create()
     frame:EnableMouse(true)
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     tinsert(UISpecialFrames, "OrionUIOptions")
     T:Skin(frame, T.colors.bg)
+    T:Shadow(frame)
 
-    local title = T:Text(frame, 16)
-    title:SetPoint("TOPLEFT", 16, -14)
+    -- Title bar (drag handle)
+    local titleBar = CreateFrame("Frame", nil, frame)
+    titleBar:SetPoint("TOPLEFT")
+    titleBar:SetPoint("TOPRIGHT")
+    titleBar:SetHeight(TITLEBAR)
+    titleBar:EnableMouse(true)
+    titleBar:RegisterForDrag("LeftButton")
+    titleBar:SetScript("OnDragStart", function() frame:StartMoving() end)
+    titleBar:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
+    local line = titleBar:CreateTexture(nil, "BORDER")
+    line:SetColorTexture(unpack(T.colors.line))
+    line:SetHeight(1)
+    line:SetPoint("BOTTOMLEFT", 1, 0)
+    line:SetPoint("BOTTOMRIGHT", -1, 0)
+
+    frame.logo = titleBar:CreateTexture(nil, "ARTWORK")
+    frame.logo:SetSize(10, 10)
+    frame.logo:SetPoint("LEFT", 20, 0)
+    local title = T:Text(titleBar, 17)
+    title:SetPoint("LEFT", frame.logo, "RIGHT", 10, 0)
     title:SetText(ns.NAME)
-    local version = T:Text(frame, 11, T.colors.muted)
-    version:SetPoint("BOTTOMLEFT", title, "BOTTOMRIGHT", 8, 1)
-    version:SetText(ns.IS_DEV and "dev" or ns.VERSION)
-    frame.accentLine = frame:CreateTexture(nil, "ARTWORK")
-    frame.accentLine:SetHeight(1)
-    frame.accentLine:SetPoint("TOPLEFT", 1, -44)
-    frame.accentLine:SetPoint("TOPRIGHT", -1, -44)
+    local version = T:Text(titleBar, 11, T.colors.faint)
+    version:SetPoint("LEFT", title, "RIGHT", 10, -1)
+    version:SetText(ns.IS_DEV and "development build" or ("v" .. ns.VERSION))
 
-    local close = T:Button(frame, "X", 24, 24)
-    close:SetPoint("TOPRIGHT", -10, -10)
+    local close = T:TextButton(titleBar, "x", 16)
+    close:SetPoint("RIGHT", -12, 1)
     close:SetScript("OnClick", function() frame:Hide() end)
 
-    local searchBox = CreateFrame("EditBox", nil, frame)
-    searchBox:SetSize(220, 22)
-    searchBox:SetPoint("RIGHT", close, "LEFT", -10, 0)
+    local searchBox = CreateFrame("EditBox", nil, titleBar)
+    searchBox:SetSize(240, 26)
+    searchBox:SetPoint("RIGHT", close, "LEFT", -12, -1)
     searchBox:SetAutoFocus(false)
     searchBox:SetFont(T:Font(), 12, "")
-    searchBox:SetTextInsets(8, 8, 0, 0)
-    T:Skin(searchBox, T.colors.control)
-    searchBox.placeholder = T:Text(searchBox, 12, T.colors.muted)
-    searchBox.placeholder:SetPoint("LEFT", 8, 0)
-    searchBox.placeholder:SetText(L["Search options"])
+    searchBox:SetTextInsets(10, 10, 0, 0)
+    T:Skin(searchBox, T.colors.sidebar)
+    searchBox.placeholder = T:Text(searchBox, 12, T.colors.faint)
+    searchBox.placeholder:SetPoint("LEFT", 10, 0)
+    searchBox.placeholder:SetText(L["Search settings"])
     searchBox:SetScript("OnTextChanged", function(self)
         self.placeholder:SetShown(self:GetText() == "")
         if self.timer then self.timer:Cancel() end
         self.timer = C_Timer.NewTimer(0.2, function() Options:Show(current) end)
     end)
+    searchBox:SetScript("OnEditFocusGained", function(self) T:SetBorderColor(self, T:Accent()) end)
+    searchBox:SetScript("OnEditFocusLost", function(self) T:SetBorderColor(self, 0, 0, 0, 1) end)
     searchBox:SetScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
     frame.search = searchBox
 
+    -- Sidebar
     local sidebar = CreateFrame("Frame", nil, frame)
-    sidebar:SetPoint("TOPLEFT", 1, -45)
+    sidebar:SetPoint("TOPLEFT", 1, -(TITLEBAR + 1))
     sidebar:SetPoint("BOTTOMLEFT", 1, 1)
     sidebar:SetWidth(SIDEBAR)
-    T:Skin(sidebar, T.colors.panel, { 0, 0, 0, 0 })
+    local sbg = sidebar:CreateTexture(nil, "BACKGROUND")
+    sbg:SetAllPoints()
+    sbg:SetColorTexture(unpack(T.colors.sidebar))
+    local sline = sidebar:CreateTexture(nil, "BORDER")
+    sline:SetColorTexture(unpack(T.colors.line))
+    sline:SetWidth(1)
+    sline:SetPoint("TOPRIGHT")
+    sline:SetPoint("BOTTOMRIGHT")
     sidebar.buttons, sidebar.headers = {}, {}
     frame.sidebar = sidebar
 
-    local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 20, -14)
-    scroll:SetPoint("BOTTOMRIGHT", -30, 14)
-    frame.contentWidth = WIDTH - SIDEBAR - 20 - 30 - 14
+    -- Content
+    local scroll = T:Scroll(frame)
+    scroll:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 28, -24)
+    scroll:SetPoint("BOTTOMRIGHT", -30, 20)
+    frame.contentWidth = WIDTH - SIDEBAR - 28 - 30 - 2
     frame.scroll = scroll
 
-    frame:SetScript("OnShow", function() frame.accentLine:SetColorTexture(T:Accent()) end)
+    frame:SetScript("OnShow", function()
+        frame.logo:SetColorTexture(T:Accent())
+    end)
     frame:Hide()
 end
 

@@ -77,6 +77,7 @@ function Modules:New(name, spec)
     local M = setmetatable({
         name = name,
         label = spec.label or name,
+        desc = spec.desc, -- one sentence under the page title
         category = spec.category or "general",
         order = spec.order or 100,
         profileKey = spec.profileKey,

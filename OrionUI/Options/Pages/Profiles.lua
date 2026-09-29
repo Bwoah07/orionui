@@ -128,8 +128,10 @@ end
 ns.Options:RegisterPage("profiles", {
     category = "profiles", label = L["Profiles"], order = 1,
     build = function(_, addRows)
-        local y = addRows(StoreSpecs("layout"), 0)
-        y = addRows(StoreSpecs("reminders"), y + 12)
-        return addRows(BackupSpecs(), y + 12)
+        local y = addRows({ { type = "Title", label = L["Profiles"],
+            desc = L["Each character picks its own profiles. Share a setup by exporting a string and importing it elsewhere."] } }, 0)
+        y = addRows(StoreSpecs("layout"), y)
+        y = addRows(StoreSpecs("reminders"), y)
+        return addRows(BackupSpecs(), y)
     end,
 })
