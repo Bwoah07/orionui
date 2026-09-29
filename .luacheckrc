@@ -2,7 +2,7 @@
 std = "lua51"
 max_line_length = false
 codes = true
-exclude_files = { "**/Libs/**", "tests/mocks/**" }
+exclude_files = { "**/Libs/**", "tests/mocks/**", "tools/**" }
 ignore = {
     "212/self", -- unused self in methods
     "211/ADDON_NAME", -- `local ADDON_NAME, ns = ...` header in every file
@@ -11,6 +11,7 @@ ignore = {
 globals = {
     "OrionUIDB", "OrionUICharDB", "OrionUIAPI", "OrionUIDevDB",
     "SLASH_OUIDEV1", "SLASH_ORIONUI1", "SlashCmdList",
+    "OrionUI_OnAddonCompartmentClick", -- named by the TOC (AddonCompartmentFunc)
 }
 
 -- WoW API we read. Add to this list when a new API is verified against wow-ui-source.
@@ -19,7 +20,9 @@ read_globals = {
     "C_AddOns", "C_ChallengeMode", "C_CombatLog", "C_CurveUtil", "C_EncounterJournal",
     "C_EncounterTimeline", "C_RestrictedActions", "C_Secrets", "C_SpecializationInfo",
     "C_Spell", "C_SpellBook", "C_Timer", "C_UnitAuras",
-    "ChatFontNormal", "CreateFrame", "Enum", "UIParent", "UISpecialFrames",
+    "ChatFontNormal", "CreateFrame", "Enum", "UIParent", "UISpecialFrames", "LibStub",
+    "GameTooltip", "ColorPickerFrame", "OKAY", "CANCEL", "STANDARD_TEXT_FONT", "IsShiftKeyDown",
+    "UnitClass", "UnitFullName", "GetNormalizedRealmName", "debugstack", "time",
     "EJ_GetDifficulty", "EJ_GetEncounterInfo", "EJ_GetEncounterInfoByIndex", "EJ_GetInstanceInfo",
     "EJ_SelectEncounter", "EJ_SelectInstance",
     "GetBuildInfo", "GetInstanceInfo", "GetTime", "InCombatLockdown", "IsEncounterInProgress",

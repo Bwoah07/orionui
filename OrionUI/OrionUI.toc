@@ -7,6 +7,45 @@
 ## SavedVariables: OrionUIDB
 ## SavedVariablesPerCharacter: OrionUICharDB
 ## OptionalDeps: EllesmereUI, BigWigs, DBM-Core
+## AddonCompartmentFunc: OrionUI_OnAddonCompartmentClick
 
-# Phase 1 adds the rest of Core/ here (CLAUDE.md §18).
+# Libraries (fetched by .pkgmeta; tools/fetch-libs.sh for local dev)
+Libs\LibStub\LibStub.lua
+Libs\LibSerialize\LibSerialize.lua
+Libs\LibDeflate\LibDeflate.lua
+
 Core\Init.lua
+Locales\enUS.lua
+Core\Util.lua
+Core\Log.lua
+Core\SafeCall.lua
+Core\Secret.lua
+Core\Events.lua
+Core\Combat.lua
+Core\Schema.lua
+Core\DB.lua
+Core\Profiles.lua
+Core\Modules.lua
+Core\Pool.lua
+Core\Media.lua
+Core\Serialize.lua
+Core\ProfileIO.lua
+Core\API.lua
+Core\Slash.lua
+
+UI\Theme.lua
+UI\CopyBox.lua
+UI\Dialog.lua
+
+Options\Widgets.lua
+Options\Builder.lua
+Options\Window.lua
+Options\Pages\Profiles.lua
+
+EditMode\Movers.lua
+EditMode\EditMode.lua
+
+Modules\CombatAlert.lua
+
+# Last: starts everything on PLAYER_LOGIN
+Core\Boot.lua

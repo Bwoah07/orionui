@@ -232,8 +232,9 @@ repo-root/
 │
 ├── OrionUI/                       ← THE CORE ADDON (phase 1)
 │   ├── OrionUI.toc
-│   ├── Libs/                      ← LibStub, CallbackHandler-1.0, LibSharedMedia-3.0,
-│   │                                 LibSerialize, LibDeflate (fetched via .pkgmeta)
+│   ├── Libs/                      ← LibStub, LibSerialize, LibDeflate (fetched via .pkgmeta;
+│   │                                 tools/fetch-libs.sh for local dev). LibSharedMedia is used
+│   │                                 when present (EUI loads it) but not embedded.
 │   ├── Locales/
 │   │   └── enUS.lua               ← all user-facing strings go through L[]
 │   ├── Core/
@@ -251,7 +252,12 @@ repo-root/
 │   │   ├── Modules.lua            ← module registry + lifecycle (§6.2)
 │   │   ├── Media.lua              ← LibSharedMedia registrations of OUR media
 │   │   ├── Pool.lua               ← frame pools for bars/icons
-│   │   └── API.lua                ← public global _G.OrionUIAPI (§10.5)
+│   │   ├── ProfileIO.lua          ← import/export pipeline with validation report
+│   │   ├── API.lua                ← public global _G.OrionUIAPI (§10.5)
+│   │   ├── Slash.lua              ← /oui command registry
+│   │   └── Boot.lua               ← PLAYER_LOGIN startup (loaded last)
+│   ├── UI/                        ← Theme (EUI accent/font), CopyBox, Dialog
+│   ├── Modules/                   ← small self-contained feature modules (CombatAlert = reference module)
 │   ├── Integrations/
 │   │   ├── EllesmereUI.lua        ← detection, accent/font/theme read, RegisterSkin,
 │   │   │                             anchoring to EUI CDM/aura groups (§9.3)
@@ -302,7 +308,8 @@ repo-root/
 │   │   ├── Builder.lua            ← builds pages from module option schemas (§9.1)
 │   │   └── Pages/                 ← hand-written pages where the builder isn't enough
 │   ├── EditMode/
-│   │   └── Movers.lua             ← movable-frame registry, grid, snapping (§9.2)
+│   │   ├── Movers.lua             ← movable-frame registry, positions, EUI Unlock Mode (§9.2)
+│   │   └── EditMode.lua           ← our own edit mode: grid, drag, nudge, reset
 │   └── Media/
 │       ├── Textures/              ← our own .tga textures (power-of-two sizes)
 │       ├── Fonts/                 ← only fonts we are licensed to redistribute
@@ -791,9 +798,11 @@ should expose `ImportProfile(string, name)` / `ExportProfile()` like our own API
 
 - A registry of movable frames with grid, snapping, nudge, and reset-position.
 - Positions stored in the layout profile, relative to screen center or to an anchor frame.
-- [VERIFY] whether EUI's `EllesmereUI:RegisterUnlockElements(elements, folder)` accepts third-party
-  callers. If yes, register our frames so they appear in EUI's Unlock Mode (ideal). If it is
-  whitelisted like `RegisterModule`, use our own edit mode and ask Ellesmere.
+- EUI's `EllesmereUI:RegisterUnlockElements(elements, folder)` has **no caller whitelist** (checked in
+  EUI_UnlockMode.lua, 2026-09-29). `EditMode/Movers.lua` registers every mover there when EUI is loaded,
+  and we also ship our own edit mode (`/oui edit`) for users without EUI. Element contract:
+  `savePosition(key, point, relPoint, x, y, ...)`, `loadPosition(key) -> {point, relPoint, x, y}`,
+  `clearPosition(key)`, `applyPosition(key)`, `getFrame()`, `getSize()`.
 
 ### 9.3 EllesmereUI integration
 
@@ -1113,7 +1122,8 @@ without; with BigWigs, with DBM, with neither.
 1. `OrionUI_Dev` with the secrets/restrictions/aura/threat/bossmod probes (§16.2). Stig runs them.
 2. Repo scaffolding: folders, TOCs, `.pkgmeta`, `.luacheckrc`, CI, busted setup, `.gitignore`.
 
-**Phase 1: Core framework** (`OrionUI/Core`)
+**Phase 1: Core framework** (`OrionUI/Core`). Built 2026-09-29; unit tests in tests/spec/core_spec.lua.
+Waiting on Stig's in-game check before Phase 2.
 3. Init, Util, Log, SafeCall, Secret, Events, Combat, Schema, DB, Modules, Pool, Media.
 4. Profiles (two stores) + Serialize + backups + public API.
 5. Options window + widget factory + schema-driven builder + slash commands.
