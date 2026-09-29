@@ -1,13 +1,10 @@
--- ns.Describe must never turn a secret into text (CLAUDE.md §4). Loads only the pure
--- helper part of OrionUI_Dev/Core.lua by stubbing the frame API it touches at load.
+-- ns.Describe must never turn a secret into text (CLAUDE.md §4). Loads only
+-- OrionUI_Dev/Core.lua; the mock's CreateFrame covers the event frame it makes.
 local mock = WowMock
 
 describe("OrionUI_Dev Describe", function()
     local ns
     setup(function()
-        _G.CreateFrame = function()
-            return { RegisterEvent = function() end, SetScript = function() end }
-        end
         ns = mock.LoadAddonFile("OrionUI_Dev/Core.lua", "OrionUI_Dev", {})
     end)
 

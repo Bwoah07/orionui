@@ -268,6 +268,7 @@ repo-root/
 │   │   ├── JournalCatalog.lua     ← Encounter Journal scraping + cache (§7.3)
 │   │   ├── BossModBridge.lua      ← merges adapters, dedupe, lifecycle (§7.4)
 │   │   ├── MechanicRegistry.lua   ← InternalMechanic objects, ID translation (§7.5)
+│   │   ├── EncounterMonitor.lua   ← debug list of live mechanics, /oui test reminder, /oui catalog
 │   │   └── TankOwnership.lua      ← bossN ownership, threat, grace, fail-open (§7.6)
 │   ├── Reminders/
 │   │   ├── DefensiveResolver.lua  ← preset chain + readiness strategy + coverage (§7.7)
@@ -296,11 +297,9 @@ repo-root/
 │   │   ├── Warrior/Protection.lua
 │   │   └── Druid/Guardian.lua
 │   ├── Data/                      ← ALL AUTHORED BY US (§7.12)
-│   │   ├── Defensives.lua         ← per-spec defensive catalog
-│   │   ├── DefensivePresets.lua   ← default per-spec priority lists
-│   │   ├── TankbusterOverrides.lua← mechanics the Journal mis-tags
-│   │   ├── OwnerUnits.lua         ← mechanic → bossN owner mapping
-│   │   └── BossModIDMap.lua       ← BigWigs key ↔ DBM key ↔ journal spell
+│   │   ├── Defensives.lua         ← per-spec defensive catalog (phase 3)
+│   │   ├── DefensivePresets.lua   ← default per-spec priority lists (phase 3)
+│   │   └── Encounters.lua         ← TankbusterOverrides, OwnerUnits, BossModIDMap (Journal exceptions)
 │   ├── QoL/                       ← small features, each a module (§8.5)
 │   ├── Options/
 │   │   ├── Window.lua             ← main options frame
@@ -418,11 +417,13 @@ Internal messages are prefixed `OUI_`. Canonical internal messages (keep this li
 | `OUI_RESTRICTION_CHANGED` | `type, state` | Combat |
 | `OUI_COMBAT_START` / `OUI_COMBAT_END` | — | Combat |
 | `OUI_SPEC_CHANGED` | `specID, role` | Core |
+| `OUI_INSTANCE_CHANGED` | `{ name, instanceType, difficultyID, instanceMapID, journalInstanceID }` | EncounterManager |
 | `OUI_ENCOUNTER_START` | `EncounterInfo` | EncounterManager |
 | `OUI_ENCOUNTER_END` | `EncounterInfo, success` | EncounterManager |
 | `OUI_MECHANIC_TIMER` | `MechanicEvent` | BossModBridge |
 | `OUI_MECHANIC_MESSAGE` | `MechanicEvent` | BossModBridge |
-| `OUI_MECHANIC_CANCEL` | `mechanicKey` or `nil` (=all) | BossModBridge |
+| `OUI_MECHANIC_CANCEL` | `MechanicEvent` or `nil` (=all) | BossModBridge |
+| `OUI_MECHANIC_TEST` | — | BossModBridge (`/oui test reminder`) |
 | `OUI_REMINDER_SHOW` / `OUI_REMINDER_HIDE` | `Reminder` | Scheduler |
 
 Handlers are called via `SafeCall`. Bursty events (e.g. `UNIT_AURA`, nameplate events) should
@@ -604,6 +605,10 @@ which boss mod is installed.
   will broadcast, which is more reliable than assuming every Journal spell produces a boss-mod event.
 - Treat trash modules ("Trash", "Common Trash") as **not boss-owned**. Kira gated trash rows
   behind boss engagement by mistake.
+- **Verified in game (2026-09-29):** BigWigs keys and durations stay plain even while Blizzard's own
+  timeline hides spell IDs; every BigWigs bar arrives as both `BigWigs_StartBar` and `BigWigs_Timer`;
+  `BigWigs_StopBar` carries only the bar text, so the bridge keys BigWigs bars by text. Boss modules have
+  `mod.engageId`; plugins and trash modules don't, which is how we filter them.
 - Bridge responsibilities: scrub payloads (§4.1), dedupe duplicates from multiple shapes/mods,
   handle **negative/zero** durations, cancel semantics (a stop for mechanic X must also remove
   queued reminders for X; Kira left queued announcements alive), clear everything on
@@ -1130,7 +1135,7 @@ Waiting on Stig's in-game check before Phase 2.
 6. Edit mode / movers (after checking EUI unlock-mode registration).
 7. A trivial example module exercising everything (proves extensibility), then delete or keep as template.
 
-**Phase 2: Encounter pipeline**
+**Phase 2: Encounter pipeline** (built 2026-09-29; DBM adapter untested in game)
 8. EncounterManager, JournalCatalog, BigWigs adapter, BossModBridge, MechanicRegistry.
 9. DBM adapter.
 10. `/oui test reminder` end-to-end with a fake mechanic.

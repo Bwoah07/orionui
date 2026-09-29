@@ -24,7 +24,7 @@ read_globals = {
     "GameTooltip", "ColorPickerFrame", "OKAY", "CANCEL", "STANDARD_TEXT_FONT", "IsShiftKeyDown",
     "UnitClass", "UnitFullName", "GetNormalizedRealmName", "debugstack", "time",
     "EJ_GetDifficulty", "EJ_GetEncounterInfo", "EJ_GetEncounterInfoByIndex", "EJ_GetInstanceInfo",
-    "EJ_SelectEncounter", "EJ_SelectInstance",
+    "EJ_SelectEncounter", "EJ_SelectInstance", "EJ_SetDifficulty", "EJ_IsValidInstanceDifficulty", "GetLocale",
     "GetBuildInfo", "GetInstanceInfo", "GetTime", "InCombatLockdown", "IsEncounterInProgress",
     "UnitAffectingCombat", "UnitCanAttack", "UnitDetailedThreatSituation", "UnitExists",
     "UnitGUID", "UnitIsUnit", "UnitThreatSituation",

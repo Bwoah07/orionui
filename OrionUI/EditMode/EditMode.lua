@@ -156,7 +156,20 @@ function EditMode:Toggle(show)
         return
     end
     if not root then Create() end
-    if not show then root:Hide() return end
+    if not show then
+        root:Hide()
+        -- Bring the options back if edit mode was opened from them.
+        if self.reopenOptions then
+            self.reopenOptions = nil
+            ns.Options:Open()
+        end
+        return
+    end
+    -- The options window would sit on top of the frames being moved.
+    if OrionUIOptions and OrionUIOptions:IsShown() then
+        OrionUIOptions:Hide()
+        self.reopenOptions = true
+    end
     root:Show()
     BuildGrid()
     if #ns.Movers.list == 0 then ns.Print(L["Nothing to move yet."]) end

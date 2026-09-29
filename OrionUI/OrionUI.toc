@@ -45,6 +45,15 @@ Options\Pages\Profiles.lua
 EditMode\Movers.lua
 EditMode\EditMode.lua
 
+Data\Encounters.lua
+Encounters\EncounterManager.lua
+Encounters\JournalCatalog.lua
+Encounters\MechanicRegistry.lua
+Encounters\BossModBridge.lua
+Integrations\BigWigs.lua
+Integrations\DBM.lua
+Encounters\EncounterMonitor.lua
+
 Modules\CombatAlert.lua
 
 # Last: starts everything on PLAYER_LOGIN
