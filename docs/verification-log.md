@@ -174,3 +174,19 @@ Encounter 3071 "Arcanotron Custos", with watch mode on.
 Out of combat, `/ouidev auras list` shows **Bone Shield = 195181** (stacks 12, expiry readable) and
 **Ossuary = 219788** as player auras. Both are readable out of combat only (auras are withheld in combat,
 see above).
+
+## 2026-09-29: Encounter Journal dump (Temple of Sethraliss, Mythic)
+
+- `C_EncounterJournal.GetInstanceForGameMap(instanceMapID)` works with `GetInstanceInfo()`'s 8th return
+  (1877 -> journal instance 1030).
+- **The 7th return of `EJ_GetEncounterInfoByIndex` is the dungeonEncounterID**: it gave 2124, 2125, 2126 and
+  2127 for the four bosses, which are Temple of Sethraliss's known encounter IDs. That's the same ID space
+  as `ENCOUNTER_START` (e.g. 3071, 3207 in earlier logs). Key JournalCatalog on it, as §7.3 says.
+- `headerType` matches `Enum.JournalEncounterSecTypes`: 0 stage, 1 creature, 2 ability, 3 overview.
+- Role/mechanic flags come through (Tank Alert, Healer Alert, Important, Deadly, Interruptible, Poison,
+  Mythic Difficulty...). Tank-tagged abilities here: Overload, Lightning Bite, Tainted Strike.
+- **The Journal keeps its own difficulty** (it reported EJ difficulty 1 while we were in a Mythic
+  dungeon), and difficulty-specific sections come back as duplicates with `filteredByDifficulty=true`.
+  JournalCatalog must set the Journal difficulty to the instance difficulty before scraping (and restore
+  the user's choice afterwards), and skip filtered sections.
+- The same spell can appear more than once (Tempest Winds, Lingering Storm): dedupe by spellID per encounter.
