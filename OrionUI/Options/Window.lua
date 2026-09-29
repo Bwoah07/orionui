@@ -72,6 +72,13 @@ local function AddRows(container, rows, specs, y)
                 y = y + d:GetStringHeight() + 6
             end
             y = y + 14
+        elseif spec.type == "Footer" then
+            -- Quiet text action under the cards (e.g. "Reset this module").
+            Close()
+            local b = T:TextButton(container, spec.label, 12)
+            b:SetPoint("TOPRIGHT", 0, -y + 8)
+            b:SetScript("OnClick", spec.func)
+            y = y + 24
         elseif spec.type == "Header" then
             Close()
             local h = T:Text(container, 11, T.colors.muted)
@@ -114,8 +121,7 @@ local function ModuleSpecs(M)
     if body[1] and body[1].type ~= "Header" then specs[#specs + 1] = { type = "Header", label = L["Settings"] } end
     for _, s in ipairs(body) do specs[#specs + 1] = s end
     if M.profileKey then
-        specs[#specs + 1] = { type = "Header", label = L["Reset"] }
-        specs[#specs + 1] = { type = "Button", label = L["Reset this module"], func = function()
+        specs[#specs + 1] = { type = "Footer", label = L["Reset this module"], func = function()
             ns.Dialog:Confirm(L["Reset all settings of"] .. " " .. M.label .. "?\n" .. L["A backup is made first."], function()
                 M:ResetSettings()
                 Options:Refresh()

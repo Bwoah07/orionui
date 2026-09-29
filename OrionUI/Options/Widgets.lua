@@ -95,7 +95,7 @@ function Widgets.Toggle(parent, spec)
         if on then
             T():Skin(track, { r, g, b, 1 }, { r * 0.6, g * 0.6, b * 0.6, 1 })
             knob:SetPoint("RIGHT", -3, 0)
-            knob:SetColorTexture(1, 1, 1, 1)
+            knob:SetColorTexture(T():OnAccent())
         else
             T():Skin(track, T().colors.control)
             knob:SetPoint("LEFT", 3, 0)
@@ -131,6 +131,11 @@ function Widgets.Slider(parent, spec)
     thumb:SetSize(10, 16)
     thumb:SetColorTexture(1, 1, 1, 1)
     slider:SetThumbTexture(thumb)
+    -- Dark outline so the thumb stays visible on a light accent fill.
+    local outline = slider:CreateTexture(nil, "ARTWORK")
+    outline:SetColorTexture(0, 0, 0, 1)
+    outline:SetPoint("TOPLEFT", thumb, "TOPLEFT", -1, 1)
+    outline:SetPoint("BOTTOMRIGHT", thumb, "BOTTOMRIGHT", 1, -1)
     local lo, hi = spec.min or 0, spec.max or 100
     slider:SetMinMaxValues(lo, hi)
     slider:SetValueStep(spec.step or 1)

@@ -30,6 +30,13 @@ function Theme:Accent()
     return ACCENT.r, ACCENT.g, ACCENT.b
 end
 
+-- Colour that stays readable on top of the accent (EUI accents can be near-white).
+function Theme:OnAccent()
+    local r, g, b = self:Accent()
+    if 0.299 * r + 0.587 * g + 0.114 * b > 0.6 then return 0.08, 0.08, 0.1 end
+    return 1, 1, 1
+end
+
 function Theme:Font()
     if EllesmereUI and EllesmereUI.GetFontPath then
         local ok, path = ns.SafeCall("Theme", EllesmereUI.GetFontPath)
