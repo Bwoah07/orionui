@@ -113,3 +113,9 @@ Ran `/ouidev all`, `/ouidev auras list`, `/ouidev threat` out of combat and on a
 - Bone Shield (195181): not tested yet. It wasn't active during the test.
 - Threat on the training dummy: `UnitThreatSituation` / `UnitDetailedThreatSituation` returned nil (not
   secret) for `target`. This probably means the dummy has no threat table. Needs a real boss.
+- **Player auras in combat are withheld from us.** With `ShouldAurasBeSecret` = true:
+  `C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")` **throws** "Auras cannot be accessed when secret
+  while tainted" (and taints the caller), and `GetPlayerAuraBySpellID` returns nil for everything.
+  Consequences: never iterate auras by index while auras are secret. Coverage (§7.8) can't read active
+  defensives from auras in combat and has to rely on cast tracking or fail open. Bone Shield stacks and expiry
+  (§8.3) must be displayed by engine widgets (CDM / aura containers), not computed in Lua.

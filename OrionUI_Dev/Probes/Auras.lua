@@ -32,6 +32,13 @@ end
 
 local function ListAll()
     Report:Line("helpful auras on player (GetAuraDataByIndex):")
+    -- Verified 2026-09-29: while auras are secret this call errors and taints us
+    -- ("Auras cannot be accessed when secret while tainted"), so don't make it then.
+    local okS, secret = Try(C_Secrets and C_Secrets.ShouldAurasBeSecret)
+    if okS and secret == true then
+        Report:Line("   skipped: ShouldAurasBeSecret=true (run out of combat)")
+        return
+    end
     for i = 1, MAX_LIST do
         local ok, aura = Try(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
         if not ok then Report:Line("   ERR %s", tostring(aura)) break end
