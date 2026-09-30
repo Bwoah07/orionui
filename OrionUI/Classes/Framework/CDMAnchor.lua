@@ -17,12 +17,16 @@ Anchor.ROWS = {
     cooldowns = { "ECME_CDMBar_cooldowns", "EssentialCooldownViewer" },
     utility   = { "ECME_CDMBar_utility", "UtilityCooldownViewer" },
     buffs     = { "ECME_CDMBar_buffs", "BuffIconCooldownViewer" },
+    -- EllesmereUI resource bars (EllesmereUIResourceBars.lua, checked 2026-09-30).
+    runes     = { "ERB_SecondaryFrame" },
+    power     = { "ERB_PrimaryBar" },
 }
 
 -- For settings dropdowns.
-Anchor.CHOICES = { "none", "cooldowns", "utility", "buffs" }
+Anchor.CHOICES = { "none", "cooldowns", "utility", "buffs", "runes", "power" }
 Anchor.CHOICE_LABELS = { none = L["Free (move it yourself)"], cooldowns = L["Essential cooldowns row"],
-    utility = L["Utility cooldowns row"], buffs = L["Buff icons row"] }
+    utility = L["Utility cooldowns row"], buffs = L["Buff icons row"],
+    runes = L["Runes / combo points bar"], power = L["Power bar (runic power, rage...)"] }
 Anchor.SIDES = { "ABOVE", "BELOW", "LEFT", "RIGHT" }
 Anchor.SIDE_LABELS = { ABOVE = L["Above"], BELOW = L["Below"], LEFT = L["Left"], RIGHT = L["Right"] }
 
