@@ -808,7 +808,9 @@ windows (Settings, SettingsV2, BlizzardOptions). `RaidControl/Bridge.lua` stands
 every Settings button opens `/oui`; `RaidControl/Options.lua` generates the "Raid tools" pages from its AceDB
 defaults, grouped by key prefix. Raid Split opens in the plain workspace host (`/oui split`). The whole thing
 stays off when the standalone RaidControl addon is enabled. These files are exempt from our file-size rule and
-luacheck. Untested in game.
+luacheck. Untested in game. Since 2026-09-30 the standalone addon is uninstalled and the copy is edited in
+place (tools/port-raidcontrol.py refuses to run without a source). The Escape-menu button reads "OrionUI" and
+opens OrionUI's options.
 
 ---
 

@@ -42,6 +42,11 @@ def copy(rel, dst_rel=None):
     else:
         shutil.copyfile(src, dst)
 
+# Since 2026-09-30 OrionUI/RaidControl is edited directly (the standalone addon is uninstalled);
+# this script only documents how the copy was made. Never wipe the copy without a source.
+if not os.path.exists(SRC + "Core.lua"):
+    raise SystemExit("RaidControl source not installed; OrionUI/RaidControl is maintained in place now.")
+
 if os.path.isdir(DST):
     for sub in ("Modules", "Locales", "Media"):
         shutil.rmtree(DST + sub, ignore_errors=True)

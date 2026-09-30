@@ -118,15 +118,10 @@ function LayoutMode:OpenSettingsFromGameMenu(frame)
     end
     PlayMenuSound()
     self:CloseGameMenu(frame)
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, function()
-            if not IsInCombat() then
-                LayoutMode:OpenSettings()
-            end
-        end)
-    else
-        self:OpenSettings()
-    end
+    -- OrionUI: opens OrionUI's options, not RaidControl's old settings window.
+    C_Timer.After(0, function()
+        if not IsInCombat() and ns.Options then ns.Options:Open() end
+    end)
     return true
 end
 
@@ -159,7 +154,7 @@ function LayoutMode:AddGameMenuButtons(frame)
     end
 
     if frame.AddSection then frame:AddSection(14) end
-    local settingsButton = frame:AddButton("RaidControl", function()
+    local settingsButton = frame:AddButton("OrionUI", function()
         self:OpenSettingsFromGameMenu(frame)
     end)
 
@@ -188,7 +183,7 @@ local function GetRaidControlBrandText()
         math.floor((accent.g or 0.82) * 255 + 0.5),
         math.floor((accent.b or 0.62) * 255 + 0.5)
     )
-    return prefix .. "Raid|r|cffffffffControl|r"
+    return prefix .. "Orion|r|cffffffffUI|r" -- OrionUI: the Escape-menu button is OrionUI's own
 end
 
 local function SetGameMenuButtonText(button)
