@@ -3,7 +3,8 @@
 Stig's own addon (Author: Bwoah, v1.11.3-beta, ~74k lines incl. Ace3/LibSerialize/LibDeflate).
 Source: `C:\Program Files (x86)\World of Warcraft\_retail_\Interfacen\AddOns\Raidcontrol`
 (the `Interfacen` folder isn't loaded by the game). Decision 2026-09-30: rewrite its features into
-OrionUI as modules on our framework; it's Stig's code, so reading and reusing its logic is fine.
+OrionUI as modules on our framework. It is 100% Stig's own addon (confirmed 2026-09-30), so its code,
+data and media can be reused freely; the no-copy rule (CLAUDE.md §2.2) doesn't apply to it.
 We drop Ace3 (our own module/options/profile system replaces it).
 
 Surveyed 2026-09-30 from module headers only; details to be read per module when ported.
