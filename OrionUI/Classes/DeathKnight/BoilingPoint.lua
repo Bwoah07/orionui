@@ -6,8 +6,9 @@
 -- What the bar shows:
 --   BLUE, draining over 15s   a proc is up: cast Blood Boil
 --   RED, draining over 3s     you cast the empowered Blood Boil: the echo is coming
---   GLOW                      a new proc rolled while the bar is red: react and cast
---                             Blood Boil again
+--   GLOW (thin gold)          a new proc rolled while the bar is red: react and cast
+--                             Blood Boil again. That rolled proc also keeps the red
+--                             bar going when the current echo lands (chaining).
 --
 -- Signals (readable in combat, verified 2026-09-30): the game's Blood Boil highlight
 -- (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE) and our own Blood Boil cast
@@ -36,6 +37,9 @@ ns.BoilingPoint = BP
 -- Plain state, all ours.
 local procUp, procSince, procHiddenAt = false, 0, -math.huge
 local echoUntil = 0
+local queued = 0 -- echo windows banked by procs that rolled while an echo was running
+local MAX_QUEUE = 3
+local snapNext = false -- next paint starts a fresh window: jump to full, no easing
 
 local frame, bar, icon, glow, glowAnim, ticker
 
@@ -120,6 +124,14 @@ end
 -- -> phase ("echo" | "proc" | nil), seconds left, phase length
 local function Current()
     local now, db = GetTime(), DB()
+    -- CHAINING: a proc that rolled during the echo keeps the bar going. When the running
+    -- echo lands, the banked one continues straight on (from the old end time, so the
+    -- windows join up) instead of the bar disappearing.
+    if echoUntil <= now and queued > 0 then
+        queued = queued - 1
+        echoUntil = (now - echoUntil > ECHO) and (now + ECHO) or (echoUntil + ECHO)
+        snapNext = true
+    end
     if db.echo and echoUntil > now then return "echo", echoUntil - now, ECHO end
     if procUp then
         local left = procSince + db.window - now
@@ -147,7 +159,8 @@ function BP:Render()
     bar:SetStatusBarColor(color[1], color[2], color[3], 1)
     -- A new phase snaps full; within a phase the engine eases between our ticks.
     local value = left / total
-    if phase ~= lastPhase or not SMOOTH then
+    if phase ~= lastPhase or snapNext or not SMOOTH then
+        snapNext = false
         bar:SetValue(value, SNAP)
     else
         bar:SetValue(value, SMOOTH)
@@ -186,8 +199,9 @@ local function OnGlowShow(_, _, spellID)
     if not IsBloodBoil(spellID) then return end
     if not procUp then
         -- Rising edge only: the overlay re-announces an alert that never went away, and
-        -- that must not hand out a fresh 15 seconds.
+        -- that must not hand out a fresh 15 seconds or bank a second echo.
         procUp, procSince = true, GetTime()
+        if echoUntil > GetTime() then queued = math.min(queued + 1, MAX_QUEUE) end
         if DB().sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
     end
     BP:Render()
@@ -203,14 +217,15 @@ local function OnCast(_, _, _, _, spellID)
     if not IsBloodBoil(spellID) then return end
     local now = GetTime()
     if procUp or now - procHiddenAt <= CAST_GRACE then
-        echoUntil = now + ECHO
+        -- A new empowered cast restarts the echo; the proc it spent was the banked one.
+        echoUntil, queued, snapNext = now + ECHO, 0, true
         BP:Render()
     end
 end
 
 local function OnEnteringWorld()
     -- Loading screens end any echo; the highlight may survive, so ask the game directly.
-    echoUntil = 0
+    echoUntil, queued = 0, 0
     local up = C_SpellActivationOverlay and C_SpellActivationOverlay.IsSpellOverlayed
         and C_SpellActivationOverlay.IsSpellOverlayed(BLOOD_BOIL)
     procUp = ns.Secret.Bool(up) == true
@@ -230,7 +245,7 @@ end
 function BP:Disable()
     ns.Events:OffAll(self)
     StopTicker()
-    procUp, echoUntil, lastPhase = false, 0, nil
+    procUp, echoUntil, queued, lastPhase = false, 0, 0, nil
     if frame then
         SetGlow(false)
         frame:Hide()
