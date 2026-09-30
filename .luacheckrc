@@ -19,7 +19,7 @@ read_globals = {
     "BigWigsLoader", "DBM", "EllesmereUI", "EncounterJournal",
     "C_AddOns", "C_ChallengeMode", "C_CombatLog", "C_CurveUtil", "C_EncounterJournal",
     "C_EncounterTimeline", "C_RestrictedActions", "C_Secrets", "C_SpecializationInfo",
-    "C_Spell", "C_SpellBook", "C_Timer", "C_UnitAuras",
+    "C_Spell", "GetSpecializationInfoByID", "C_SpellBook", "C_Timer", "C_UnitAuras",
     "ChatFontNormal", "CreateFrame", "Enum", "UIParent", "UISpecialFrames", "LibStub",
     "GameTooltip", "ColorPickerFrame", "OKAY", "CANCEL", "STANDARD_TEXT_FONT", "IsShiftKeyDown",
     "UnitClass", "UnitFullName", "GetNormalizedRealmName", "debugstack", "time",

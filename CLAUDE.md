@@ -1166,7 +1166,9 @@ Blood module confirmed in game by Stig)
 IDs to confirm in game; custom reminders with timer/message/pull triggers and !OUI:C:1! sharing)
 15. Other tank specs' data + helpers. Custom reminders. Import/export of reminder profiles.
 
-**Phase 4b: every class and spec (next up, agreed with Stig 2026-09-30)**
+**Phase 4b: every class and spec** (built 2026-09-30: catalogs for all 40 specs in `Data/Defensives.lua`, class-wide
+lists plus spec extras, IDs unverified until `/oui check defensives` is run in game; Journal "deadly" abilities
+get a defensive reminder for every role, setting `deadlyAuto`, default on)
 - Defensive catalog + default priority for **every** spec (all 13 classes, DPS and healers too), same
   format as `Data/Defensives.lua`: research from current guides, then confirm names with
   `/ouidev secrets all` (extend `OrionUI_Dev/SpellLists.lua`). Most defensives are class-wide; share

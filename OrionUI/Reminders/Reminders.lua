@@ -4,7 +4,8 @@
 --   db.bindings[specID][encounterID][mechanicId] = { mode = , defensives = { keys } }
 --   mode: "auto" (default rule), "off", "warn" (warning only), "defensive" (warning + pick)
 -- Default rule for "auto": tank-tagged mechanics get a defensive reminder when you play a
--- tank spec (setting tankAuto); everything else is off until you turn it on.
+-- tank spec (setting tankAuto); abilities the Journal marks "deadly" get one for every role
+-- (setting deadlyAuto, Phase 4b); everything else is off until you turn it on.
 local _, ns = ...
 
 local L = ns.L
@@ -21,6 +22,8 @@ local R = ns.Modules:New("Reminders", {
         leadTime = S.Number{ default = 5, min = 1, max = 15, step = 0.5, label = L["Warn this many seconds before"], order = 1 },
         tankAuto = S.Bool{ default = true, label = L["Tank specs: remind about tank abilities automatically"], order = 2,
             desc = L["Abilities the Encounter Journal marks for tanks get a defensive reminder without setting each one up."] },
+        deadlyAuto = S.Bool{ default = true, label = L["Every spec: remind about deadly abilities automatically"], order = 2.5,
+            desc = L["Abilities the Encounter Journal marks as deadly get a personal defensive reminder, whatever your role."] },
         onlyWhenTanking = S.Bool{ default = true, label = L["Only when I'm tanking that boss"], order = 3,
             desc = L["Uses the boss's threat. If the game hides it, you are warned anyway."] },
         skipCovered = S.Bool{ default = true, label = L["Skip when a defensive is already running"], order = 4 },
@@ -67,9 +70,18 @@ function R:Mode(mechanic)
     local b = self:Binding(mechanic.encounterID, mechanic.id)
     local mode = b and b.mode or "auto"
     if mode ~= "auto" then return mode, false end
-    local tags = mechanic.tags or {}
+    return self:AutoMode(mechanic.tags)
+end
+
+-- What "auto" means for a mechanic with these tags. Second value: the tank rule decided it
+-- (then threat ownership is checked). The tank rule wins so ownership still applies.
+function R:AutoMode(tags)
+    tags = tags or {}
     if self.db.tankAuto and ns.Player.role == "TANK" and (tags.tank or tags.buster) then
         return "defensive", true
+    end
+    if self.db.deadlyAuto and tags.deadly then
+        return "defensive", false
     end
     return "off", false
 end

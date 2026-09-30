@@ -61,8 +61,7 @@ local function TagText(tags)
 end
 
 local function AutoText(tags)
-    local R = ns.Reminders
-    if R.db.tankAuto and ns.Player.role == "TANK" and (tags.tank or tags.buster) then
+    if ns.Reminders:AutoMode(tags) == "defensive" then
         return L["Automatic (defensive)"]
     end
     return L["Automatic (off)"]

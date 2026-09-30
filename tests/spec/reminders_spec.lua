@@ -226,4 +226,34 @@ describe("Scheduler", function()
         assert.are.equal("warn", shown[1].mode)
         assert.is_nil(shown[1].defensive)
     end)
+    it("reminds every role about Journal 'deadly' abilities unless turned off", function()
+        local ns, _, shown = Start()
+        ns.Player.role = "HEALER"
+        local m = ns.MechanicRegistry:Resolve("Test", "d", 4242, "Doom")
+        m.id, m.encounterID, m.tags = "4242:d", 4242, { deadly = true }
+        ns.BossModBridge:Timer({ source = "Test", id = "d", key = "d", text = "Doom", duration = 3, encounterID = 4242 })
+        assert.are.equal(1, #shown)
+        assert.are.equal("defensive", shown[1].mode)
+        ns.Reminders.db.deadlyAuto = false
+        assert.are.equal("off", (ns.Reminders:AutoMode({ deadly = true })))
+    end)
+    it("has a catalog and a resolvable default order for every spec", function()
+        local ns = Start()
+        local all = { 250, 251, 252, 577, 581, 1480, 102, 103, 104, 105, 1467, 1468, 1473, 253, 254, 255,
+            62, 63, 64, 268, 269, 270, 65, 66, 70, 256, 257, 258, 259, 260, 261, 262, 263, 264,
+            265, 266, 267, 71, 72, 73 }
+        for _, specID in ipairs(all) do
+            local list = ns.Data.Defensives[specID]
+            assert.is_true(list ~= nil and #list > 0, "no catalog for " .. specID)
+            local seen = {}
+            for _, d in ipairs(list) do
+                assert.is_nil(seen[d.key], "duplicate key " .. d.key .. " in " .. specID)
+                seen[d.key] = true
+                assert.is_true(type(d.spell) == "number" and d.duration >= 0 and d.strength >= 1 and d.strength <= 3)
+            end
+            for _, key in ipairs(ns.Data.DefensivePresets[specID]) do
+                assert.is_true(ns.Data.DefensiveByKey(specID, key) ~= nil, key .. " missing in " .. specID)
+            end
+        end
+    end)
 end)

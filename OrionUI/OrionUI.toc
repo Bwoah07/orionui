@@ -63,6 +63,7 @@ Reminders\Reminders.lua
 Reminders\Scheduler.lua
 Reminders\Output.lua
 Reminders\CustomReminders.lua
+Reminders\CatalogCheck.lua
 Options\Pages\Encounters.lua
 Options\Pages\Defensives.lua
 Options\Pages\CustomReminders.lua
