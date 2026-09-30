@@ -1026,6 +1026,9 @@ Collected from Stig's feedback on screenshots. **Reference screenshots Stig love
   numbers, collapse sidebar, hide pinned/recent) or disabling EUI Bags and recommending another bag
   addon. See §19.
 - Everything else from the reference packs: not wanted.
+- **Our media (2026-09-30):** bar textures Orion Flat / Smooth / Stripe (our own, `Media/Textures`), font
+  "Orion" / "Orion Bold" = Barlow Semi Condensed SemiBold/Bold (SIL OFL, credit in `Media/Fonts/OFL.txt`).
+  All registered with LibSharedMedia so EUI can use them.
 - Consistency rules: one or two fonts, one accent color, one bar texture family, one border style,
   consistent spacing everywhere.
 

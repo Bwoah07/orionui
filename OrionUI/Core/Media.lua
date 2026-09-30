@@ -20,6 +20,9 @@ Media.own = {
     { "statusbar", "Orion Flat",   ns.MEDIA_PATH .. "Textures\\Flat.tga" },
     { "statusbar", "Orion Smooth", ns.MEDIA_PATH .. "Textures\\Smooth.tga" },
     { "statusbar", "Orion Stripe", ns.MEDIA_PATH .. "Textures\\Stripe.tga" },
+    -- Barlow Semi Condensed (SIL OFL 1.1, no reserved font name; see Media/Fonts/OFL.txt).
+    { "font", "Orion",      ns.MEDIA_PATH .. "Fonts\\Orion.ttf" },
+    { "font", "Orion Bold", ns.MEDIA_PATH .. "Fonts\\Orion-Bold.ttf" },
 }
 
 local function LSM()
