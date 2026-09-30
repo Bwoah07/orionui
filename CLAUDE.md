@@ -1159,7 +1159,8 @@ Blood module confirmed in game by Stig)
 13. Encounter ability browser + preset editor UI.
 14. Blood DK spec module: Bone Shield, Boiling Point (our design), DRW helpers.
 
-**Phase 4: More tanks and custom reminders**
+**Phase 4: More tanks and custom reminders** (built 2026-09-30: five tank catalogs from web research,
+IDs to confirm in game; custom reminders with timer/message/pull triggers and !OUI:C:1! sharing)
 15. Other tank specs' data + helpers. Custom reminders. Import/export of reminder profiles.
 
 **Phase 5: Installer** (`OrionUI_Installer`)

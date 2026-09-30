@@ -110,6 +110,17 @@ function Scheduler:Stop()
     OnCancel(nil, nil, nil)
 end
 
+-- Shows a ready-made reminder (custom reminders use this) through the same output.
+-- r = { id, text, icon, expiresAt, mode = "custom", sound = bool, speech = bool }
+function Scheduler:Show(r, hideAfter)
+    Hide(r.id)
+    self.visible[r.id] = r
+    r.hideTimer = C_Timer.NewTimer(hideAfter, function() Hide(r.id) end)
+    ns.Events:Fire("OUI_REMINDER_SHOW", r)
+end
+
+function Scheduler:HideReminder(id) Hide(id) end
+
 -- Visible reminders, soonest first (for the output).
 function Scheduler:Visible()
     local list = {}

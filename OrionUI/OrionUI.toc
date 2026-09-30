@@ -62,8 +62,10 @@ Reminders\DefensiveResolver.lua
 Reminders\Reminders.lua
 Reminders\Scheduler.lua
 Reminders\Output.lua
+Reminders\CustomReminders.lua
 Options\Pages\Encounters.lua
 Options\Pages\Defensives.lua
+Options\Pages\CustomReminders.lua
 
 Classes\Framework\CDMMirror.lua
 Classes\DeathKnight\Blood.lua

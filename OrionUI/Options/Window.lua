@@ -173,7 +173,7 @@ local function ShowSearch(query)
     query = query:lower()
     local y = 48
     for _, M in ns.Modules:Iterate() do
-        local entry = (M.profileKey or M.options) and Build(M.name)
+        local entry = (M.profileKey or M.options) and not M.hideInOptions and Build(M.name)
         for _, row in ipairs(entry and entry.rows or {}) do
             local label = row.spec.label
             if row.spec.type ~= "Description" and type(label) == "string" and label:lower():find(query, 1, true) then
@@ -233,7 +233,7 @@ end
 local function Entries()
     local byCat = {}
     for _, M in ns.Modules:Iterate() do
-        if M.profileKey or M.options then
+        if (M.profileKey or M.options) and not M.hideInOptions then
             byCat[M.category] = byCat[M.category] or {}
             table.insert(byCat[M.category], { id = M.name, label = M.label, order = M.order })
         end

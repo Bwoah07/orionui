@@ -85,6 +85,7 @@ function Output:Render()
             row.title:SetText(title)
             if isAction then row.title:SetTextColor(r1, g1, b1) else row.title:SetTextColor(1, 1, 1) end
             local timeText = left < 10 and ("%.1f"):format(left) or ("%d"):format(math.floor(left))
+            if r.noTime then timeText = "" end -- custom message reminders have no hit time
             row.sub:SetText((r.mode == "defensive" and (r.text or "") .. "  " or "") .. timeText)
             if isAction then ns.Theme:SetBorderColor(row.border, r1, g1, b1, 1) else ns.Theme:SetBorderColor(row.border, 0, 0, 0, 1) end
             if row.shownFor ~= r or row.shownUntil ~= r.expiresAt then
@@ -111,9 +112,13 @@ local function OnShow(_, _, r)
     Output:Render()
     if r.announced then return end -- a revision of a reminder already announced
     r.announced = true
+    -- A custom reminder carries its own sound/speech choice; others use the global settings.
     local db = ns.Reminders.db
-    if db.sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
-    if db.speech then
+    local sound, speech = db.sound, db.speech
+    if r.sound ~= nil then sound = r.sound end
+    if r.speech ~= nil then speech = r.speech end
+    if sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
+    if speech then
         local title = Describe(r)
         Speak(title)
     end

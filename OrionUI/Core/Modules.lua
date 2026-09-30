@@ -86,6 +86,7 @@ function Modules:New(name, spec)
         schemaVersion = spec.schemaVersion or 1,
         migrations = spec.migrations or {},
         options = spec.options,
+        hideInOptions = spec.hideInOptions, -- settings edited on a hand-written page instead
         api = spec.api,
         schema = spec.schema,
         enabled = false,
