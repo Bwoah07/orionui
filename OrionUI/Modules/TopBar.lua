@@ -29,7 +29,7 @@ local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"],
     desc = L["Clock, friends, guild, hearthstones and Mythic+ portals in one small bar. In combat only FPS and latency stay. Move it with /oui edit."],
     profileKey = "layout",
-    schemaVersion = 2,
+    schemaVersion = 3,
     migrations = {
         -- v1 had left/right button lists; the hearthstone and extra buttons now have their own settings.
         [2] = function(db)
@@ -41,11 +41,13 @@ local M = ns.Modules:New("TopBar", {
             db.showClock, db.clock24, db.realmTime, db.showFPS, db.showMS, db.fontSize = nil, nil, nil, nil, nil, nil
             if db.height == 24 then db.height = nil end
         end,
+        -- Bigger, easier to read FPS / MS (Stig, 2026-09-30).
+        [3] = function(db) if db.statsSize == 11 then db.statsSize = nil end end,
     },
     schema = S.Table{ fields = {
         height = S.Number{ default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
         clockSize = S.Number{ default = 22, min = 12, max = 40, step = 1, label = L["Clock size"], order = 2 },
-        statsSize = S.Number{ default = 11, min = 8, max = 18, step = 1, label = L["FPS / MS text size"], order = 3 },
+        statsSize = S.Number{ default = 13, min = 8, max = 20, step = 1, label = L["FPS / MS text size"], order = 3 },
         tileAlpha = S.Number{ default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background"], order = 4 },
         hideInCombat = S.Bool{ default = true, label = L["In combat show only FPS and MS"], order = 5 },
         clock = S.Table{ label = L["Clock"], order = 10, fields = {
@@ -189,10 +191,12 @@ local function Duration(sec)
     return ("%dm"):format(m)
 end
 
--- Labels white, values in OrionUI blue (Stig, 2026-09-30).
+-- Labels white, values in OrionUI blue (Stig, 2026-09-30): one colour for both values, lifted a
+-- little towards white so small digits stay readable on a dark background.
 local function BlueHex()
     local r, g, b = ns.Theme:Accent()
-    return ("|cff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+    local function Lift(v) return math.floor((v + (1 - v) * 0.25) * 255 + 0.5) end
+    return ("|cff%02x%02x%02x"):format(Lift(r), Lift(g), Lift(b))
 end
 
 local function UpdateTexts()
@@ -204,6 +208,7 @@ local function UpdateTexts()
         local ms = math.max(home or 0, world or 0)
         local blue = BlueHex()
         statsText:SetText(("|cffffffffFPS|r %s%d|r   |cffffffffMS|r %s%d|r"):format(blue, fps, blue, ms))
+        stats:SetWidth(math.ceil(statsText:GetStringWidth()) + 12)
     end
 end
 
@@ -540,8 +545,13 @@ local function Create()
     stats = CreateFrame("Frame", nil, UIParent)
     stats:SetFrameStrata("LOW")
     stats:SetSize(140, 14)
+    stats.bg = stats:CreateTexture(nil, "BACKGROUND")
+    stats.bg:SetAllPoints()
+    stats.bg:SetColorTexture(0, 0, 0, 0.55)
     statsText = stats:CreateFontString(nil, "OVERLAY")
     statsText:SetPoint("CENTER")
+    statsText:SetShadowOffset(1, -1)
+    statsText:SetShadowColor(0, 0, 0, 1)
 end
 
 function M:RollHearth()
@@ -583,7 +593,7 @@ local function LayoutExtras(x, size)
         UpdateItemCooldown(b, id)
         b:Show()
         extra[#extra + 1] = b
-        x = x + size + 4
+        x = x + size - 1
     end
     return x
 end
@@ -595,7 +605,9 @@ local function Layout()
     local font = ns.Theme:Font()
     for _, t in pairs(tiles) do
         t.bg:SetColorTexture(0.05, 0.05, 0.06, db.tileAlpha)
-        t.count:SetFont(font, math.max(9, math.floor(size * 0.36)), "OUTLINE")
+        t.count:SetFont(font, math.max(10, math.floor(size * 0.44)), "OUTLINE")
+        t.count:SetShadowOffset(1, -1)
+        t.count:SetShadowColor(0, 0, 0, 1)
         t:Hide()
     end
     tiles.friends.count:SetTextColor(0.37, 0.83, 0.37)
@@ -608,14 +620,18 @@ local function Layout()
     if db.travel.hearth then right[#right + 1] = tiles.hearth end
     if db.travel.portals then right[#right + 1] = tiles.portals end
 
-    local gap = 4
+    -- Tiles touch: each overlaps the previous one by 1px so neighbours share one black border
+    -- (Stig, 2026-09-30: no gaps). The clock stays centred on the bar.
+    local step = size - 1
     local clock = tiles.clock
     clock.text:SetFont(font, db.clockSize, "OUTLINE")
+    clock.text:SetShadowOffset(1, -1)
+    clock.text:SetShadowColor(0, 0, 0, 1)
     clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
-    local clockW = db.clock.show and (math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24) + 2 * gap) or gap
+    local clockW = db.clock.show and math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24) or 1
     local nExtra = 0
     for _ in tostring(db.travel.extraItems or ""):gmatch("%d+") do nExtra = nExtra + 1 end
-    local leftW, rightW = #left * (size + gap), (#right + nExtra) * (size + gap)
+    local leftW, rightW = #left * step, (#right + nExtra) * step
     local side = math.max(leftW, rightW)
     bar:SetSize(math.max(side * 2 + clockW, 1), size)
 
@@ -625,21 +641,21 @@ local function Layout()
         t:ClearAllPoints()
         t:SetPoint("LEFT", bar, "LEFT", x, 0)
         t:Show()
-        x = x + size + gap
+        x = x + step
     end
     if db.clock.show then
-        clock:SetSize(clockW - 2 * gap, size)
+        clock:SetSize(clockW, size)
         clock:ClearAllPoints()
-        clock:SetPoint("LEFT", bar, "LEFT", side + gap, 0)
+        clock:SetPoint("LEFT", bar, "LEFT", side, 0)
         clock:Show()
     end
-    x = side + clockW
+    x = side + clockW - 1
     for _, t in ipairs(right) do
         t:SetSize(size, size)
         t:ClearAllPoints()
         t:SetPoint("LEFT", bar, "LEFT", x, 0)
         t:Show()
-        x = x + size + gap
+        x = x + step
     end
     LayoutExtras(x, size)
 
@@ -654,6 +670,7 @@ local function Layout()
     stats:ClearAllPoints()
     stats:SetPoint("TOP", bar, "BOTTOM", 0, -3)
     statsText:SetFont(font, db.statsSize, "OUTLINE")
+    stats:SetHeight(db.statsSize + 6)
     stats:SetShown(db.clock.stats)
 
     -- In combat only FPS | MS: a secure state driver hides the tiles (secure buttons included).
