@@ -5,9 +5,21 @@
 -- EllesmereUI.ExportProfile(name) called bare is EUI's documented "headless full" export for
 -- partner installers: layout, CDM spell layouts for every spec, globals and overrides included
 -- (EllesmereUI_Profiles.lua, checked 2026-09-30). Read-only: nothing in EUI is changed.
+--
+-- /ouidev capture eui <module> (e.g. nameplates, actionbars, unitframes) saves only that
+-- module, via ExportProfile's includedFolders set, into OrionUIDevDB.captures.euiModules.
+-- EUI stamps such strings partialImport, so the installer can apply the pieces one by one.
 local _, ns = ...
 
-local function CaptureEUI()
+-- "nameplates" -> "EllesmereUINameplates" when that addon exists (case-insensitive).
+local function ModuleFolder(name)
+    for i = 1, C_AddOns.GetNumAddOns() do
+        local folder = C_AddOns.GetAddOnInfo(i)
+        if folder and folder:lower() == ("EllesmereUI" .. name):lower() then return folder end
+    end
+end
+
+local function CaptureEUI(module)
     local EUI = _G.EllesmereUI
     if not (EUI and EUI.ExportProfile and EUI.GetCurrentProfileKey) then
         ns.Chat("EllesmereUI isn't loaded (or has no export API).")
@@ -16,14 +28,19 @@ local function CaptureEUI()
     if InCombatLockdown() then ns.Chat("Leave combat first.") return end
     local okKey, key = ns.Try(EUI.GetCurrentProfileKey)
     if not okKey or type(key) ~= "string" then ns.Chat("Couldn't read the active EUI profile: " .. tostring(key)) return end
-    local ok, str = ns.Try(EUI.ExportProfile, key)
+    local folder
+    if module then
+        folder = ModuleFolder(module)
+        if not folder then ns.Chat("No EUI module called '" .. module .. "' (try nameplates, actionbars, unitframes, cooldownmanager).") return end
+    end
+    local ok, str = ns.Try(EUI.ExportProfile, key, folder and { [folder] = true } or nil)
     if not ok or type(str) ~= "string" or str == "" then
         ns.Chat("EUI export failed: " .. tostring(str))
         return
     end
     local w, h = GetPhysicalScreenSize()
     ns.db.captures = ns.db.captures or {}
-    ns.db.captures.eui = {
+    local entry = {
         profile = key,
         string = str,
         euiVersion = C_AddOns.GetAddOnMetadata("EllesmereUI", "Version"),
@@ -31,10 +48,17 @@ local function CaptureEUI()
         uiScale = UIParent:GetScale(),
         date = date("%Y-%m-%d %H:%M"),
     }
-    ns.Chat(("Saved EUI profile '%s' (%d characters, screen %dx%d). Now /reload so it's written to disk."):format(key, #str, w, h))
+    if folder then
+        ns.db.captures.euiModules = ns.db.captures.euiModules or {}
+        ns.db.captures.euiModules[folder] = entry
+    else
+        ns.db.captures.eui = entry
+    end
+    ns.Chat(("Saved %s from EUI profile '%s' (%d characters, screen %dx%d). Now /reload so it's written to disk.")
+        :format(folder or "the whole profile", key, #str, w, h))
 end
 
 function ns.ProbeCapture(args)
-    if args[1] == "eui" then CaptureEUI() return end
-    ns.Chat("/ouidev capture eui")
+    if args[1] == "eui" then CaptureEUI(args[2]) return end
+    ns.Chat("/ouidev capture eui [module]")
 end

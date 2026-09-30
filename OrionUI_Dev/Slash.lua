@@ -12,7 +12,7 @@ local HELP = {
     "/ouidev bone [sound]                 Bone Shield display options + find Boiling Point",
     "/ouidev casts                        90s log of your casts and proc glows (spell readable?)",
     "/ouidev cdm [name]                   what the Cooldown Manager can track for this spec",
-    "/ouidev capture eui                  save your EllesmereUI profile for the installer (then /reload)",
+    "/ouidev capture eui [module]         save your EUI profile (or one module) for the installer, then /reload",
     "/ouidev all                          secrets + restrictions + auras + threat in one box",
     "/ouidev watch on|off                 auto snapshots on combat/boss/M+ start (default on)",
     "/ouidev log [N]                      show the saved log (last N lines)",
