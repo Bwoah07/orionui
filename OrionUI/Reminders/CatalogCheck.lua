@@ -28,7 +28,24 @@ local function Check()
     ns.CopyBox:Show(L["Defensive catalog check"], table.concat(lines, "\n"))
 end
 
+-- Hearthstone toy IDs from Data/Hearthstones.lua with the game's name and whether you own it.
+-- Item names can need a moment to load; run it twice if some say "loading".
+local function CheckHearthstones()
+    local lines = {}
+    local ids = { ns.Data.HEARTHSTONE_ITEM }
+    for _, id in ipairs(ns.Data.HearthstoneToys) do ids[#ids + 1] = id end
+    for _, t in ipairs(ns.Data.TeleportToys) do ids[#ids + 1] = t.item end
+    for _, id in ipairs(ids) do
+        local name = C_Item.GetItemNameByID(id)
+        if not name then C_Item.RequestLoadItemDataByID(id) end
+        local owned = (PlayerHasToy and PlayerHasToy(id)) and "  owned" or ""
+        lines[#lines + 1] = ("%7d  %s%s"):format(id, name or "loading / MISSING", owned)
+    end
+    ns.CopyBox:Show(L["Hearthstone check"], table.concat(lines, "\n"))
+end
+
 ns.Slash:Register("check", function(args)
-    if args[1] ~= "defensives" then ns.Print("/oui check defensives") return end
-    Check()
-end, "defensives  (every defensive spell ID with the game's name for it)")
+    if args[1] == "defensives" then Check()
+    elseif args[1] == "hearthstones" then CheckHearthstones()
+    else ns.Print("/oui check defensives | hearthstones") end
+end, "defensives | hearthstones  (IDs with the game's names)")

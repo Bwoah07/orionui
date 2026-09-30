@@ -785,6 +785,12 @@ cooldown pulse, M+ key helpers, break timer stats. Auto-buy/auto-confirm feature
 the exact item** and **fail closed** on unknown metadata (Kira's auto-buy failed open and could
 confirm unrelated popups; never do that).
 
+**Built (2026-09-30), asked for by Stig even though EUI has similar:** `Modules/FocusCastBar.lua` (engine-driven
+bar from `UnitCastingDuration`/`UnitChannelDuration` + `SetTimerDuration`, secret name/icon passed straight to widgets,
+interrupt colour via `SetVertexColorFromBoolean`) and `Modules/TopBar.lua` (secure /use buttons: random hearthstone
+from a user-picked pool in `Data/Hearthstones.lua`, optional Dalaran/Garrison, extra item/toy IDs; FPS | MS; clock).
+Both untested in game.
+
 ### 8.6 RaidControll
 
 Stig's own existing addon. **Decided (2026-09-30):** its features (raid organization, splitting the raid

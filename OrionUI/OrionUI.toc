@@ -55,6 +55,7 @@ Integrations\DBM.lua
 Encounters\EncounterMonitor.lua
 
 Data\Defensives.lua
+Data\Hearthstones.lua
 Reminders\TankOwnership.lua
 Reminders\Readiness.lua
 Reminders\Coverage.lua
@@ -73,6 +74,8 @@ Classes\DeathKnight\Blood.lua
 Classes\DeathKnight\BoilingPoint.lua
 
 Modules\CombatAlert.lua
+Modules\FocusCastBar.lua
+Modules\TopBar.lua
 
 # Last: starts everything on PLAYER_LOGIN
 Core\Boot.lua
