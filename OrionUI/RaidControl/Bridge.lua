@@ -17,3 +17,12 @@ end
 function Settings:Toggle() return self:Open() end
 function Settings:SelectTab() end
 function Settings:CreateWindow() end
+
+-- /oui edit also unlocks RaidControl's frames (launcher, action strip, battle res, healer mana,
+-- tank assist, role marker button) through RaidControl's own layout mode, which saves their
+-- positions in its own settings. Leaving edit mode locks and saves them again.
+local EditLink = { name = "RaidControlEditLink" }
+ns.Events:On("OUI_EDIT_MODE", EditLink, function(_, _, show)
+    local layout = RC:GetModule("LayoutMode", true)
+    if layout and layout.SetActive then layout:SetActive(show and true or false) end
+end)

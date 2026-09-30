@@ -1,7 +1,8 @@
--- The options window (CLAUDE.md §9.1): sidebar grouped by category, pages built from
--- module schemas, hand-written pages for complex editors, and a search box across all
--- option labels. Pages are laid out as a title plus cards of "label | control" rows.
--- Created lazily on first open.
+-- The options window (CLAUDE.md §9.1). The sidebar lists the big parts of OrionUI (General,
+-- Interface, Reminders, Class, Raid Control); clicking one shows its pages as tabs along the top
+-- (Stig, 2026-09-30: easier than one long list). Pages are built from module schemas or are
+-- hand-written editors, laid out as a title plus cards of "label | control" rows. A search box
+-- works across all option labels. Created lazily on first open.
 local _, ns = ...
 
 local L = ns.L
@@ -13,13 +14,14 @@ local CATEGORIES = {
     { key = "qol",       label = L["Interface"] },
     { key = "reminders", label = L["Reminders"] },
     { key = "tank",      label = L["Class"] },
-    { key = "raid",      label = L["Raid tools"] },
+    { key = "raid",      label = L["Raid Control"] },
 }
-local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 900, 600, 200, 52
+local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 1000, 640, 180, 52
 local PAD, CARD_GAP = 16, 20
+local TAB_H, TAB_GAP = 30, 4
 
 local frame, current
-local collapsed = { raid = true } -- category key -> true when folded; the open page's category never folds
+local lastInCategory = {} -- category key -> last page shown there (the sidebar reopens it)
 
 -- Hand-written page: { category, label, order, desc, build(container, addRows, width) -> height,
 -- refresh(container) optional }. addRows(specs, y) lays out standard widgets and cards.
@@ -253,99 +255,123 @@ local function Entries()
     return byCat
 end
 
--- Category heading: click to fold or unfold the pages under it.
-local function SidebarHeader(bar)
-    local T = ns.Theme
-    local h = CreateFrame("Button", nil, bar)
-    h:SetSize(SIDEBAR - 16, 20)
-    h.label = T:Text(h, 10, T.colors.faint)
-    h.label:SetPoint("LEFT", 14, 0)
-    h.arrow = T:Text(h, 10, T.colors.faint)
-    h.arrow:SetPoint("RIGHT", -10, 0)
-    h:SetScript("OnEnter", function(self) self.label:SetTextColor(unpack(T.colors.muted)) end)
-    h:SetScript("OnLeave", function(self) self.label:SetTextColor(unpack(T.colors.faint)) end)
-    return h
-end
-
 local function SidebarButton(bar)
     local T = ns.Theme
     local btn = CreateFrame("Button", nil, bar)
-    btn:SetSize(SIDEBAR - 16, 28)
+    btn:SetSize(SIDEBAR - 16, 34)
     btn.bg = btn:CreateTexture(nil, "BACKGROUND")
     btn.bg:SetAllPoints()
     btn.mark = btn:CreateTexture(nil, "ARTWORK")
     btn.mark:SetPoint("TOPLEFT")
     btn.mark:SetPoint("BOTTOMLEFT")
     btn.mark:SetWidth(2)
-    btn.label = T:Text(btn, 13)
+    btn.label = T:Text(btn, 14)
     btn.label:SetPoint("LEFT", 14, 0)
     btn:SetScript("OnEnter", function(self) if not self.selected then self.bg:SetColorTexture(1, 1, 1, 0.04) end end)
     btn:SetScript("OnLeave", function(self) if not self.selected then self.bg:SetColorTexture(0, 0, 0, 0) end end)
     return btn
 end
 
+local function CategoryOf(id, byCat)
+    for key, list in pairs(byCat) do
+        for _, e in ipairs(list) do if e.id == id then return key end end
+    end
+end
+
 function Options:RefreshSidebar()
     local T, bar = ns.Theme, frame.sidebar.list
     for _, b in ipairs(frame.sidebar.buttons) do b:Hide() end
-    for _, h in ipairs(frame.sidebar.headers) do h:Hide() end
-    local byCat, y, nb, nh = Entries(), 14, 0, 0
-    local buttons, headers = frame.sidebar.buttons, frame.sidebar.headers
+    local byCat, y, nb = Entries(), 14, 0
+    local buttons = frame.sidebar.buttons
     local r, g, b = T:Accent()
     local searching = frame.search:GetText() ~= ""
+    local currentCat = CategoryOf(current, byCat)
     for _, cat in ipairs(CATEGORIES) do
         local list = byCat[cat.key]
         if list and #list > 0 then
-            local holdsCurrent = false
-            for _, e in ipairs(list) do if e.id == current then holdsCurrent = true end end
-            local folded = collapsed[cat.key] and not holdsCurrent and not searching
-            -- A category holding one page of the same name needs no heading.
-            if not (#list == 1 and list[1].label == cat.label) then
-                nh = nh + 1
-                local h = headers[nh] or SidebarHeader(bar)
-                headers[nh] = h
-                h:ClearAllPoints()
-                h:SetPoint("TOPLEFT", 8, -y)
-                h.label:SetText(cat.label:upper())
-                h.arrow:SetText(folded and "+" or (holdsCurrent and "" or "-"))
-                h:SetScript("OnClick", function()
-                    if holdsCurrent then return end
-                    collapsed[cat.key] = not collapsed[cat.key]
-                    Options:RefreshSidebar()
-                end)
-                h:Show()
-                y = y + 22
+            nb = nb + 1
+            local btn = buttons[nb] or SidebarButton(bar)
+            buttons[nb] = btn
+            btn:ClearAllPoints()
+            btn:SetPoint("TOPLEFT", 8, -y)
+            btn.label:SetText(cat.label)
+            btn.selected = cat.key == currentCat and not searching
+            btn.mark:SetColorTexture(r, g, b, 1)
+            btn.mark:SetShown(btn.selected)
+            if btn.selected then
+                btn.bg:SetColorTexture(r, g, b, 0.12)
+                btn.label:SetTextColor(unpack(T.colors.text))
             else
-                folded = false
+                btn.bg:SetColorTexture(0, 0, 0, 0)
+                btn.label:SetTextColor(unpack(T.colors.muted))
             end
-            for _, e in ipairs(folded and {} or list) do
-                nb = nb + 1
-                local btn = buttons[nb] or SidebarButton(bar)
-                buttons[nb] = btn
-                btn:ClearAllPoints()
-                btn:SetPoint("TOPLEFT", 8, -y)
-                btn.label:SetText(e.label)
-                btn.selected = e.id == current and not searching
-                btn.mark:SetColorTexture(r, g, b, 1)
-                btn.mark:SetShown(btn.selected)
-                if btn.selected then
-                    btn.bg:SetColorTexture(r, g, b, 0.12)
-                    btn.label:SetTextColor(unpack(T.colors.text))
-                else
-                    btn.bg:SetColorTexture(0, 0, 0, 0)
-                    btn.label:SetTextColor(unpack(T.colors.muted))
-                end
-                btn:SetScript("OnClick", function()
-                    frame.search:SetText("")
-                    Options:Show(e.id)
-                end)
-                btn:Show()
-                y = y + 30
-            end
-            y = y + (folded and 6 or 14)
+            btn:SetScript("OnClick", function()
+                frame.search:SetText("")
+                Options:Show(lastInCategory[cat.key] or list[1].id)
+            end)
+            btn:Show()
+            y = y + 38
         end
     end
     bar:SetHeight(y + 8)
     frame.sidebar.scroll:UpdateThumb()
+    self:RefreshTabs(byCat, currentCat, searching)
+end
+
+---------------------------------------------------------------------------
+-- Tabs: the pages of the selected part, along the top of the content area
+---------------------------------------------------------------------------
+
+local function TabButton(parent)
+    local T = ns.Theme
+    local tab = CreateFrame("Button", nil, parent)
+    tab:SetHeight(TAB_H)
+    tab.bg = tab:CreateTexture(nil, "BACKGROUND")
+    tab.bg:SetAllPoints()
+    tab.line = tab:CreateTexture(nil, "ARTWORK")
+    tab.line:SetPoint("BOTTOMLEFT")
+    tab.line:SetPoint("BOTTOMRIGHT")
+    tab.line:SetHeight(2)
+    tab.label = T:Text(tab, 13)
+    tab.label:SetPoint("CENTER", 0, 1)
+    tab.label:SetWordWrap(false)
+    tab:SetScript("OnEnter", function(self) if not self.selected then self.bg:SetColorTexture(1, 1, 1, 0.04) end end)
+    tab:SetScript("OnLeave", function(self) if not self.selected then self.bg:SetColorTexture(0, 0, 0, 0) end end)
+    return tab
+end
+
+function Options:RefreshTabs(byCat, currentCat, searching)
+    local T, strip = ns.Theme, frame.tabs
+    for _, t in ipairs(strip.buttons) do t:Hide() end
+    local list = not searching and currentCat and byCat[currentCat] or {}
+    local r, g, b = T:Accent()
+    local x, rowY, width = 0, 0, frame.contentWidth
+    for i, e in ipairs(#list > 1 and list or {}) do
+        local tab = strip.buttons[i] or TabButton(strip)
+        strip.buttons[i] = tab
+        tab.label:SetText(e.label)
+        local w = math.ceil(tab.label:GetStringWidth()) + 28
+        if x > 0 and x + w > width then x, rowY = 0, rowY + TAB_H + TAB_GAP end -- wrap to a new row
+        tab:ClearAllPoints()
+        tab:SetPoint("TOPLEFT", x, -rowY)
+        tab:SetWidth(w)
+        tab.selected = e.id == current
+        tab.line:SetColorTexture(r, g, b, 1)
+        tab.line:SetShown(tab.selected)
+        tab.bg:SetColorTexture(r, g, b, tab.selected and 0.10 or 0)
+        tab.label:SetTextColor(unpack(tab.selected and T.colors.text or T.colors.muted))
+        tab:SetScript("OnClick", function() Options:Show(e.id) end)
+        tab:Show()
+        x = x + w + TAB_GAP
+    end
+    local shown = #list > 1
+    local h = shown and (rowY + TAB_H) or 0
+    strip:SetHeight(math.max(h, 1))
+    strip.line:SetShown(shown)
+    frame.scroll:ClearAllPoints()
+    frame.scroll:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, shown and -20 or 0)
+    frame.scroll:SetPoint("BOTTOMRIGHT", -30, 20)
+    if currentCat and not searching then lastInCategory[currentCat] = current end
 end
 
 ---------------------------------------------------------------------------
@@ -428,7 +454,7 @@ function Options:Create()
     sline:SetWidth(1)
     sline:SetPoint("TOPRIGHT")
     sline:SetPoint("BOTTOMRIGHT")
-    sidebar.buttons, sidebar.headers = {}, {}
+    sidebar.buttons = {}
     -- Scrolls when there are more pages than fit.
     sidebar.scroll = T:Scroll(sidebar)
     sidebar.scroll:SetPoint("TOPLEFT", 0, 0)
@@ -438,11 +464,22 @@ function Options:Create()
     sidebar.scroll:SetScrollChild(sidebar.list)
     frame.sidebar = sidebar
 
-    -- Content
-    local scroll = T:Scroll(frame)
-    scroll:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 28, -24)
-    scroll:SetPoint("BOTTOMRIGHT", -30, 20)
+    -- Content: tab strip on top, the page scrolls below it.
     frame.contentWidth = WIDTH - SIDEBAR - 28 - 30 - 2
+    local tabs = CreateFrame("Frame", nil, frame)
+    tabs:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 28, -18)
+    tabs:SetWidth(frame.contentWidth)
+    tabs:SetHeight(1)
+    tabs.buttons = {}
+    tabs.line = tabs:CreateTexture(nil, "BORDER")
+    tabs.line:SetColorTexture(unpack(T.colors.line))
+    tabs.line:SetHeight(1)
+    tabs.line:SetPoint("BOTTOMLEFT")
+    tabs.line:SetPoint("BOTTOMRIGHT")
+    frame.tabs = tabs
+    local scroll = T:Scroll(frame)
+    scroll:SetPoint("TOPLEFT", tabs, "BOTTOMLEFT", 0, -20)
+    scroll:SetPoint("BOTTOMRIGHT", -30, 20)
     frame.scroll = scroll
 
     frame:SetScript("OnShow", function()

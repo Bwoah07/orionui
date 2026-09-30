@@ -21,7 +21,7 @@ local MODIFIERS = { { value = "SHIFT", text = L["Shift"] }, { value = "CTRL", te
 -- Row: { key, label, [kind = "slider"|"input"|"dropdown"|"color"], min, max, step, values, invert, desc }
 -- A toggle unless kind says otherwise; invert shows the opposite of a "hide..." setting.
 local PAGES = {
-    { id = "RC_Launcher", label = L["Raid launcher"], order = 1,
+    { id = "RC_Launcher", label = L["Launcher"], order = 1,
       desc = L["The RaidControl launcher bar and its drop-down menu."],
       sections = {
         { L["Launcher"], {

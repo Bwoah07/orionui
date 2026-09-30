@@ -423,6 +423,7 @@ Internal messages are prefixed `OUI_`. Canonical internal messages (keep this li
 | `OUI_MECHANIC_CANCEL` | `MechanicEvent` or `nil` (=all) | BossModBridge |
 | `OUI_MECHANIC_TEST` | — | BossModBridge (`/oui test reminder`) |
 | `OUI_REMINDER_SHOW` / `OUI_REMINDER_HIDE` | `Reminder` | Scheduler |
+| `OUI_EDIT_MODE` | `shown` | EditMode (RaidControl's layout mode follows it) |
 
 Handlers are called via `SafeCall`. Bursty events (e.g. `UNIT_AURA`, nameplate events) should
 be **coalesced** with a next-frame flush helper `ns.Events:Coalesce(key, fn)`.
@@ -822,7 +823,9 @@ opens OrionUI's options.
   to EUI**: read EUI's fonts and theme live via its public functions / skin API (the accent is OrionUI's
   own blue `{0.20, 0.60, 1.0}`, Stig 2026-09-30, also RaidControl's default accent);
   fall back to our own defaults if EUI is absent.
-- Left sidebar grouped by module `category` (General, Reminders, Tank, QoL, Profiles, Installer).
+- **As built (2026-09-30, Stig):** the sidebar lists the big parts (General, Interface, Reminders, Class,
+  Raid Control); the selected part shows its pages as tabs along the top of the content area. A page joins a
+  part through its module `category` (general, qol, reminders, tank, raid).
 - Pages are **auto-built from module option schemas** (`Options/Builder.lua`) so new modules get UI
   for free; hand-written pages only for complex editors (encounter ability browser, preset editor,
   custom reminder editor).

@@ -158,6 +158,7 @@ function EditMode:Toggle(show)
     if not root then Create() end
     if not show then
         root:Hide()
+        ns.Events:Fire("OUI_EDIT_MODE", false)
         -- Bring the options back if edit mode was opened from them.
         if self.reopenOptions then
             self.reopenOptions = nil
@@ -179,6 +180,8 @@ function EditMode:Toggle(show)
         o:Show()
     end
     Select(nil)
+    -- Other movable things (the built-in RaidControl's own layout mode) follow ours.
+    ns.Events:Fire("OUI_EDIT_MODE", true)
 end
 
 -- Leave edit mode when combat starts; SetPropagateKeyboardInput is protected in combat.
