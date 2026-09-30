@@ -1,60 +1,95 @@
--- Top bar: a small, movable, transparent strip (not a full-width bar; Stig 2026-09-30):
--- the clock in the middle, buttons on each side of it (a random hearthstone from a pool you
--- pick, Dalaran/Garrison hearthstones, any item or toy IDs), FPS | MS small under the clock.
+-- Top bar (v2, Stig 2026-09-30): a small movable strip of tiles.
 --
--- Everything hangs off one frame, `bar`, which holds secure buttons: it and the clock slot
--- have a fixed size set out of combat, so nothing the secure buttons anchor to ever moves or
--- resizes in combat. The clock text just changes inside its fixed slot.
+--   [friends][guild]   [ 19:09 ]   [hearthstone][M+ portals][extra buttons]
+--                    FPS 60 | MS 5
 --
--- The buttons are secure action buttons (a /use macro), so they can only be created or
--- changed out of combat: all layout goes through ns.Combat:Defer. The random pick happens
--- in PreClick and only out of combat (you can't hearth in combat anyway).
+-- * Clock: big, centred. Tooltip with local/realm time and the daily/weekly reset; left-click
+--   the calendar, right-click the stopwatch/alarm.
+-- * Friends / Guild: online counts; tooltips list who is online (class colours, zone); click
+--   opens the Friends / Guild window.
+-- * Hearthstone: left-click a random hearthstone from your pool, middle- and right-click two
+--   more you choose (Dalaran / Garrison by default, or any item or toy ID).
+-- * M+ portals: a flyout with this season's dungeons. Teleports you know are clickable, the
+--   rest are greyed out. Found from the game itself: the season's maps
+--   (C_ChallengeMode.GetMapTable) are matched to your spellbook's teleport flyouts through the
+--   spell descriptions, so there is no hand-kept list to go stale.
+-- * In combat only FPS | MS stays (the tiles hide through a secure state driver).
+--
+-- Buttons that cast or use things are secure action buttons, so every layout change goes through
+-- ns.Combat:Defer, and the bar is never touched in combat except by its state driver.
 local _, ns = ...
 
 local L = ns.L
 local S = ns.Schema
 
-local GetTime, GetFramerate, GetNetStats = GetTime, GetFramerate, GetNetStats
+local GetFramerate, GetNetStats = GetFramerate, GetNetStats
+local ICONS = ns.MEDIA_PATH .. "Textures\\"
 
 local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"],
-    desc = L["A small movable strip: the clock in the middle, hearthstone buttons on each side, FPS and latency under it. Move it with /oui edit."],
+    desc = L["Clock, friends, guild, hearthstones and Mythic+ portals in one small bar. In combat only FPS and latency stay. Move it with /oui edit."],
     profileKey = "layout",
+    schemaVersion = 2,
+    migrations = {
+        -- v1 had left/right button lists; the hearthstone and extra buttons now have their own settings.
+        [2] = function(db)
+            local words = {}
+            for w in tostring(db.rightButtons or ""):gmatch("%d+") do words[#words + 1] = w end
+            for w in tostring(db.leftButtons or ""):gmatch("%d+") do words[#words + 1] = w end
+            if #words > 0 then db.travel = db.travel or {} db.travel.extraItems = table.concat(words, " ") end
+            db.leftButtons, db.rightButtons, db.background, db.extraItems = nil, nil, nil, nil
+            db.showClock, db.clock24, db.realmTime, db.showFPS, db.showMS, db.fontSize = nil, nil, nil, nil, nil, nil
+            if db.height == 24 then db.height = nil end
+        end,
+    },
     schema = S.Table{ fields = {
-        height = S.Number{ default = 24, min = 16, max = 48, step = 1, label = L["Button size"], order = 2 },
-        background = S.Bool{ default = false, label = L["Dark background behind it"], order = 3 },
-        fontSize = S.Number{ default = 12, min = 8, max = 20, step = 1, label = L["Text size"], order = 4 },
-        showClock = S.Bool{ default = true, label = L["Show clock"], order = 10 },
-        clock24 = S.Bool{ default = true, label = L["24-hour clock"], order = 11 },
-        realmTime = S.Bool{ default = false, label = L["Use realm time"], order = 12 },
-        showFPS = S.Bool{ default = true, label = L["Show FPS"], order = 13 },
-        showMS = S.Bool{ default = true, label = L["Show latency (MS)"], order = 14 },
-        leftButtons = S.String{ default = "hearth", label = L["Buttons left of the clock"], order = 20,
-            desc = L["Separated by spaces or commas: hearth (random hearthstone), dalaran, garrison, or any item or toy ID. Closest to the clock first."] },
-        rightButtons = S.String{ default = "dalaran garrison", label = L["Buttons right of the clock"], order = 21,
-            desc = L["Same words as the left side. Buttons you don't own are left out."] },
+        height = S.Number{ default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
+        clockSize = S.Number{ default = 22, min = 12, max = 40, step = 1, label = L["Clock size"], order = 2 },
+        statsSize = S.Number{ default = 11, min = 8, max = 18, step = 1, label = L["FPS / MS text size"], order = 3 },
+        tileAlpha = S.Number{ default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background"], order = 4 },
+        hideInCombat = S.Bool{ default = true, label = L["In combat show only FPS and MS"], order = 5 },
+        clock = S.Table{ label = L["Clock"], order = 10, fields = {
+            show = S.Bool{ default = true, label = L["Show the clock"], order = 1 },
+            clock24 = S.Bool{ default = true, label = L["24-hour clock"], order = 2 },
+            realmTime = S.Bool{ default = false, label = L["Use realm time"], order = 3 },
+            stats = S.Bool{ default = true, label = L["Show FPS and MS under it"], order = 4 },
+        } },
+        social = S.Table{ label = L["Friends and guild"], order = 20, fields = {
+            friends = S.Bool{ default = true, label = L["Friends"], order = 1 },
+            guild = S.Bool{ default = true, label = L["Guild"], order = 2 },
+            maxLines = S.Number{ default = 25, min = 5, max = 60, step = 1, label = L["Names in the tooltip"], order = 3 },
+        } },
+        travel = S.Table{ label = L["Hearthstones and portals"], order = 30, fields = {
+            hearth = S.Bool{ default = true, label = L["Hearthstone button"], order = 1 },
+            middleClick = S.String{ default = "dalaran", label = L["Middle-click uses"], order = 2,
+                desc = L["dalaran, garrison, or an item or toy ID. Empty = nothing."] },
+            rightClick = S.String{ default = "garrison", label = L["Right-click uses"], order = 3,
+                desc = L["dalaran, garrison, or an item or toy ID. Empty = nothing."] },
+            portals = S.Bool{ default = true, label = L["Mythic+ portals button"], order = 4 },
+            extraItems = S.String{ default = "", label = L["Extra buttons (item or toy IDs)"], order = 5 },
+        } },
         pool = S.Map{ hidden = true, of = S.Bool{ default = false } },
     } },
 })
 
-local bar, clockBtn, statsBtn, clockText, statsText
-local buttons = {}   -- secure buttons in use, left to right
-local spare = {}     -- released secure buttons, reused (secure frames can't be deleted)
-local ticker
+local bar, stats, statsText, flyout
+local tiles = {}     -- key -> tile
+local extra = {}     -- extra secure buttons in use
+local spare = {}     -- released extra buttons (secure frames can't be deleted)
+local portalButtons = {}
+M.tiles, M.portalButtons = tiles, portalButtons -- for tests
 
 ---------------------------------------------------------------------------
--- Ownership and the hearthstone pool
+-- Hearthstones
 ---------------------------------------------------------------------------
 
 local function HasToy(id) return PlayerHasToy and PlayerHasToy(id) or false end
-
 local function Owns(id)
     if HasToy(id) then return true end
-    local count = C_Item.GetItemCount(id)
-    return type(count) == "number" and count > 0
+    local n = C_Item.GetItemCount(id)
+    return type(n) == "number" and n > 0
 end
 
--- Hearthstones the player owns: the plain Hearthstone (if in bags) plus owned toys.
 local function OwnedHearthstones()
     local list = {}
     if Owns(ns.Data.HEARTHSTONE_ITEM) then list[#list + 1] = ns.Data.HEARTHSTONE_ITEM end
@@ -64,7 +99,6 @@ local function OwnedHearthstones()
     return list
 end
 
--- The pool: the ones ticked in options, or every owned one when nothing is ticked.
 local function Pool()
     local owned, picked = OwnedHearthstones(), {}
     for _, id in ipairs(owned) do
@@ -73,127 +107,64 @@ local function Pool()
     return #picked > 0 and picked or owned
 end
 
-local function ItemName(id)
-    return C_Item.GetItemNameByID(id) or (L["Item"] .. " " .. id)
-end
-
----------------------------------------------------------------------------
--- Secure buttons
----------------------------------------------------------------------------
-
-local function SetItem(btn, id)
-    btn.itemID = id
-    btn:SetAttribute("type", "macro")
-    btn:SetAttribute("macrotext", id and ("/use item:" .. id) or "")
-    btn.icon:SetTexture(id and C_Item.GetItemIconByID(id) or 134400) -- question mark
-end
-
-local function RollHearth(btn)
-    if InCombatLockdown() then return end
-    local pool = Pool()
-    if #pool == 0 then SetItem(btn, nil) return end
-    local id = pool[math.random(#pool)]
-    if #pool > 1 and id == btn.itemID then id = pool[math.random(#pool)] end -- fewer repeats
-    SetItem(btn, id)
-end
-
-local function UpdateCooldown(btn)
-    if not btn.itemID then btn.cd:Clear() return end
-    local start, duration = C_Item.GetItemCooldown(btn.itemID)
-    -- Item cooldowns could be secret in restricted content; then leave the swipe alone.
-    if ns.Secret.Is(start) or ns.Secret.Is(duration) then return end
-    if type(duration) == "number" and duration > 1.5 then
-        btn.cd:SetCooldown(start, duration)
-    else
-        btn.cd:Clear()
-    end
-end
-
-local function ShowTooltip(btn)
-    if not btn.itemID then return end
-    GameTooltip:SetOwner(btn, "ANCHOR_BOTTOMRIGHT")
-    if HasToy(btn.itemID) then GameTooltip:SetToyByItemID(btn.itemID) else GameTooltip:SetItemByID(btn.itemID) end
-    if btn.random then
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["A random hearthstone from your pool each time."], 0.7, 0.7, 0.7, true)
-    end
-    GameTooltip:Show()
-end
-
-local function AcquireButton()
-    local btn = table.remove(spare)
-    if btn then return btn end
-    btn = CreateFrame("Button", nil, bar, "SecureActionButtonTemplate")
-    btn:RegisterForClicks("AnyUp", "AnyDown")
-    ns.Theme:Skin(btn, { 0, 0, 0, 0.5 }, { 0, 0, 0, 1 })
-    btn.icon = btn:CreateTexture(nil, "ARTWORK")
-    btn.icon:SetPoint("TOPLEFT", 1, -1)
-    btn.icon:SetPoint("BOTTOMRIGHT", -1, 1)
-    btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    btn.cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
-    btn.cd:SetAllPoints(btn.icon)
-    btn.cd:SetHideCountdownNumbers(true)
-    local hl = btn:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints(btn.icon)
-    hl:SetColorTexture(1, 1, 1, 0.15)
-    btn:SetScript("OnEnter", ShowTooltip)
-    btn:SetScript("OnLeave", GameTooltip_Hide)
-    btn:SetScript("PreClick", function(self) if self.random then RollHearth(self) end end)
-    return btn
-end
-
--- "hearth dalaran 12345" -> { {random=true}, {item=140192}, {item=12345} }, owned ones only.
 local FIXED = {}
 for _, t in ipairs(ns.Data.TeleportToys) do FIXED[t.key] = t.item end
 
-local function ParseButtons(text)
-    local out = {}
-    for word in tostring(text or ""):lower():gmatch("[%w]+") do
-        if word == "hearth" then
-            out[#out + 1] = { random = true }
-        elseif FIXED[word] then
-            if Owns(FIXED[word]) then out[#out + 1] = { item = FIXED[word] } end
-        elseif tonumber(word) then
-            out[#out + 1] = { item = tonumber(word) }
-        end
-    end
-    return out
+-- "dalaran" / "garrison" / "12345" -> item ID, or nil (named ones only when owned).
+local function ResolveItem(word)
+    word = tostring(word or ""):lower():match("^%s*(.-)%s*$")
+    if word == "" then return nil end
+    if FIXED[word] then return Owns(FIXED[word]) and FIXED[word] or nil end
+    return tonumber(word)
 end
 
-local function PlaceSide(list, side, size)
-    for i, w in ipairs(list) do
-        local btn = AcquireButton()
-        btn:SetSize(size, size)
-        local offset = 4 + (i - 1) * (size + 3)
-        if side == "LEFT" then
-            btn:SetPoint("RIGHT", clockBtn, "LEFT", -offset, 0)
-        else
-            btn:SetPoint("LEFT", clockBtn, "RIGHT", offset, 0)
-        end
-        btn.random = w.random
-        if w.random then RollHearth(btn) else SetItem(btn, w.item) end
-        UpdateCooldown(btn)
-        btn:Show()
-        buttons[#buttons + 1] = btn
-    end
-    return #list > 0 and (4 + #list * (size + 3) - 3) or 0
+local function ItemName(id) return C_Item.GetItemNameByID(id) or (L["Item"] .. " " .. id) end
+
+---------------------------------------------------------------------------
+-- Tiles
+---------------------------------------------------------------------------
+
+-- A dark square with a 1px border that lights up in OrionUI blue on hover.
+local function StyleTile(t)
+    t.bg = t:CreateTexture(nil, "BACKGROUND")
+    t.bg:SetAllPoints()
+    t.edge = CreateFrame("Frame", nil, t)
+    t.edge:SetAllPoints()
+    t.edge:SetFrameLevel(t:GetFrameLevel() + 3)
+    ns.Theme:Skin(t.edge, { 0, 0, 0, 0 }, { 0, 0, 0, 1 })
+    t.icon = t:CreateTexture(nil, "ARTWORK")
+    t.icon:SetPoint("TOPLEFT", 3, -3)
+    t.icon:SetPoint("BOTTOMRIGHT", -3, 3)
+    t.count = t.edge:CreateFontString(nil, "OVERLAY")
+    t.count:SetPoint("BOTTOMRIGHT", -2, 2)
+    t:HookScript("OnEnter", function(self) ns.Theme:SetBorderColor(self.edge, ns.Theme:Accent()) end)
+    t:HookScript("OnLeave", function(self) ns.Theme:SetBorderColor(self.edge, 0, 0, 0, 1) GameTooltip_Hide() end)
 end
 
--- Rebuilds the buttons from settings. Out of combat only (called via Combat:Defer).
--- Returns the width of the wider side so the bar stays centred on the clock.
-local function LayoutButtons()
-    for _, btn in ipairs(buttons) do
-        btn:Hide()
-        btn:ClearAllPoints()
-        btn.random = nil
-        SetItem(btn, nil)
-        spare[#spare + 1] = btn
-    end
-    wipe(buttons)
-    local db, size = M.db, M.db.height - 2
-    local left = PlaceSide(ParseButtons(db.leftButtons), "LEFT", size)
-    local right = PlaceSide(ParseButtons(db.rightButtons), "RIGHT", size)
-    return math.max(left, right)
+local function PlainTile(key)
+    local t = CreateFrame("Button", nil, bar)
+    StyleTile(t)
+    t:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    tiles[key] = t
+    return t
+end
+
+local function SecureTile(parent)
+    local t = CreateFrame("Button", nil, parent, "SecureActionButtonTemplate")
+    t:RegisterForClicks("AnyUp", "AnyDown")
+    StyleTile(t)
+    t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    t.cd = CreateFrame("Cooldown", nil, t, "CooldownFrameTemplate")
+    t.cd:SetAllPoints(t.icon)
+    t.cd:SetHideCountdownNumbers(true)
+    return t
+end
+
+local function UpdateItemCooldown(t, id)
+    if not id then t.cd:Clear() return end
+    local start, duration = C_Item.GetItemCooldown(id)
+    if ns.Secret.Is(start) or ns.Secret.Is(duration) then return end
+    if type(duration) == "number" and duration > 1.5 then t.cd:SetCooldown(start, duration) else t.cd:Clear() end
 end
 
 ---------------------------------------------------------------------------
@@ -201,7 +172,7 @@ end
 ---------------------------------------------------------------------------
 
 local function ClockString()
-    local db = M.db
+    local db = M.db.clock
     if db.realmTime then
         local h, m = GetGameTime()
         if db.clock24 then return ("%02d:%02d"):format(h, m) end
@@ -210,131 +181,536 @@ local function ClockString()
     return date(db.clock24 and "%H:%M" or "%I:%M %p")
 end
 
-local function LatencyColor(ms)
-    if ms < 100 then return "|cff5fd35f" elseif ms < 200 then return "|cffe8c547" end
+local function Duration(sec)
+    sec = math.max(0, math.floor(sec or 0))
+    local d, h, m = math.floor(sec / 86400), math.floor(sec % 86400 / 3600), math.floor(sec % 3600 / 60)
+    if d > 0 then return ("%dd %dh"):format(d, h) end
+    if h > 0 then return ("%dh %dm"):format(h, m) end
+    return ("%dm"):format(m)
+end
+
+-- Green / yellow / red colour codes for "higher is better" values.
+local function Tint(v, good, ok)
+    if v >= good then return "|cff5fd35f" elseif v >= ok then return "|cffe8c547" end
     return "|cffe05252"
 end
 
 local function UpdateTexts()
     local db = M.db
-    if db.showClock then clockText:SetText(ClockString()) end
-    if db.showFPS or db.showMS then
-        local parts = {}
-        if db.showFPS then parts[#parts + 1] = ("%d |cff9a9aa5fps|r"):format(math.floor(GetFramerate() + 0.5)) end
-        if db.showMS then
-            local _, _, home, world = GetNetStats()
-            local ms = math.max(home or 0, world or 0)
-            parts[#parts + 1] = ("%s%d|r |cff9a9aa5ms|r"):format(LatencyColor(ms), ms)
-        end
-        statsText:SetText(table.concat(parts, "  |cff55555f|||r  "))
+    if tiles.clock and db.clock.show then tiles.clock.text:SetText(ClockString()) end
+    if db.clock.stats and statsText then
+        local fps = math.floor(GetFramerate() + 0.5)
+        local _, _, home, world = GetNetStats()
+        local ms = math.max(home or 0, world or 0)
+        statsText:SetText(("|cff8a8a95FPS|r %s%d|r   |cff8a8a95MS|r %s%d|r"):format(
+            Tint(fps, 60, 30), fps, Tint(-ms, -99, -199), ms))
     end
-    statsBtn:SetWidth(statsText:GetStringWidth() + 8) -- not an anchor for anything secure
 end
 
-local function TextButton()
-    local b = CreateFrame("Button", nil, bar)
-    b:SetHeight(1)
-    local fs = b:CreateFontString(nil, "OVERLAY")
-    fs:SetPoint("CENTER")
-    return b, fs
+local function ClockTooltip(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+    GameTooltip:AddLine(date("%A %d %B"), 1, 1, 1)
+    local h, m = GetGameTime()
+    GameTooltip:AddDoubleLine(L["Local time"], date("%H:%M"), 0.7, 0.7, 0.7, 1, 1, 1)
+    GameTooltip:AddDoubleLine(L["Realm time"], ("%02d:%02d"):format(h, m), 0.7, 0.7, 0.7, 1, 1, 1)
+    if C_DateAndTime and C_DateAndTime.GetSecondsUntilDailyReset then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddDoubleLine(L["Daily reset"], Duration(C_DateAndTime.GetSecondsUntilDailyReset()), 0.7, 0.7, 0.7, 1, 1, 1)
+        GameTooltip:AddDoubleLine(L["Weekly reset"], Duration(C_DateAndTime.GetSecondsUntilWeeklyReset()), 0.7, 0.7, 0.7, 1, 1, 1)
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(L["Left-click: calendar"], 0.2, 0.6, 1)
+    GameTooltip:AddLine(L["Right-click: stopwatch and alarm"], 0.2, 0.6, 1)
+    GameTooltip:Show()
 end
 
-local function EnsureBar()
-    if bar then return end
-    bar = CreateFrame("Frame", "OrionUITopBar", UIParent) -- named: secure children need a stable parent
-    bar:SetFrameStrata("LOW")
-    bar:SetSize(1, 24)
-    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
-    bar.bg:SetPoint("TOPLEFT", -3, 3)
-    bar.bg:SetPoint("BOTTOMRIGHT", 3, -3)
-    bar.bg:SetColorTexture(0.04, 0.04, 0.05, 0.6)
-    ns.Movers:Register("TopBar", {
-        label = L["Top bar"], getFrame = function() return bar end, default = { x = 0, y = 360 },
-    })
-
-    clockBtn, clockText = TextButton()
-    clockBtn:SetScript("OnClick", function() if ToggleCalendar then ToggleCalendar() end end)
-    clockBtn:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
-        GameTooltip:AddLine(L["Clock"])
-        local h, m = GetGameTime()
-        GameTooltip:AddDoubleLine(L["Local time"], date("%H:%M"), 1, 1, 1, 1, 1, 1)
-        GameTooltip:AddDoubleLine(L["Realm time"], ("%02d:%02d"):format(h, m), 1, 1, 1, 1, 1, 1)
-        GameTooltip:AddLine(L["Click: calendar"], 0.7, 0.7, 0.7)
-        GameTooltip:Show()
-    end)
-    clockBtn:SetScript("OnLeave", GameTooltip_Hide)
-
-    statsBtn, statsText = TextButton()
-    statsBtn:SetScript("OnEnter", function(self)
-        local down, up, home, world = GetNetStats()
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
-        GameTooltip:AddLine(L["Performance"])
-        GameTooltip:AddDoubleLine(L["Frame rate"], ("%.0f fps"):format(GetFramerate()), 1, 1, 1, 1, 1, 1)
-        GameTooltip:AddDoubleLine(L["Latency (home)"], ("%d ms"):format(home), 1, 1, 1, 1, 1, 1)
-        GameTooltip:AddDoubleLine(L["Latency (world)"], ("%d ms"):format(world), 1, 1, 1, 1, 1, 1)
-        GameTooltip:AddDoubleLine(L["Bandwidth in / out"], ("%.1f / %.1f KB/s"):format(down, up), 1, 1, 1, 1, 1, 1)
-        GameTooltip:Show()
-    end)
-    statsBtn:SetScript("OnLeave", GameTooltip_Hide)
-end
-
--- Geometry of the whole strip. Out of combat only: bar and the clock slot are what the
--- secure buttons anchor to, so their size is fixed here and never touched in combat.
-local function LayoutBar()
-    local db = M.db
-    for _, fs in ipairs({ clockText, statsText }) do fs:SetFont(ns.Theme:Font(), db.fontSize, "OUTLINE") end
-    statsText:SetFont(ns.Theme:Font(), math.max(8, db.fontSize - 3), "OUTLINE")
-    -- Fixed clock slot, wide enough for the longest time string in this format.
-    clockText:SetText(db.clock24 and "00:00" or "12:00 PM")
-    local slot = db.showClock and (clockText:GetStringWidth() + 14) or 4
-    clockBtn:ClearAllPoints()
-    clockBtn:SetPoint("CENTER", bar, "CENTER")
-    clockBtn:SetSize(slot, db.height)
-    clockText:SetShown(db.showClock)
-    statsBtn:ClearAllPoints()
-    statsBtn:SetPoint("TOP", clockBtn, "BOTTOM", 0, 1)
-    statsBtn:SetHeight(db.fontSize)
-    statsBtn:SetShown(db.showFPS or db.showMS)
-    local side = LayoutButtons()
-    bar:SetSize(slot + 2 * side, db.height)
-    bar.bg:SetShown(db.background)
-    UpdateTexts()
-    bar:Show()
-end
-
-function M:Refresh()
-    if not bar then return end
-    ns.Combat:Defer("TopBar", LayoutBar)
-end
-
-function M:OnEnable()
-    EnsureBar()
-    ns.Combat:Defer("TopBar", LayoutBar)
-    ticker = self:NewTicker(1, UpdateTexts)
-    local function Cooldowns() for _, btn in ipairs(buttons) do UpdateCooldown(btn) end end
-    ns.Events:On("BAG_UPDATE_COOLDOWN", self, Cooldowns)
-    ns.Events:On("SPELL_UPDATE_COOLDOWN", self, Cooldowns)
-    -- Toys and bag items load after login; rebuild once they're known.
-    ns.Events:On("TOYS_UPDATED", self, function() self:Refresh() end)
-    ns.Events:On("BAG_UPDATE_DELAYED", self, function() self:Refresh() end)
-end
-
-function M:OnDisable()
-    ticker = nil
-    if bar then
-        ns.Combat:Defer("TopBar", function() bar:Hide() end)
+local function ClockClick(_, button)
+    if button == "RightButton" then
+        C_AddOns.LoadAddOn("Blizzard_TimeManager")
+        if TimeManager_Toggle then TimeManager_Toggle() end
+    elseif ToggleCalendar then
+        ToggleCalendar()
     end
 end
 
 ---------------------------------------------------------------------------
--- Options: the hearthstone pool (one toggle per owned hearthstone)
+-- Friends and guild
+---------------------------------------------------------------------------
+
+local CLASS_BY_NAME = {} -- localized class name -> class file ("Death Knight" -> "DEATHKNIGHT")
+for file, name in pairs(LOCALIZED_CLASS_NAMES_MALE or {}) do CLASS_BY_NAME[name] = file end
+for file, name in pairs(LOCALIZED_CLASS_NAMES_FEMALE or {}) do CLASS_BY_NAME[name] = file end
+
+local function ClassHex(classFile)
+    local c = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
+    return c and c:GenerateHexColorMarkup() or "|cffffffff"
+end
+
+local function OnlineFriends()
+    local list = {}
+    for i = 1, C_FriendList.GetNumFriends() do
+        local f = C_FriendList.GetFriendInfoByIndex(i)
+        if f and f.connected then
+            list[#list + 1] = { name = f.name, class = CLASS_BY_NAME[f.className], zone = f.area }
+        end
+    end
+    local _, bnOnline = BNGetNumFriends()
+    for i = 1, bnOnline or 0 do
+        local a = C_BattleNet.GetFriendAccountInfo(i)
+        local g = a and a.gameAccountInfo
+        if g and g.isOnline and g.clientProgram == BNET_CLIENT_WOW and g.characterName then
+            list[#list + 1] = { name = g.characterName, bnet = a.accountName, class = CLASS_BY_NAME[g.className], zone = g.areaName }
+        end
+    end
+    return list
+end
+
+local function OnlineGuild()
+    local list = {}
+    if not IsInGuild() then return list end
+    for i = 1, GetNumGuildMembers() do
+        local name, rank, _, _, _, zone, _, _, online, _, classFile = GetGuildRosterInfo(i)
+        if online and name then
+            list[#list + 1] = { name = Ambiguate(name, "guild"), class = classFile, zone = zone, rank = rank }
+        end
+    end
+    return list
+end
+
+local function SocialTooltip(self, title, list, hint, extraLine)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+    GameTooltip:AddDoubleLine(title, ("%d %s"):format(#list, L["online"]), 1, 1, 1, 0.37, 0.83, 0.37)
+    if extraLine then GameTooltip:AddLine(extraLine, 0.9, 0.8, 0.5, true) end
+    if #list > 0 then GameTooltip:AddLine(" ") end
+    for i, p in ipairs(list) do
+        if i > M.db.social.maxLines then
+            GameTooltip:AddLine(("... +%d"):format(#list - i + 1), 0.6, 0.6, 0.6)
+            break
+        end
+        local left = ClassHex(p.class) .. p.name .. "|r" .. (p.bnet and (" |cff82c5ff(" .. p.bnet .. ")|r") or "")
+        local right = p.zone or ""
+        if p.rank then right = right .. "  |cff8a8a95" .. p.rank .. "|r" end
+        GameTooltip:AddDoubleLine(left, right, 1, 1, 1, 0.75, 0.75, 0.75)
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(hint, 0.2, 0.6, 1)
+    GameTooltip:Show()
+end
+
+local function UpdateSocial()
+    if tiles.friends then tiles.friends.count:SetText(#OnlineFriends()) end
+    if tiles.guild then tiles.guild.count:SetText(IsInGuild() and #OnlineGuild() or "") end
+end
+
+---------------------------------------------------------------------------
+-- Mythic+ portals
+---------------------------------------------------------------------------
+
+-- Spells in your spellbook flyouts (dungeon teleports live there): { spellID, known, desc }.
+local function FlyoutSpells()
+    local out = {}
+    if not (GetFlyoutInfo and GetFlyoutSlotInfo) then return out end
+    local bank = Enum.SpellBookSpellBank.Player
+    for line = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+        local info = C_SpellBook.GetSpellBookSkillLineInfo(line)
+        for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+            local item = C_SpellBook.GetSpellBookItemInfo(slot, bank)
+            if item and item.itemType == Enum.SpellBookItemType.Flyout then
+                local _, _, numSlots = GetFlyoutInfo(item.actionID)
+                for i = 1, numSlots or 0 do
+                    local spellID, _, known = GetFlyoutSlotInfo(item.actionID, i)
+                    if spellID then
+                        local desc = C_Spell.GetSpellDescription(spellID)
+                        if not desc or desc == "" then C_Spell.RequestLoadSpellData(spellID) end
+                        out[#out + 1] = { spellID = spellID, known = known, desc = desc or "" }
+                    end
+                end
+            end
+        end
+    end
+    return out
+end
+
+local SMALL = { the = true, of = true, ["and"] = true, a = true }
+local function Short(name)
+    local words = {}
+    for word in name:gmatch("[%w']+") do
+        if not SMALL[word:lower()] then words[#words + 1] = word end
+    end
+    if #words == 1 then return words[1]:sub(1, 3) end -- "The Stonevault" -> "Sto"
+    local letters = {}
+    for i, w in ipairs(words) do letters[i] = w:sub(1, 1):upper() end
+    return table.concat(letters)
+end
+
+-- This season's dungeons with their teleport (if you have one).
+local function SeasonPortals()
+    local maps = C_ChallengeMode.GetMapTable() or {}
+    local spells = FlyoutSpells()
+    local out = {}
+    for _, mapID in ipairs(maps) do
+        local name, _, _, texture = C_ChallengeMode.GetMapUIInfo(mapID)
+        if name then
+            local found
+            for _, s in ipairs(spells) do
+                if s.desc:find(name, 1, true) then found = s break end
+            end
+            out[#out + 1] = { mapID = mapID, name = name, short = Short(name), texture = texture,
+                spellID = found and found.spellID, known = found and found.known }
+        end
+    end
+    table.sort(out, function(a, b) return a.name < b.name end)
+    return out
+end
+
+local function PortalButton(i)
+    local b = portalButtons[i]
+    if b then return b end
+    b = SecureTile(flyout)
+    b.label = b.edge:CreateFontString(nil, "OVERLAY")
+    b.label:SetPoint("BOTTOM", 0, 2)
+    b:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+        GameTooltip:AddLine(self.portal.name, 1, 1, 1)
+        if self.portal.known then
+            GameTooltip:AddLine(L["Click to teleport"], 0.2, 0.6, 1)
+        else
+            GameTooltip:AddLine(L["You don't have this teleport yet."], 0.7, 0.7, 0.7, true)
+        end
+        GameTooltip:Show()
+    end)
+    b:HookScript("OnLeave", function() M:ScheduleFlyoutHide() end)
+    b:HookScript("PostClick", function() if flyout and not InCombatLockdown() then flyout:Hide() end end)
+    portalButtons[i] = b
+    return b
+end
+
+-- Builds the flyout. Out of combat only (secure buttons).
+local function BuildFlyout()
+    local size = M.db.height + 6
+    local list = SeasonPortals()
+    for _, b in ipairs(portalButtons) do b:Hide() end
+    local cols = 4
+    for i, p in ipairs(list) do
+        local b = PortalButton(i)
+        b.portal = p
+        b:SetSize(size, size)
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", flyout, "TOPLEFT", 4 + ((i - 1) % cols) * (size + 3), -4 - math.floor((i - 1) / cols) * (size + 3))
+        b.bg:SetColorTexture(0.05, 0.05, 0.06, 0.9)
+        b.icon:SetTexture(p.texture or (p.spellID and C_Spell.GetSpellTexture(p.spellID)) or 134400)
+        b.icon:SetDesaturated(not p.known)
+        b.icon:SetAlpha(p.known and 1 or 0.45)
+        b.label:SetFont(ns.Theme:Font(), math.max(9, math.floor(size * 0.3)), "OUTLINE")
+        b.label:SetText(p.short)
+        if p.known then
+            b:SetAttribute("type", "spell")
+            b:SetAttribute("spell", p.spellID)
+            local cd = C_Spell.GetSpellCooldown(p.spellID)
+            local start, duration = cd and cd.startTime, cd and cd.duration
+            if not ns.Secret.Is(duration) and type(duration) == "number" and duration > 1.5 then
+                b.cd:SetCooldown(start, duration)
+            else
+                b.cd:Clear()
+            end
+        else
+            b:SetAttribute("type", nil)
+            b.cd:Clear()
+        end
+        b:Show()
+    end
+    local rows = math.max(1, math.ceil(#list / cols))
+    flyout:SetSize(8 + math.min(math.max(#list, 1), cols) * (size + 3) - 3, 8 + rows * (size + 3) - 3)
+    flyout.empty:SetShown(#list == 0)
+    if #list == 0 then flyout:SetSize(220, 40) end
+end
+
+function M:ScheduleFlyoutHide()
+    if self.flyoutTimer then self.flyoutTimer:Cancel() end
+    self.flyoutTimer = C_Timer.NewTimer(0.6, function()
+        self.flyoutTimer = nil
+        if InCombatLockdown() then return end
+        if flyout and flyout:IsShown() and not flyout:IsMouseOver() and not (tiles.portals and tiles.portals:IsMouseOver()) then
+            flyout:Hide()
+        end
+    end)
+end
+
+local function ToggleFlyout()
+    if InCombatLockdown() then return end
+    if flyout:IsShown() then flyout:Hide() return end
+    BuildFlyout()
+    flyout:ClearAllPoints()
+    flyout:SetPoint("TOP", tiles.portals, "BOTTOM", 0, -4)
+    flyout:Show()
+end
+
+---------------------------------------------------------------------------
+-- Building the bar
+---------------------------------------------------------------------------
+
+local function Create()
+    if bar then return end
+    bar = CreateFrame("Frame", "OrionUITopBar", UIParent) -- named: secure children need a stable parent
+    bar:SetFrameStrata("LOW")
+    bar:SetSize(1, 30)
+    ns.Movers:Register("TopBar", { label = L["Top bar"], getFrame = function() return bar end, default = { x = 0, y = 360 } })
+
+    local clock = PlainTile("clock")
+    clock.icon:Hide()
+    clock.text = clock.edge:CreateFontString(nil, "OVERLAY")
+    clock.text:SetPoint("CENTER", 0, 0)
+    clock:SetScript("OnEnter", ClockTooltip)
+    clock:SetScript("OnClick", ClockClick)
+
+    local friends = PlainTile("friends")
+    friends.icon:SetTexture(ICONS .. "IconFriends")
+    friends.icon:SetVertexColor(0.45, 0.75, 1)
+    friends:SetScript("OnEnter", function(self)
+        SocialTooltip(self, L["Friends"], OnlineFriends(), L["Left-click: open Friends"])
+    end)
+    friends:SetScript("OnClick", function() if ToggleFriendsFrame then ToggleFriendsFrame(1) end end)
+
+    local guild = PlainTile("guild")
+    guild.icon:SetTexture(ICONS .. "IconGuild")
+    guild.icon:SetVertexColor(1, 0.8, 0.35)
+    guild:SetScript("OnEnter", function(self)
+        if not IsInGuild() then
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+            GameTooltip:AddLine(L["Not in a guild"], 1, 1, 1)
+            GameTooltip:Show()
+            return
+        end
+        local motd = GetGuildRosterMOTD and GetGuildRosterMOTD()
+        SocialTooltip(self, GetGuildInfo("player") or L["Guild"], OnlineGuild(), L["Left-click: open Guild"],
+            motd and motd ~= "" and motd or nil)
+    end)
+    guild:SetScript("OnClick", function() if ToggleGuildFrame then ToggleGuildFrame() end end)
+
+    local hearth = SecureTile(bar)
+    tiles.hearth = hearth
+    hearth:SetScript("PreClick", function(_, button)
+        if button == "LeftButton" and not InCombatLockdown() then M:RollHearth() end
+    end)
+    hearth:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+        GameTooltip:AddLine(L["Hearthstone"], 1, 1, 1)
+        local bind = GetBindLocation and GetBindLocation()
+        if bind then GameTooltip:AddDoubleLine(L["Bound to"], bind, 0.7, 0.7, 0.7, 1, 1, 1) end
+        local start, duration = C_Item.GetItemCooldown(ns.Data.HEARTHSTONE_ITEM)
+        if not ns.Secret.Is(duration) and type(duration) == "number" and duration > 1.5 then
+            GameTooltip:AddDoubleLine(L["Cooldown"], Duration(start + duration - GetTime()), 0.7, 0.7, 0.7, 1, 0.4, 0.4)
+        else
+            GameTooltip:AddDoubleLine(L["Cooldown"], L["Ready"], 0.7, 0.7, 0.7, 0.37, 0.83, 0.37)
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(L["Left-click: random hearthstone"], 0.2, 0.6, 1)
+        if self.middleID then GameTooltip:AddLine(L["Middle-click:"] .. " " .. ItemName(self.middleID), 0.2, 0.6, 1) end
+        if self.rightID then GameTooltip:AddLine(L["Right-click:"] .. " " .. ItemName(self.rightID), 0.2, 0.6, 1) end
+        GameTooltip:Show()
+    end)
+
+    local portals = PlainTile("portals")
+    portals.icon:SetTexture(ICONS .. "IconPortal")
+    portals.icon:SetVertexColor(0.6, 0.5, 1)
+    portals:SetScript("OnClick", ToggleFlyout)
+    portals:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+        GameTooltip:AddLine(L["Mythic+ portals"], 1, 1, 1)
+        GameTooltip:AddLine(L["Click: this season's dungeon teleports"], 0.2, 0.6, 1)
+        GameTooltip:Show()
+    end)
+
+    flyout = CreateFrame("Frame", "OrionUITopBarPortals", UIParent)
+    flyout:SetFrameStrata("DIALOG")
+    ns.Theme:Skin(flyout, { 0.05, 0.05, 0.06, 0.95 }, { 0, 0, 0, 1 })
+    flyout.empty = ns.Theme:Text(flyout, 11, ns.Theme.colors.muted)
+    flyout.empty:SetPoint("CENTER")
+    flyout.empty:SetText(L["No Mythic+ season data yet."])
+    flyout:EnableMouse(true)
+    flyout:SetScript("OnLeave", function() M:ScheduleFlyoutHide() end)
+    flyout:Hide()
+    tinsert(UISpecialFrames, "OrionUITopBarPortals")
+
+    -- FPS | MS: its own frame, so it stays when the tiles hide in combat.
+    stats = CreateFrame("Frame", nil, UIParent)
+    stats:SetFrameStrata("LOW")
+    stats:SetSize(140, 14)
+    statsText = stats:CreateFontString(nil, "OVERLAY")
+    statsText:SetPoint("CENTER")
+end
+
+function M:RollHearth()
+    local t = tiles.hearth
+    local pool = Pool()
+    local id = #pool > 0 and pool[math.random(#pool)] or nil
+    if id and #pool > 1 and id == t.leftID then id = pool[math.random(#pool)] end
+    t.leftID = id
+    t:SetAttribute("type1", "macro")
+    t:SetAttribute("macrotext1", id and ("/use item:" .. id) or "")
+    t.icon:SetTexture(C_Item.GetItemIconByID(id or ns.Data.HEARTHSTONE_ITEM))
+    UpdateItemCooldown(t, id or ns.Data.HEARTHSTONE_ITEM)
+end
+
+-- Per mouse button: suffix "2" = right, "3" = middle (SecureActionButton attribute suffixes).
+local function SetClickItem(t, suffix, id)
+    t:SetAttribute("type" .. suffix, id and "macro" or nil)
+    t:SetAttribute("macrotext" .. suffix, id and ("/use item:" .. id) or nil)
+end
+
+-- Extra buttons: item or toy IDs from the settings.
+local function LayoutExtras(x, size)
+    for _, b in ipairs(extra) do b:Hide() b:ClearAllPoints() spare[#spare + 1] = b end
+    wipe(extra)
+    for word in tostring(M.db.travel.extraItems or ""):gmatch("%d+") do
+        local id = tonumber(word)
+        local b = table.remove(spare) or SecureTile(bar)
+        b.itemID = id
+        b:SetAttribute("type", "macro")
+        b:SetAttribute("macrotext", "/use item:" .. id)
+        b.icon:SetTexture(C_Item.GetItemIconByID(id) or 134400)
+        b.bg:SetColorTexture(0.05, 0.05, 0.06, M.db.tileAlpha)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
+            if HasToy(self.itemID) then GameTooltip:SetToyByItemID(self.itemID) else GameTooltip:SetItemByID(self.itemID) end
+            GameTooltip:Show()
+        end)
+        b:SetSize(size, size)
+        b:SetPoint("LEFT", bar, "LEFT", x, 0)
+        UpdateItemCooldown(b, id)
+        b:Show()
+        extra[#extra + 1] = b
+        x = x + size + 4
+    end
+    return x
+end
+
+-- Whole layout. Out of combat only (secure buttons, state driver).
+local function Layout()
+    local db = M.db
+    local size = db.height
+    local font = ns.Theme:Font()
+    for _, t in pairs(tiles) do
+        t.bg:SetColorTexture(0.05, 0.05, 0.06, db.tileAlpha)
+        t.count:SetFont(font, math.max(9, math.floor(size * 0.36)), "OUTLINE")
+        t:Hide()
+    end
+    tiles.friends.count:SetTextColor(0.37, 0.83, 0.37)
+    tiles.guild.count:SetTextColor(1, 0.6, 0.2)
+
+    -- Left side, clock, right side: one row with the clock centred on the bar.
+    local left, right = {}, {}
+    if db.social.friends then left[#left + 1] = tiles.friends end
+    if db.social.guild then left[#left + 1] = tiles.guild end
+    if db.travel.hearth then right[#right + 1] = tiles.hearth end
+    if db.travel.portals then right[#right + 1] = tiles.portals end
+
+    local gap = 4
+    local clock = tiles.clock
+    clock.text:SetFont(font, db.clockSize, "OUTLINE")
+    clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
+    local clockW = db.clock.show and (math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24) + 2 * gap) or gap
+    local nExtra = 0
+    for _ in tostring(db.travel.extraItems or ""):gmatch("%d+") do nExtra = nExtra + 1 end
+    local leftW, rightW = #left * (size + gap), (#right + nExtra) * (size + gap)
+    local side = math.max(leftW, rightW)
+    bar:SetSize(math.max(side * 2 + clockW, 1), size)
+
+    local x = side - leftW
+    for _, t in ipairs(left) do
+        t:SetSize(size, size)
+        t:ClearAllPoints()
+        t:SetPoint("LEFT", bar, "LEFT", x, 0)
+        t:Show()
+        x = x + size + gap
+    end
+    if db.clock.show then
+        clock:SetSize(clockW - 2 * gap, size)
+        clock:ClearAllPoints()
+        clock:SetPoint("LEFT", bar, "LEFT", side + gap, 0)
+        clock:Show()
+    end
+    x = side + clockW
+    for _, t in ipairs(right) do
+        t:SetSize(size, size)
+        t:ClearAllPoints()
+        t:SetPoint("LEFT", bar, "LEFT", x, 0)
+        t:Show()
+        x = x + size + gap
+    end
+    LayoutExtras(x, size)
+
+    -- Hearthstone clicks.
+    local h = tiles.hearth
+    h.middleID, h.rightID = ResolveItem(db.travel.middleClick), ResolveItem(db.travel.rightClick)
+    SetClickItem(h, "3", h.middleID)
+    SetClickItem(h, "2", h.rightID)
+    M:RollHearth()
+
+    -- FPS | MS under the middle of the bar.
+    stats:ClearAllPoints()
+    stats:SetPoint("TOP", bar, "BOTTOM", 0, -3)
+    statsText:SetFont(font, db.statsSize, "OUTLINE")
+    stats:SetShown(db.clock.stats)
+
+    -- In combat only FPS | MS: a secure state driver hides the tiles (secure buttons included).
+    if db.hideInCombat then
+        RegisterStateDriver(bar, "visibility", "[combat] hide; show")
+    else
+        UnregisterStateDriver(bar, "visibility")
+        bar:Show()
+    end
+    if flyout then flyout:Hide() end
+    UpdateSocial()
+    UpdateTexts()
+end
+
+function M:Refresh()
+    if not bar then return end
+    ns.Combat:Defer("TopBar", Layout)
+end
+
+function M:OnEnable()
+    Create()
+    ns.Combat:Defer("TopBar", Layout)
+    self:NewTicker(1, UpdateTexts)
+    local function Cooldowns()
+        if tiles.hearth then UpdateItemCooldown(tiles.hearth, tiles.hearth.leftID or ns.Data.HEARTHSTONE_ITEM) end
+        for _, b in ipairs(extra) do UpdateItemCooldown(b, b.itemID) end
+    end
+    ns.Events:On("BAG_UPDATE_COOLDOWN", self, Cooldowns)
+    ns.Events:On("SPELL_UPDATE_COOLDOWN", self, Cooldowns)
+    ns.Events:On("TOYS_UPDATED", self, function() self:Refresh() end)
+    ns.Events:On("BAG_UPDATE_DELAYED", self, function() self:Refresh() end)
+    for _, ev in ipairs({ "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_ACCOUNT_ONLINE",
+        "BN_FRIEND_ACCOUNT_OFFLINE", "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE" }) do
+        ns.Events:On(ev, self, function() ns.Events:Coalesce("topbar-social", UpdateSocial) end)
+    end
+    ns.Events:On("OUI_COMBAT_START", self, function() if flyout then flyout:Hide() end end)
+    local function AskRoster() if IsInGuild() and C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end end
+    AskRoster()
+    self:NewTicker(60, AskRoster)
+end
+
+function M:OnDisable()
+    if flyout then flyout:Hide() end
+    if stats then stats:Hide() end
+    if bar then
+        ns.Combat:Defer("TopBar", function()
+            UnregisterStateDriver(bar, "visibility")
+            bar:Hide()
+        end)
+    end
+end
+
+---------------------------------------------------------------------------
+-- Options: the hearthstone pool
 ---------------------------------------------------------------------------
 
 M.options = function(self)
     local out = {
         { type = "Header", label = L["Random hearthstone pool"] },
-        { type = "Description", label = L["Tick the hearthstones the button may pick. With none ticked it picks from all you own."] },
+        { type = "Description", label = L["Tick the hearthstones left-click may pick. With none ticked it picks from all you own."] },
     }
     local owned = OwnedHearthstones()
     if #owned == 0 then
@@ -357,4 +733,3 @@ M.options = function(self)
     end }
     return out
 end
-

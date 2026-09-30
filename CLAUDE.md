@@ -790,8 +790,10 @@ confirm unrelated popups; never do that).
 **Built (2026-09-30), asked for by Stig even though EUI has similar:** `Modules/FocusCastBar.lua` (engine-driven
 bar from `UnitCastingDuration`/`UnitChannelDuration` + `SetTimerDuration`, secret name/icon passed straight to widgets,
 interrupt colour via `SetVertexColorFromBoolean`; kick-ready tint from our own interrupt in `Data/Interrupts.lua`, shield,
-important-cast colour + glow from `C_Spell.IsSpellImportant`, cast target name) and `Modules/TopBar.lua` (small movable transparent strip, clock centred with buttons each side and FPS/MS under it; secure /use buttons: random hearthstone
-from a user-picked pool in `Data/Hearthstones.lua`, optional Dalaran/Garrison, extra item/toy IDs; FPS | MS; clock).
+important-cast colour + glow from `C_Spell.IsSpellImportant`, cast target name) and `Modules/TopBar.lua` v2 (tiles: friends + guild with online counts and tooltips, big centred clock
+with reset timers, hearthstone with left = random pool / middle / right = configurable, M+ portal flyout found by matching
+`C_ChallengeMode.GetMapTable` names to spellbook flyout spell descriptions, extra item/toy buttons; FPS | MS under it;
+in combat a secure state driver hides the tiles so only FPS | MS stays; our own icons in `Media/Textures/Icon*.tga`).
 Both untested in game.
 
 ### 8.6 RaidControll
