@@ -1028,7 +1028,7 @@ Collected from Stig's feedback on screenshots. **Reference screenshots Stig love
 - Everything else from the reference packs: not wanted.
 - **Our media (2026-09-30):** bar textures Orion Flat / Smooth / Stripe (our own, `Media/Textures`), main font
   **Expressway** from EllesmereUI (EUI ships it; we use it, never bundle it). Trial fonts "Orion 2" = Inter and
-  "Orion 3" = Rajdhani (SIL OFL, credits in `Media/Fonts/OFL-*.txt`). Barlow was tried and rejected by Stig.
+  "Orion 3" = Rajdhani, "Orion 4" = Urbanist Medium/SemiBold (SIL OFL, credits in `Media/Fonts/OFL-*.txt`). Barlow was tried and rejected by Stig.
   All registered with LibSharedMedia so EUI can use them.
 - Consistency rules: one or two fonts, one accent color, one bar texture family, one border style,
   consistent spacing everywhere.

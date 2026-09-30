@@ -26,6 +26,8 @@ Media.own = {
     { "font", "Orion 2 Bold", ns.MEDIA_PATH .. "Fonts\\Orion2-Bold.ttf" }, -- Inter Bold
     { "font", "Orion 3",      ns.MEDIA_PATH .. "Fonts\\Orion3.ttf" },      -- Rajdhani SemiBold
     { "font", "Orion 3 Bold", ns.MEDIA_PATH .. "Fonts\\Orion3-Bold.ttf" }, -- Rajdhani Bold
+    { "font", "Orion 4",          ns.MEDIA_PATH .. "Fonts\\Orion4.ttf" },          -- Urbanist Medium
+    { "font", "Orion 4 SemiBold", ns.MEDIA_PATH .. "Fonts\\Orion4-SemiBold.ttf" }, -- Urbanist SemiBold
 }
 
 local function LSM()
