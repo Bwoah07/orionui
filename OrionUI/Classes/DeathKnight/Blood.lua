@@ -54,7 +54,10 @@ local M = ns.Modules:New("BloodDK", {
                 valueLabels = { bar = L["Thin bar"], icon = L["Icon"] } },
             width = S.Number{ default = 240, min = 60, max = 600, step = 2, label = L["Bar width"], order = 3 },
             height = S.Number{ default = 6, min = 2, max = 30, step = 1, label = L["Bar height / icon size"], order = 4 },
-            sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 5 },
+            window = S.Number{ default = 3, min = 1, max = 15, step = 0.5, label = L["Countdown length (seconds)"], order = 5,
+                desc = L["How long the empowered Blood Boil lasts. The game doesn't say, so set it to match the talent."] },
+            pulse = S.Bool{ default = true, label = L["Pulse while active"], order = 6 },
+            sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 7 },
         } },
     } },
 })
