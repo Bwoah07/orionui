@@ -12,4 +12,7 @@ fetch() { # name url file
 fetch LibStub https://github.com/lua-wow/LibStub.git LibStub.lua   # mirror of wowace libstub (public domain)
 fetch LibSerialize https://github.com/rossnichols/LibSerialize.git LibSerialize.lua
 fetch LibDeflate https://github.com/SafeteeWoW/LibDeflate.git LibDeflate.lua
+fetch Ace3 https://github.com/WoWUIDev/Ace3.git AceAddon-3.0/AceAddon-3.0.lua
+# LibSharedMedia-3.0 lives on wowace (svn); for local dev copy it from any addon that embeds it
+# into OrionUI/Libs/LibSharedMedia-3.0 (same layout as the .pkgmeta external).
 echo "libs ready in OrionUI/Libs"

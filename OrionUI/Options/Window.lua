@@ -12,6 +12,7 @@ local CATEGORIES = {
     { key = "general",   label = L["General"] },
     { key = "reminders", label = L["Reminders"] },
     { key = "tank",      label = L["Tank"] },
+    { key = "raid",      label = L["Raid tools"] },
     { key = "qol",       label = L["Quality of life"] },
     { key = "profiles",  label = L["Profiles"] },
 }

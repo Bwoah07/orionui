@@ -798,7 +798,17 @@ Stig's own existing addon. **Decided (2026-09-30):** its features (raid organiza
 into groups, etc.) get **rewritten into OrionUI as modules**, not shipped as-is. Simple raid buttons
 (markers, ready/role check, pull timers) are already covered by EUI's QoL → Raid Tools, so OrionUI only
 adds what EUI lacks. Raid-group changes are combat-restricted: all moves go through `ns.Combat:Defer`.
-Use RaidControll's source (Stig's own code) as the reference; it is not scheduled yet.
+Use RaidControll's source (Stig's own code) as the reference.
+
+**Built in (2026-09-30), Stig's call:** RaidControl's code lives in `OrionUI/RaidControl/`, copied close to
+as-is (it is his own addon) by a re-runnable port script, as its own AceAddon `OrionUIRaidControl` with
+SavedVariable `OrionUIRaidControlDB`. Ace3 + LibSharedMedia are embedded for it (`.pkgmeta` externals).
+Left out on purpose: Boss Notes, Note Reminders, NSRT note sharing, OrionImport, and RaidControl's own settings
+windows (Settings, SettingsV2, BlizzardOptions). `RaidControl/Bridge.lua` stands in for its Settings module so
+every Settings button opens `/oui`; `RaidControl/Options.lua` generates the "Raid tools" pages from its AceDB
+defaults, grouped by key prefix. Raid Split opens in the plain workspace host (`/oui split`). The whole thing
+stays off when the standalone RaidControl addon is enabled. These files are exempt from our file-size rule and
+luacheck. Untested in game.
 
 ---
 

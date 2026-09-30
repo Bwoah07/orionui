@@ -4,7 +4,7 @@
 ## Author: Stig
 ## Version: @project-version@
 ## Category: User Interface
-## SavedVariables: OrionUIDB
+## SavedVariables: OrionUIDB, OrionUIRaidControlDB
 ## SavedVariablesPerCharacter: OrionUICharDB
 ## OptionalDeps: EllesmereUI, BigWigs, DBM-Core
 ## AddonCompartmentFunc: OrionUI_OnAddonCompartmentClick
@@ -13,6 +13,17 @@
 Libs\LibStub\LibStub.lua
 Libs\LibSerialize\LibSerialize.lua
 Libs\LibDeflate\LibDeflate.lua
+# Ace3 + LibSharedMedia: used by the built-in RaidControl (RaidControl/)
+Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\Ace3\AceAddon-3.0\AceAddon-3.0.xml
+Libs\Ace3\AceEvent-3.0\AceEvent-3.0.xml
+Libs\Ace3\AceLocale-3.0\AceLocale-3.0.xml
+Libs\Ace3\AceDB-3.0\AceDB-3.0.xml
+Libs\Ace3\AceSerializer-3.0\AceSerializer-3.0.xml
+Libs\Ace3\AceComm-3.0\AceComm-3.0.xml
+Libs\Ace3\AceConsole-3.0\AceConsole-3.0.xml
+Libs\Ace3\AceGUI-3.0\AceGUI-3.0.xml
+Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 
 Core\Init.lua
 Locales\enUS.lua
@@ -77,6 +88,47 @@ Classes\DeathKnight\BoilingPoint.lua
 Modules\CombatAlert.lua
 Modules\FocusCastBar.lua
 Modules\TopBar.lua
+
+# RaidControl (Stig's own addon, built in; no notes, no settings windows)
+RaidControl\Locales\enUS.lua
+RaidControl\Locales\deDE.lua
+RaidControl\Locales\esES.lua
+RaidControl\Locales\esMX.lua
+RaidControl\Locales\frFR.lua
+RaidControl\Locales\itIT.lua
+RaidControl\Locales\koKR.lua
+RaidControl\Locales\ptBR.lua
+RaidControl\Locales\ruRU.lua
+RaidControl\Locales\zhCN.lua
+RaidControl\Locales\zhTW.lua
+RaidControl\Core.lua
+RaidControl\Media\Media.lua
+RaidControl\Bridge.lua
+RaidControl\Modules\FrameScaling.lua
+RaidControl\Modules\Workspace.lua
+RaidControl\Modules\AutoMarker.lua
+RaidControl\Modules\AutoInvite.lua
+RaidControl\Modules\CombatLogger.lua
+RaidControl\Modules\SynergyAnalyzer.lua
+RaidControl\Modules\KeySync.lua
+RaidControl\Modules\ConsumableChecker.lua
+RaidControl\Modules\RaidLeadTools.lua
+RaidControl\Modules\TankAssist.lua
+RaidControl\Modules\TankAssistMidnight.lua
+RaidControl\Modules\TankAssistAlertHUD.lua
+RaidControl\Modules\TankAssistCountdownAudio.lua
+RaidControl\Modules\Roles.lua
+RaidControl\Modules\RaidSplit.lua
+RaidControl\Modules\ActionStrip.lua
+RaidControl\Modules\LayoutMode.lua
+RaidControl\Modules\RaidDemo.lua
+RaidControl\Modules\Control.lua
+RaidControl\Modules\Screenshot.lua
+RaidControl\Modules\MarkerBar.lua
+RaidControl\Modules\AutoVendor.lua
+RaidControl\Modules\ReadyTracker.lua
+RaidControl\Modules\AutoAssist.lua
+RaidControl\Options.lua
 
 # Last: starts everything on PLAYER_LOGIN
 Core\Boot.lua

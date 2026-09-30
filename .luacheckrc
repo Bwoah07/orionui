@@ -2,14 +2,14 @@
 std = "lua51"
 max_line_length = false
 codes = true
-exclude_files = { "**/Libs/**", "tests/mocks/**", "tools/**" }
+exclude_files = { "**/Libs/**", "tests/mocks/**", "tools/**", "OrionUI/RaidControl/**" } -- RaidControl: Stig's own addon, kept close to its source
 ignore = {
     "212/self", -- unused self in methods
     "211/ADDON_NAME", -- `local ADDON_NAME, ns = ...` header in every file
 }
 
 globals = {
-    "OrionUIDB", "OrionUICharDB", "OrionUIAPI", "OrionUIDevDB",
+    "OrionUIDB", "OrionUICharDB", "OrionUIAPI", "OrionUIDevDB", "OrionUIRaidControlDB",
     "SLASH_OUIDEV1", "SLASH_ORIONUI1", "SlashCmdList",
     "OrionUI_OnAddonCompartmentClick", -- named by the TOC (AddonCompartmentFunc)
 }
