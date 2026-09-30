@@ -19,6 +19,8 @@ local M = ns.Modules:New("HudStack", {
     category = "qol", label = L["Resource stack"], order = 4,
     desc = L["Keeps EllesmereUI's rune bar above the Death and Decay bar (or any first tracked buff bar) while it shows, so nothing overlaps."],
     profileKey = "layout",
+    schemaVersion = 2,
+    migrations = { [2] = function(db) db.enabled = false end }, -- switched off (see below)
     -- Off by default: EllesmereUI keeps re-positioning the rune bar and fights the move (Stig saw it
     -- jump around, 2026-09-30). The EUI layout now leaves a fixed slot for the D&D bar instead.
     schema = S.Table{ fields = {
