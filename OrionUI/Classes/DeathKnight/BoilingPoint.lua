@@ -154,7 +154,9 @@ function BP:Render()
     local value = left / total
     if phase ~= lastPhase or not SMOOTH then
         bar:SetValue(value, SNAP)
-        cd:SetCooldown(GetTime() - (total - left), total)
+        -- The swipe belongs to the icon style only. SetCooldown also shows the Cooldown
+        -- frame, which drew its number and swipe edge across the bar (the "12" and split).
+        if db.style == "icon" then cd:SetCooldown(GetTime() - (total - left), total) end
     else
         bar:SetValue(value, SMOOTH)
     end
