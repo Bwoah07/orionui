@@ -763,7 +763,10 @@ Features Stig explicitly liked:
 aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
 up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
 stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
-Boiling Point option that works is a CDM tracked-buff icon with count (mirrorable).
+Boiling Point can't be tracked by the CDM at all; ours follows the Blood Boil highlight
+(15 s proc window) and our own Blood Boil cast (3 s echo). Low stacks in combat use Ossuary (up at 5+
+stacks) from the CDM; expiry uses a clock restarted by Marrowrend/Death's Caress casts (readable in the
+open world; unverified in instances).
 
 ### 8.4 Other tank specs (after Blood)
 

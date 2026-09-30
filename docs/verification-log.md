@@ -224,3 +224,7 @@ Warcraft Wiki (patch 12.0.0 talent): Heart Strike can empower the next Blood Boi
 15 s); the empowered Blood Boil deals +50% and echoes after 3 s. Players report the buff can't be tracked in
 the Cooldown Manager; the Blood Boil highlight is the usable signal. The OrionUI indicator shows the
 15 s proc window from the highlight, then a 3 s echo countdown after our Blood Boil cast.
+- `/ouidev cdm boiling` (2026-09-30): none of the Cooldown Manager's categories for Blood (42 tracked buffs,
+  7 tracked bars, 11 essential, 17 utility, ...) contains anything named "Boiling". **Boiling Point can't be
+  tracked by the CDM**, so the Blood Boil highlight + cast approach stays. (HiddenActive/HiddenPassive
+  categories reject `GetCooldownViewerCategorySet`.)
