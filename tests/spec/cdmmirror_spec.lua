@@ -53,4 +53,13 @@ describe("CDMMirror", function()
         assert.is_true(ns.CDMMirror:CopyStacks(ns.CDMMirror:Find({ [195181] = true }), target))
         assert.is_true(rawequal(got, mock.SECRET))
     end)
+    it("passes the CDM icon's secret countdown text straight to the target", function()
+        local child = ns.CDMMirror:Find({ [195181] = true })
+        child.Cooldown = { GetCountdownFontString = function() return { GetText = function() return mock.SECRET end } end }
+        local got
+        assert.is_true(ns.CDMMirror:CopyCountdown(child, { SetText = function(_, t) got = t end }))
+        assert.is_true(rawequal(got, mock.SECRET))
+        child.Cooldown = nil
+        assert.is_false(ns.CDMMirror:CopyCountdown(child, { SetText = function() end }))
+    end)
 end)

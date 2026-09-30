@@ -760,12 +760,13 @@ Features Stig explicitly liked:
   bars, **or** a plain icon with count inside the CDM rows. User-selectable.
 - Defensive presets for the reminder engine (VB / DRW / IBF / AMS ordering by mechanic type).
 
-**As built (2026-09-30), `Classes/DeathKnight/Blood.lua`:** Bone Shield counter. Out of combat it reads the
+**As built (2026-09-30), `Classes/DeathKnight/Blood.lua`:** Bone Shield icon styled like an EUI CDM icon (stacks on top,
+time left at the bottom; in combat the time is copied from the CDM icon's own countdown text, `CDMMirror:CopyCountdown`). Out of combat it reads the
 aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
 up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
 stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
 Boiling Point can't be tracked by the CDM at all; ours follows the Blood Boil highlight and our
-own Blood Boil cast. Confirmed working by Stig (2026-09-30): blue bar = proc up (15 s window), red bar =
+own Blood Boil cast. Confirmed working by Stig (2026-09-30); colours swapped on his request the same day: red bar = proc up (15 s window), blue bar =
 3 s echo after the empowered cast (a cast up to 1 s after the highlight clears still counts), thin gold
 glow = a new proc rolled during the echo, and echoes chain (a proc rolled mid-echo keeps the red bar going).
 The highlight flickers, so it is never treated as "proc ended" on its own for the echo chain. Low stacks in combat use Ossuary (up at 5+

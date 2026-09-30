@@ -4,11 +4,12 @@
 -- 15 seconds; the empowered Blood Boil deals more damage and echoes 3 seconds later.
 --
 -- What the bar shows:
---   BLUE, draining over 15s   a proc is up: cast Blood Boil
---   RED, draining over 3s     you cast the empowered Blood Boil: the echo is coming
---   GLOW (thin gold)          a new proc rolled while the bar is red: react and cast
---                             Blood Boil again. That rolled proc also keeps the red
+--   RED, draining over 15s    a proc is up: cast Blood Boil
+--   BLUE, draining over 3s    you cast the empowered Blood Boil: the echo is coming
+--   GLOW (thin gold)          a new proc rolled while the bar is blue: react and cast
+--                             Blood Boil again. That rolled proc also keeps the blue
 --                             bar going when the current echo lands (chaining).
+-- (Colours swapped at Stig's request 2026-09-30; both are settings.)
 --
 -- Signals (readable in combat, verified 2026-09-30): the game's Blood Boil highlight
 -- (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE) and our own Blood Boil cast
@@ -166,7 +167,7 @@ function BP:Render()
         bar:SetValue(value, SMOOTH)
     end
     lastPhase = phase
-    -- Glow only when a proc rolls while the echo is running: the blue bar already says
+    -- Glow only when a proc rolls while the echo is running: the proc colour already says
     -- "cast Blood Boil", the glow says "another one is ready, cast again".
     SetGlow(db.glow and procUp and phase == "echo", db.glowColor)
     frame:Show()

@@ -31,7 +31,7 @@ local M = ns.Modules:New("BloodDK", {
     desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
-    schemaVersion = 5,
+    schemaVersion = 6,
     migrations = {
         [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end,
         -- The first build guessed a 3s proc; the talent actually gives 15s (3s is the echo).
@@ -46,12 +46,28 @@ local M = ns.Modules:New("BloodDK", {
         end,
         -- The countdown number was removed (Stig, 2026-09-30).
         [5] = function(db) if db.boilingPoint then db.boilingPoint.showTime = nil end end,
+        -- Stig (2026-09-30): Bone Shield as an EUI-style icon (stacks top, time bottom);
+        -- Boiling Point: red while the proc waits, blue after you cast Blood Boil.
+        [6] = function(db)
+            local bs, bp = db.boneShield, db.boilingPoint
+            if bs then
+                if bs.fontSize == 28 then bs.fontSize = nil end
+                bs.showIcon = nil
+            end
+            if bp then
+                local function Is(c, r, g, b) return type(c) == "table" and c[1] == r and c[2] == g and c[3] == b end
+                if Is(bp.procColor, 0.2, 0.55, 1) then bp.procColor = nil end
+                if Is(bp.echoColor, 0.9, 0.2, 0.2) then bp.echoColor = nil end
+            end
+        end,
     },
     schema = S.Table{ fields = {
         boneShield = S.Table{ label = L["Bone Shield"], order = 1, fields = {
             show = S.Bool{ default = true, label = L["Show the Bone Shield counter"], order = 1 },
-            showIcon = S.Bool{ default = true, label = L["Show the icon next to the count"], order = 2 },
-            fontSize = S.Number{ default = 28, min = 12, max = 64, step = 1, label = L["Count size"], order = 3 },
+            iconSize = S.Number{ default = 40, min = 20, max = 96, step = 1, label = L["Icon size"], order = 2 },
+            fontSize = S.Number{ default = 16, min = 8, max = 40, step = 1, label = L["Stack count size"], order = 3 },
+            showTime = S.Bool{ default = true, label = L["Show time left at the bottom"], order = 3.5,
+                desc = L["In combat the time is copied from your Cooldown Manager's Bone Shield icon."] },
             lowWarning = S.Bool{ default = true, label = L["Blink and play a sound below 5 stacks"], order = 4,
                 desc = L["Uses Ossuary (up at 5+ stacks) because the game hides the number in combat."] },
             expiryWarning = S.Bool{ default = true, label = L["Warn before Bone Shield runs out"], order = 5 },
@@ -63,13 +79,13 @@ local M = ns.Modules:New("BloodDK", {
         } },
         boilingPoint = S.Table{ label = L["Boiling Point"], order = 2, fields = {
             show = S.Bool{ default = true, label = L["Show Boiling Point"], order = 1,
-                desc = L["Blue when it procs: cast Blood Boil. Red while the empowered Blood Boil echoes, glowing if a new proc rolls."] },
+                desc = L["Red when it procs: cast Blood Boil. Blue after you cast it, while the echo is coming, glowing if a new proc rolls."] },
             style = S.Enum{ default = "bar", values = { "bar", "icon" }, label = L["Style"], order = 2,
                 valueLabels = { bar = L["Bar"], icon = L["Icon"] } },
             width = S.Number{ default = 90, min = 30, max = 600, step = 2, label = L["Bar width"], order = 3 },
             height = S.Number{ default = 20, min = 4, max = 60, step = 1, label = L["Bar height / icon size"], order = 4 },
-            procColor = S.Color{ default = { 0.2, 0.55, 1, 1 }, label = L["Proc colour (cast Blood Boil)"], order = 5 },
-            echoColor = S.Color{ default = { 0.9, 0.2, 0.2, 1 }, label = L["Echo colour (after casting)"], order = 6 },
+            procColor = S.Color{ default = { 0.9, 0.2, 0.2, 1 }, label = L["Proc colour (cast Blood Boil)"], order = 5 },
+            echoColor = S.Color{ default = { 0.2, 0.55, 1, 1 }, label = L["Echo colour (after casting)"], order = 6 },
             glow = S.Bool{ default = true, label = L["Glow when a new proc rolls during the echo"], order = 7 },
             glowColor = S.Color{ default = { 1, 0.82, 0.2, 1 }, label = L["Glow colour"], order = 7.5 },
             echo = S.Bool{ default = true, label = L["Show the 3 second echo after casting"], order = 8 },
@@ -157,20 +173,20 @@ local function Create()
     })
 end
 
+-- Looks like an EllesmereUI Cooldown Manager icon (Stig, 2026-09-30): square cropped icon,
+-- 1px black border, stack count at the top, time left at the bottom.
 local function Layout()
     local db = M.db.boneShield
-    local size = db.fontSize
     local font = ns.Theme:Font()
-    count:SetFont(font, size, "OUTLINE")
-    timer:SetFont(font, math.max(10, math.floor(size * 0.45)), "OUTLINE")
-    icon:SetSize(size * 1.3, size * 1.3)
-    icon:SetShown(db.showIcon)
-    frame.border:SetShown(db.showIcon)
+    frame:SetSize(db.iconSize, db.iconSize)
+    icon:ClearAllPoints()
+    icon:SetAllPoints(frame)
+    count:SetFont(font, db.fontSize, "OUTLINE")
+    timer:SetFont(font, math.max(8, math.floor(db.fontSize * 0.85)), "OUTLINE")
     count:ClearAllPoints()
-    if db.showIcon then count:SetPoint("LEFT", icon, "RIGHT", 8, 0) else count:SetPoint("LEFT") end
+    count:SetPoint("CENTER", frame, "TOP", 0, 0)
     timer:ClearAllPoints()
-    if db.showIcon then timer:SetPoint("TOP", icon, "BOTTOM", 0, -2) else timer:SetPoint("TOPLEFT", count, "BOTTOMLEFT", 0, -2) end
-    frame:SetSize(size * 4, size * 1.4)
+    timer:SetPoint("CENTER", frame, "BOTTOM", 0, 1)
 end
 
 local function SetBlink(on)
@@ -184,9 +200,10 @@ local function Render(active, stacks, low, child, remaining)
         SetBlink(false)
         timer:SetText("")
         if db.downWarning and InCombatLockdown() then
-            count:SetText(L["Bone Shield down"])
+            count:SetText("0")
             count:SetTextColor(1, 0.25, 0.25)
             icon:SetDesaturated(true)
+            ns.Theme:SetBorderColor(frame.border, 1, 0.25, 0.25, 1)
             frame:Show()
         else
             frame:Hide()
@@ -199,13 +216,16 @@ local function Render(active, stacks, low, child, remaining)
     local lowOn = db.lowWarning and low == true
     local expiring = db.expiryWarning and remaining and remaining <= db.glowAt
     if lowOn then count:SetTextColor(1, 0.3, 0.3) else count:SetTextColor(1, 1, 1) end
-    if expiring then
-        ns.Theme:SetBorderColor(frame.border, 1, 0.6, 0.1, 1)
-        timer:SetText(("%ds"):format(math.max(0, math.ceil(remaining))))
-    else
-        ns.Theme:SetBorderColor(frame.border, 0, 0, 0, 1)
+    if expiring then ns.Theme:SetBorderColor(frame.border, 1, 0.6, 0.1, 1) else ns.Theme:SetBorderColor(frame.border, 0, 0, 0, 1) end
+    -- Time left: readable (out of combat, or our cast clock) wins; else the CDM's own countdown.
+    if not db.showTime then
         timer:SetText("")
+    elseif remaining and (not InCombatLockdown() or not child) then
+        timer:SetText(math.max(0, math.ceil(remaining)))
+    elseif not (child and ns.CDMMirror:CopyCountdown(child, timer)) then
+        timer:SetText(remaining and math.max(0, math.ceil(remaining)) or "")
     end
+    if expiring then timer:SetTextColor(1, 0.6, 0.1) else timer:SetTextColor(1, 1, 1) end
     SetBlink(lowOn or expiring)
     frame:Show()
 end
@@ -238,6 +258,7 @@ function M:Update()
     end
 
     Render(active, stacks, low, child, remaining)
+    if active or InCombatLockdown() then M:StartTicker() else M:StopTicker() end
 end
 
 local function OnCast(_, _, _, _, spellID)
@@ -260,14 +281,15 @@ local function SetSounds()
 end
 
 local ticker
-local function StartTicker()
+function M:StartTicker()
     if ticker then return end
-    -- Own handle (not M:NewTicker) because it starts and stops every combat.
+    -- Own handle (not M:NewTicker): runs only while Bone Shield is up or in combat.
     ticker = C_Timer.NewTicker(UPDATE_EVERY, function() ns.SafeCall("BloodDK", M.Update, M) end)
 end
-local function StopTicker()
+function M:StopTicker()
     if ticker then ticker:Cancel() ticker = nil end
 end
+local function StopTicker() M:StopTicker() end
 
 function M:OnEnable()
     Create()
@@ -275,9 +297,8 @@ function M:OnEnable()
     SetSounds()
     ns.Events:OnUnit("UNIT_AURA", { "player" }, self, function() ns.Events:Coalesce("blood-bone", function() M:Update() end) end)
     ns.Events:OnUnit("UNIT_SPELLCAST_SUCCEEDED", { "player" }, self, OnCast)
-    ns.Events:On("OUI_COMBAT_START", self, function() StartTicker() M:Update() end)
-    ns.Events:On("OUI_COMBAT_END", self, function() StopTicker() M:Update() end)
-    if InCombatLockdown() then StartTicker() end
+    ns.Events:On("OUI_COMBAT_START", self, function() M:Update() end)
+    ns.Events:On("OUI_COMBAT_END", self, function() M:Update() end)
     if ns.BoilingPoint then ns.BoilingPoint:Enable() end
     self:Update()
 end

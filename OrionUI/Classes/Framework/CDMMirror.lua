@@ -74,6 +74,19 @@ function Mirror:CopyStacks(child, target)
     return true
 end
 
+-- Copies the CDM icon's (possibly secret) countdown text, i.e. the buff's time left as
+-- Blizzard's own Cooldown widget shows it, into our FontString. -> true if there was text.
+-- FontString:GetText is secret for the Text aspect; SetText accepts it (display only).
+function Mirror:CopyCountdown(child, target)
+    local cd = child and child.Cooldown
+    local fs = cd and cd.GetCountdownFontString and cd:GetCountdownFontString()
+    if not (fs and fs.GetText) then return false end
+    local text = fs:GetText()
+    if type(text) == "nil" then return false end
+    target:SetText(text)
+    return true
+end
+
 function Mirror:Forget() wipe(infoCache) end
 
 ns.Events:On("COOLDOWN_VIEWER_DATA_LOADED", Mirror, function() Mirror:Forget() end)
