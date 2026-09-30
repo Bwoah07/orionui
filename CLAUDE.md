@@ -787,9 +787,11 @@ confirm unrelated popups; never do that).
 
 ### 8.6 RaidControll
 
-Stig's own existing addon. **TBD** whether it is folded into OrionUI as modules or stays separate
-with a proper import API for the installer. Ask Stig before touching it. Whatever happens, it
-should expose `ImportProfile(string, name)` / `ExportProfile()` like our own API (§10.5).
+Stig's own existing addon. **Decided (2026-09-30):** its features (raid organization, splitting the raid
+into groups, etc.) get **rewritten into OrionUI as modules**, not shipped as-is. Simple raid buttons
+(markers, ready/role check, pull timers) are already covered by EUI's QoL → Raid Tools, so OrionUI only
+adds what EUI lacks. Raid-group changes are combat-restricted: all moves go through `ns.Combat:Defer`.
+Use RaidControll's source (Stig's own code) as the reference; it is not scheduled yet.
 
 ---
 
@@ -1194,7 +1196,7 @@ Ask Stig; don't decide silently.
 1. **Final name** of the pack.
 2. **License.** If the installer embeds LibAddonProfiles (GPLv2), the installer must be GPL-compatible.
    Simplest: license the whole repo GPLv2-or-later (or GPLv3). Stig decides.
-3. **RaidControll:** fold into OrionUI as modules, or keep separate with an import API?
+3. ~~RaidControll~~: decided 2026-09-30, rewrite its features into OrionUI (§8.6).
 4. **Bags:** configure EUI Bags heavily, or disable EUI Bags and recommend another bag addon
    (Baganator / BetterBags) on the installer page?
 5. **Variants:** which role layouts ship (Healer vs DPS/Tank)?
