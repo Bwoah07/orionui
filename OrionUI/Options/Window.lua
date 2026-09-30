@@ -20,6 +20,7 @@ local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 900, 600, 200, 52
 local PAD, CARD_GAP = 16, 20
 
 local frame, current
+local collapsed = { raid = true } -- category key -> true when folded; the open page's category never folds
 
 -- Hand-written page: { category, label, order, desc, build(container, addRows, width) -> height,
 -- refresh(container) optional }. addRows(specs, y) lays out standard widgets and cards.
@@ -253,6 +254,20 @@ local function Entries()
     return byCat
 end
 
+-- Category heading: click to fold or unfold the pages under it.
+local function SidebarHeader(bar)
+    local T = ns.Theme
+    local h = CreateFrame("Button", nil, bar)
+    h:SetSize(SIDEBAR - 16, 20)
+    h.label = T:Text(h, 10, T.colors.faint)
+    h.label:SetPoint("LEFT", 14, 0)
+    h.arrow = T:Text(h, 10, T.colors.faint)
+    h.arrow:SetPoint("RIGHT", -10, 0)
+    h:SetScript("OnEnter", function(self) self.label:SetTextColor(unpack(T.colors.muted)) end)
+    h:SetScript("OnLeave", function(self) self.label:SetTextColor(unpack(T.colors.faint)) end)
+    return h
+end
+
 local function SidebarButton(bar)
     local T = ns.Theme
     local btn = CreateFrame("Button", nil, bar)
@@ -271,30 +286,42 @@ local function SidebarButton(bar)
 end
 
 function Options:RefreshSidebar()
-    local T, bar = ns.Theme, frame.sidebar
-    for _, b in ipairs(bar.buttons) do b:Hide() end
-    for _, h in ipairs(bar.headers) do h:Hide() end
+    local T, bar = ns.Theme, frame.sidebar.list
+    for _, b in ipairs(frame.sidebar.buttons) do b:Hide() end
+    for _, h in ipairs(frame.sidebar.headers) do h:Hide() end
     local byCat, y, nb, nh = Entries(), 14, 0, 0
+    local buttons, headers = frame.sidebar.buttons, frame.sidebar.headers
     local r, g, b = T:Accent()
     local searching = frame.search:GetText() ~= ""
     for _, cat in ipairs(CATEGORIES) do
         local list = byCat[cat.key]
         if list and #list > 0 then
+            local holdsCurrent = false
+            for _, e in ipairs(list) do if e.id == current then holdsCurrent = true end end
+            local folded = collapsed[cat.key] and not holdsCurrent and not searching
             -- A category holding one page of the same name needs no heading.
             if not (#list == 1 and list[1].label == cat.label) then
                 nh = nh + 1
-                local h = bar.headers[nh] or T:Text(bar, 10, T.colors.faint)
-                bar.headers[nh] = h
+                local h = headers[nh] or SidebarHeader(bar)
+                headers[nh] = h
                 h:ClearAllPoints()
-                h:SetPoint("TOPLEFT", 22, -y)
-                h:SetText(cat.label:upper())
+                h:SetPoint("TOPLEFT", 8, -y)
+                h.label:SetText(cat.label:upper())
+                h.arrow:SetText(folded and "+" or (holdsCurrent and "" or "-"))
+                h:SetScript("OnClick", function()
+                    if holdsCurrent then return end
+                    collapsed[cat.key] = not collapsed[cat.key]
+                    Options:RefreshSidebar()
+                end)
                 h:Show()
-                y = y + 20
+                y = y + 22
+            else
+                folded = false
             end
-            for _, e in ipairs(list) do
+            for _, e in ipairs(folded and {} or list) do
                 nb = nb + 1
-                local btn = bar.buttons[nb] or SidebarButton(bar)
-                bar.buttons[nb] = btn
+                local btn = buttons[nb] or SidebarButton(bar)
+                buttons[nb] = btn
                 btn:ClearAllPoints()
                 btn:SetPoint("TOPLEFT", 8, -y)
                 btn.label:SetText(e.label)
@@ -315,9 +342,11 @@ function Options:RefreshSidebar()
                 btn:Show()
                 y = y + 30
             end
-            y = y + 14
+            y = y + (folded and 6 or 14)
         end
     end
+    bar:SetHeight(y + 8)
+    frame.sidebar.scroll:UpdateThumb()
 end
 
 ---------------------------------------------------------------------------
@@ -401,6 +430,13 @@ function Options:Create()
     sline:SetPoint("TOPRIGHT")
     sline:SetPoint("BOTTOMRIGHT")
     sidebar.buttons, sidebar.headers = {}, {}
+    -- Scrolls when there are more pages than fit.
+    sidebar.scroll = T:Scroll(sidebar)
+    sidebar.scroll:SetPoint("TOPLEFT", 0, 0)
+    sidebar.scroll:SetPoint("BOTTOMRIGHT", -8, 0)
+    sidebar.list = CreateFrame("Frame", nil, sidebar.scroll)
+    sidebar.list:SetSize(SIDEBAR - 8, 1)
+    sidebar.scroll:SetScrollChild(sidebar.list)
     frame.sidebar = sidebar
 
     -- Content
