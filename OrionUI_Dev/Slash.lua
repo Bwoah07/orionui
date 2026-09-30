@@ -17,6 +17,8 @@ local HELP = {
     "/ouidev capture editmode             save your active Blizzard Edit Mode layout, then /reload",
     "/ouidev dump eui <module>            decode an EUI module to a table (for tinkering), then /reload",
     "/ouidev apply eui <module>           import the edited module table (dev only)",
+    "/ouidev frames                       where the EUI bars OrionUI attaches to really are",
+    "/ouidev under                        hover a frame, run it: what is under the mouse",
     "/ouidev all                          secrets + restrictions + auras + threat in one box",
     "/ouidev watch on|off                 auto snapshots on combat/boss/M+ start (default on)",
     "/ouidev log [N]                      show the saved log (last N lines)",
@@ -37,6 +39,8 @@ local COMMANDS = {
     capture = function(a) ns.ProbeCapture(a) end,
     install = function(a) ns.ProbeInstall(a) end,
     dump = function(a) ns.ProbeDump(a) end,
+    frames = function() ns.ProbeFrames() end,
+    under = function() ns.ProbeUnder() end,
     apply = function(a) ns.ProbeApply(a) end,
     all = function()
         local lines, quiet = {}, { show = false }
