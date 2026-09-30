@@ -20,9 +20,12 @@ Media.own = {
     { "statusbar", "Orion Flat",   ns.MEDIA_PATH .. "Textures\\Flat.tga" },
     { "statusbar", "Orion Smooth", ns.MEDIA_PATH .. "Textures\\Smooth.tga" },
     { "statusbar", "Orion Stripe", ns.MEDIA_PATH .. "Textures\\Stripe.tga" },
-    -- Barlow Semi Condensed (SIL OFL 1.1, no reserved font name; see Media/Fonts/OFL.txt).
-    { "font", "Orion",      ns.MEDIA_PATH .. "Fonts\\Orion.ttf" },
-    { "font", "Orion Bold", ns.MEDIA_PATH .. "Fonts\\Orion-Bold.ttf" },
+    -- Fonts under SIL OFL 1.1 with no reserved font names (licenses in Media/Fonts/OFL-*.txt).
+    -- Main font is EllesmereUI's Expressway (EUI ships it; we use it, never bundle it).
+    { "font", "Orion 2",      ns.MEDIA_PATH .. "Fonts\\Orion2.ttf" },      -- Inter SemiBold
+    { "font", "Orion 2 Bold", ns.MEDIA_PATH .. "Fonts\\Orion2-Bold.ttf" }, -- Inter Bold
+    { "font", "Orion 3",      ns.MEDIA_PATH .. "Fonts\\Orion3.ttf" },      -- Rajdhani SemiBold
+    { "font", "Orion 3 Bold", ns.MEDIA_PATH .. "Fonts\\Orion3-Bold.ttf" }, -- Rajdhani Bold
 }
 
 local function LSM()
