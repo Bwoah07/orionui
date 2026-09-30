@@ -4,7 +4,7 @@ if not RC then return end -- standalone RaidControl is enabled
 local L = RC.L
 local Workspace = RC:NewModule("Workspace")
 
-local WINDOW_ORDER = { "settings", "split", "notes" }
+local WINDOW_ORDER = { "settings", "split" } -- OrionUI: no Boss Notes
 local WINDOW_LABELS = {
     settings = L["Settings"],
     split = L["Raid Split"],

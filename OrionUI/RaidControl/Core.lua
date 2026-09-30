@@ -5,6 +5,9 @@ local addonName, addonTable = ...
 do
     local exists = C_AddOns.DoesAddOnExist and C_AddOns.DoesAddOnExist("Raidcontrol")
     if exists and C_AddOns.GetAddOnEnableState("Raidcontrol", UnitName("player")) > 0 then
+        C_Timer.After(6, function()
+            print("|cff3399ffOrionUI|r: the standalone RaidControl addon is enabled, so OrionUI's built-in Raid Control is off. Disable RaidControl in your addon list to use OrionUI's.")
+        end)
         return
     end
 end
@@ -1807,6 +1810,8 @@ function RC:OnInitialize()
         self.db.profile.battleResIcon = "auto"
     end
 
+    -- OrionUI: RaidControl never uses the class colour as its accent; OrionUI stays blue.
+    self.db.profile.useClassColor = false
     -- OrionUI: RaidControl's accent is OrionUI blue. Runs once per profile after the
     -- palette migrations above, so a colour the user picks later is kept.
     if not self.db.profile.orionBlueMigration then
@@ -1978,22 +1983,7 @@ function RC:OnInitialize()
             local leadTools = self:GetModule("RaidLeadTools", true)
             if leadTools and leadTools.RequestDurability then leadTools:RequestDurability(true) end
             return
-        elseif lower == "note" or lower:sub(1, 5) == "note " then
-            local bossNotes = self:GetModule("BossNotes", true)
-            if bossNotes and bossNotes.HandleViewerSlashCommand then
-                bossNotes:HandleViewerSlashCommand(strtrim(input:sub(5) or ""))
-            else
-                self:Print(L["Boss notes are not available."])
-            end
-            return
-        elseif lower == "notes" or lower == "bossnotes" then
-            local bossNotes = self:GetModule("BossNotes", true)
-            if bossNotes and bossNotes.Open then
-                bossNotes:Open()
-            else
-                self:Print(L["Boss notes are not available."])
-            end
-            return
+        -- OrionUI: Boss Notes are not part of OrionUI; /rc note(s) is gone with them.
         elseif command == "save" or command == "load" then
             local name = strtrim(rest)
             if name ~= "" then
@@ -2042,11 +2032,9 @@ local SLASH_HELP_LINES = {
     { "/rc unlock | lock", L["Unlock or lock every RaidControl frame"] },
     { "/rc reset", L["Move the launcher back to the centre of the screen"] },
     { "/rc strip", L["Show or hide the action strip"] },
-    { "/rc notes", L["Open Boss Notes"] },
     { "/rc split", L["Open Raid Split"] },
     { "/rc save | load <name>", L["Save or load a Raid Split layout"] },
     { "/rc layouts", L["List saved Raid Split layouts"] },
-    { "/rcorion", L["Import an Orion raid plan into Raid Split"] },
     { "/rc bres", L["Report battle res charges"] },
     { "/rc pulled", L["Report who pulled the last boss"] },
     { "/rc durability", L["Request durability from RaidControl users"] },

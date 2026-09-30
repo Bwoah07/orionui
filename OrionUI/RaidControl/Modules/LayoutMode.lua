@@ -176,7 +176,7 @@ function LayoutMode:AddGameMenuButtons(frame)
 end
 
 local function GetRaidControlBrandText()
-    local accent = RC.Config and RC.Config.Accent or { r = 0.05, g = 0.82, b = 0.62 }
+    local accent = ns.Theme and ns.Theme.BRAND or { r = 0.20, g = 0.60, b = 1.0 } -- OrionUI blue
     local prefix = string.format(
         "|cff%02x%02x%02x",
         math.floor((accent.r or 0.05) * 255 + 0.5),

@@ -30,7 +30,6 @@ local PAGES = {
             { "hideBlizzardRaidControl", L["Hide Blizzard's raid manager"] },
             { "topBarScale", L["Launcher size"], kind = "slider", min = 0.5, max = 2, step = 0.05 },
             { "menuScale", L["Menu size"], kind = "slider", min = 0.5, max = 2, step = 0.05 },
-            { "useClassColor", L["Use my class colour as the accent"] },
         } },
         { L["Menu buttons"], {
             { "showReadyButton", L["Ready check"] },
@@ -233,21 +232,47 @@ local PAGES = {
       } },
 }
 
--- Settings apply live where RaidControl's modules re-read them; layout ones may need a reload.
+-- Applies every setting the way RaidControl's own settings window did (its "refresh after
+-- profile import" routine): scales through their Apply functions, then each module's refresh.
+local function Call(obj, fn, ...)
+    if obj and type(obj[fn]) == "function" then ns.SafeCall("RaidControl:" .. fn, obj[fn], obj, ...) end
+end
+
 local function Changed()
     local rc = ns.RC
     if not rc then return end
-    if rc.RefreshLayout then ns.SafeCall("RaidControl", rc.RefreshLayout, rc) end
-    if rc.ApplyInterfaceVisibility then ns.SafeCall("RaidControl", rc.ApplyInterfaceVisibility, rc) end
-    if rc.ApplyTheme then ns.SafeCall("RaidControl", rc.ApplyTheme, rc, rc.db.profile.theme, true) end
-    for name, mod in rc:IterateModules() do
-        for _, fn in ipairs({ "Refresh", "RefreshLayout", "ApplySettings", "UpdateLayout" }) do
-            if type(mod[fn]) == "function" and mod:IsEnabled() then
-                ns.SafeCall("RaidControl:" .. name, mod[fn], mod)
-                break
-            end
-        end
-    end
+    local p = rc.db.profile
+    local function Mod(name) return rc:GetModule(name, true) end
+    p.useClassColor = false -- OrionUI stays blue
+    Call(rc, "ApplyTheme", p.theme or "Starforge", false)
+    local legacy = p.launcherScale or p.scale or 1
+    Call(rc, "ApplyTopBarScale", p.topBarScale or legacy)
+    Call(rc, "ApplyMenuScale", p.menuScale or legacy)
+    Call(rc, "ApplyInterfaceVisibility")
+    Call(rc, "RefreshLayout")
+    Call(rc, "RefreshTheme", false)
+    local control = Mod("Control")
+    Call(control, "RefreshButtonVisibility")
+    Call(control, "RefreshModifierAttributes")
+    Call(Mod("Markers"), "RefreshModifierAttributes")
+    local strip = Mod("ActionStrip")
+    Call(strip, "RefreshButtonVisibility")
+    Call(strip, "UpdateVisibility")
+    Call(strip, "UpdateScale", p.actionStripScale or 1)
+    Call(strip, "RefreshModifierAttributes")
+    local lead = Mod("RaidLeadTools")
+    Call(lead, "ApplyBattleResScale", p.battleResScale or 1)
+    Call(lead, "ApplyHealerManaScale", p.healerManaScale or 1)
+    Call(lead, "ApplyBattleResDisplaySettings")
+    Call(lead, "UpdateBattleResFrame")
+    Call(lead, "UpdateHealerManaFrame", true)
+    Call(lead, "RefreshRaidStatusDisplays")
+    local tank = Mod("TankAssist")
+    Call(tank, "ApplyEnabledState")
+    Call(tank, "RefreshRuntimeSettings")
+    Call(tank, "ApplyFrameSettings")
+    Call(Mod("AutoMarker"), "ApplySettings")
+    Call(Mod("ReadyTracker"), "ApplySettings")
 end
 
 local function Spec(row)
