@@ -67,6 +67,7 @@ Options\Pages\Defensives.lua
 
 Classes\Framework\CDMMirror.lua
 Classes\DeathKnight\Blood.lua
+Classes\DeathKnight\BoilingPoint.lua
 
 Modules\CombatAlert.lua
 

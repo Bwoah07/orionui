@@ -207,3 +207,13 @@ see above).
   driven by stacks. Colour curves reject secret inputs from addon code (`Evaluate` is AllowedWhenUntainted).
 - Boiling Point: no aura named "Boiling..." was up at the time. Candidates seen: 1310372 (7 stacks),
   433925 (1 stack); names to be confirmed.
+
+## 2026-09-30: Player casts and proc glows (`/ouidev casts`, open world dummy, Blood)
+
+- **`UNIT_SPELLCAST_SUCCEEDED` for the player had readable spell IDs in combat** (open world): Marrowrend
+  195182, Blood Boil 50842, Death Strike 49998, Heart Strike 206930, DRW 49028, Vampiric Strike 433895,
+  Infliction of Sorrow 434144, and more. The API is SecretWhenUnitSpellCastRestricted, so encounters and M+
+  may still hide them; code treats a secret ID as "no information".
+- **`SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE` spell IDs are readable in combat**: Blood Boil 50842 (repeated
+  show/hide, treated as the Boiling Point proc), Marrowrend 195182, Vampiric Strike 433895, Death and Decay 43265.
+- 1310372 = Blood Debt, 433925 = Essence of the Blood Queen (not Boiling Point).
