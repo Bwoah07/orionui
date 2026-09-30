@@ -27,8 +27,8 @@ local BLOOD_BOIL = 50842
 local ECHO = 3          -- seconds, from the talent text
 local CAST_GRACE = 1    -- seconds after the highlight goes out that a cast still counts
 local TICK = 0.1
-local GLOW_PAD = 3   -- glow outline sits this far outside the bar
-local GLOW_WIDTH = 2
+local GLOW_PAD = 2   -- glow outline sits this far outside the bar
+local GLOW_WIDTH = 1 -- thin, per Stig
 
 local BP = { name = "BoilingPoint" }
 ns.BoilingPoint = BP
@@ -37,7 +37,7 @@ ns.BoilingPoint = BP
 local procUp, procSince, procHiddenAt = false, 0, -math.huge
 local echoUntil = 0
 
-local frame, bar, icon, cd, glow, glowAnim, label, ticker
+local frame, bar, icon, glow, glowAnim, ticker
 
 local function DB() return ns.BloodDK.db.boilingPoint end
 
@@ -58,7 +58,7 @@ end
 local function Create()
     if frame then return end
     frame = CreateFrame("Frame", nil, UIParent)
-    -- Glow: a 2px outline just outside the bar's border, pulsing. Drawn around the bar,
+    -- Glow: a thin outline just outside the bar's border, pulsing gently. Drawn around the bar,
     -- never behind it, so nothing bleeds through the empty part of the bar.
     glow = CreateFrame("Frame", nil, frame)
     glow:SetPoint("TOPLEFT", -GLOW_PAD, GLOW_PAD)
@@ -75,8 +75,8 @@ local function Create()
     glowAnim:SetLooping("BOUNCE")
     local a = glowAnim:CreateAnimation("Alpha")
     a:SetFromAlpha(1)
-    a:SetToAlpha(0.25)
-    a:SetDuration(0.3)
+    a:SetToAlpha(0.35)
+    a:SetDuration(0.45)
 
     -- Opaque background + 1px black border + one flat fill: nothing else.
     local bg = frame:CreateTexture(nil, "BACKGROUND")
@@ -93,11 +93,6 @@ local function Create()
     icon:SetPoint("BOTTOMRIGHT", -1, 1)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon:SetTexture(C_Spell.GetSpellTexture(BLOOD_BOIL))
-    cd = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-    cd:SetAllPoints(icon)
-    cd:SetReverse(true)
-    label = bar:CreateFontString(nil, "OVERLAY")
-    label:SetPoint("CENTER")
     frame.edge = CreateFrame("Frame", nil, frame)
     frame.edge:SetAllPoints()
     ns.Theme:Skin(frame.edge, { 0, 0, 0, 0 })
@@ -154,17 +149,13 @@ function BP:Render()
     local value = left / total
     if phase ~= lastPhase or not SMOOTH then
         bar:SetValue(value, SNAP)
-        -- The swipe belongs to the icon style only. SetCooldown also shows the Cooldown
-        -- frame, which drew its number and swipe edge across the bar (the "12" and split).
-        if db.style == "icon" then cd:SetCooldown(GetTime() - (total - left), total) end
     else
         bar:SetValue(value, SMOOTH)
     end
     lastPhase = phase
-    label:SetText(db.showTime and ("%.1f"):format(left) or "")
     -- Glow only when a proc rolls while the echo is running: the blue bar already says
     -- "cast Blood Boil", the glow says "another one is ready, cast again".
-    SetGlow(db.glow and procUp and phase == "echo", db.procColor)
+    SetGlow(db.glow and procUp and phase == "echo", db.glowColor)
     frame:Show()
     if not ticker then ticker = C_Timer.NewTicker(TICK, function() BP:Render() end) end
 end
@@ -172,18 +163,15 @@ end
 function BP:Refresh()
     if not frame then return end
     local db = DB()
-    label:SetFont(ns.Theme:Font(), math.max(9, math.floor(db.height * 0.6)), "OUTLINE")
     if db.style == "icon" then
         local s = math.max(16, db.height * 2)
         frame:SetSize(s, s)
         bar:Hide()
         icon:Show()
-        cd:Show()
     else
         frame:SetSize(db.width, db.height)
         bar:Show()
         icon:Hide()
-        cd:Hide()
     end
     ns.Theme:SetBorderColor(frame.edge, 0, 0, 0, 1)
     lastPhase = nil

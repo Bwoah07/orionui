@@ -31,7 +31,7 @@ local M = ns.Modules:New("BloodDK", {
     desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
-    schemaVersion = 4,
+    schemaVersion = 5,
     migrations = {
         [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end,
         -- The first build guessed a 3s proc; the talent actually gives 15s (3s is the echo).
@@ -44,6 +44,8 @@ local M = ns.Modules:New("BloodDK", {
             if bp.pulse ~= nil then bp.glow, bp.pulse = bp.pulse, nil end
             bp.showTime = nil -- back to the new default (off)
         end,
+        -- The countdown number was removed (Stig, 2026-09-30).
+        [5] = function(db) if db.boilingPoint then db.boilingPoint.showTime = nil end end,
     },
     schema = S.Table{ fields = {
         boneShield = S.Table{ label = L["Bone Shield"], order = 1, fields = {
@@ -69,10 +71,10 @@ local M = ns.Modules:New("BloodDK", {
             procColor = S.Color{ default = { 0.2, 0.55, 1, 1 }, label = L["Proc colour (cast Blood Boil)"], order = 5 },
             echoColor = S.Color{ default = { 0.9, 0.2, 0.2, 1 }, label = L["Echo colour (after casting)"], order = 6 },
             glow = S.Bool{ default = true, label = L["Glow when a new proc rolls during the echo"], order = 7 },
+            glowColor = S.Color{ default = { 1, 0.82, 0.2, 1 }, label = L["Glow colour"], order = 7.5 },
             echo = S.Bool{ default = true, label = L["Show the 3 second echo after casting"], order = 8 },
             window = S.Number{ default = 15, min = 1, max = 30, step = 0.5, label = L["Proc lasts (seconds)"], order = 9,
                 desc = L["The talent gives 15 seconds to use the empowered Blood Boil."] },
-            showTime = S.Bool{ default = false, label = L["Show seconds left on the bar"], order = 10 },
             sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 11 },
         } },
     } },
