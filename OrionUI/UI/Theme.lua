@@ -7,7 +7,7 @@ local Theme = {}
 ns.Theme = Theme
 
 -- OrionUI blue. Also used by the built-in RaidControl (RaidControl/Core.lua).
-local ACCENT = { r = 0.20, g = 0.60, b = 1.0 }
+local ACCENT = { r = 0.15, g = 0.45, b = 0.85 } -- a little darker (Stig, 2026-09-30)
 Theme.BRAND = ACCENT
 Theme.colors = {
     bg       = { 0.067, 0.067, 0.082, 1 },

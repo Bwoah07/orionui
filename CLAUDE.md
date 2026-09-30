@@ -824,7 +824,7 @@ opens OrionUI's options.
 
 - Our own window (we cannot add a tab inside EUI's sidebar; see §11.1.4). It must **look native
   to EUI**: read EUI's fonts and theme live via its public functions / skin API (the accent is OrionUI's
-  own blue `{0.20, 0.60, 1.0}`, Stig 2026-09-30, also RaidControl's default accent);
+  own blue `{0.15, 0.45, 0.85}` (darkened the same evening), Stig 2026-09-30, also RaidControl's default accent);
   fall back to our own defaults if EUI is absent.
 - **As built (2026-09-30, Stig):** the sidebar lists the big parts (General, Interface, Reminders, Class,
   Raid Control); the selected part shows its pages as tabs along the top of the content area. A page joins a
