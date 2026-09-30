@@ -84,7 +84,9 @@ local function AddRows(container, rows, specs, y)
             y = y + 24
         elseif spec.type == "Header" then
             Close()
-            local h = T:Text(container, 11, T.colors.muted)
+            -- Section headings in OrionUI blue, so each card is easy to find at a glance.
+            local r, g, b = T:Accent()
+            local h = T:Text(container, 12, { r, g, b, 1 })
             h:SetPoint("TOPLEFT", 2, -y)
             h:SetText(spec.label:upper())
             y = y + 20

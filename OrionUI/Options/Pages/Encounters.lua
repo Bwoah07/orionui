@@ -147,7 +147,7 @@ local function Refresh(container)
 end
 
 ns.Options:RegisterPage("encounters", {
-    category = "reminders", label = L["Encounters"], order = 5,
+    category = "reminders", label = L["Boss abilities"], order = 2,
     build = function(container, addRows, width)
         page.width = width
         local y = addRows({

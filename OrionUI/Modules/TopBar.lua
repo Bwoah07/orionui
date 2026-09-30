@@ -26,7 +26,7 @@ local GetFramerate, GetNetStats = GetFramerate, GetNetStats
 local ICONS = ns.MEDIA_PATH .. "Textures\\"
 
 local M = ns.Modules:New("TopBar", {
-    category = "qol", label = L["Top bar"],
+    category = "qol", label = L["Top bar"], order = 1,
     desc = L["Clock, friends, guild, hearthstones and Mythic+ portals in one small bar. In combat only FPS and latency stay. Move it with /oui edit."],
     profileKey = "layout",
     schemaVersion = 3,
@@ -45,11 +45,11 @@ local M = ns.Modules:New("TopBar", {
         [3] = function(db) if db.statsSize == 11 then db.statsSize = nil end end,
     },
     schema = S.Table{ fields = {
-        height = S.Number{ default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
-        clockSize = S.Number{ default = 22, min = 12, max = 40, step = 1, label = L["Clock size"], order = 2 },
-        statsSize = S.Number{ default = 13, min = 8, max = 20, step = 1, label = L["FPS / MS text size"], order = 3 },
-        tileAlpha = S.Number{ default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background"], order = 4 },
-        hideInCombat = S.Bool{ default = true, label = L["In combat show only FPS and MS"], order = 5 },
+        height = S.Number{ section = L["Look"], default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
+        clockSize = S.Number{ section = L["Look"], default = 22, min = 12, max = 40, step = 1, label = L["Clock size"], order = 2 },
+        statsSize = S.Number{ section = L["Look"], default = 13, min = 8, max = 20, step = 1, label = L["FPS / MS text size"], order = 3 },
+        tileAlpha = S.Number{ section = L["Look"], default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background"], order = 4 },
+        hideInCombat = S.Bool{ section = L["Look"], default = true, label = L["In combat show only FPS and MS"], order = 5 },
         clock = S.Table{ label = L["Clock"], order = 10, fields = {
             show = S.Bool{ default = true, label = L["Show the clock"], order = 1 },
             clock24 = S.Bool{ default = true, label = L["24-hour clock"], order = 2 },

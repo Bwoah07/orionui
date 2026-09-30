@@ -19,18 +19,18 @@ local R = ns.Modules:New("Reminders", {
     profileKey = "reminders",
     requires = { "BossModBridge" },
     schema = S.Table{ fields = {
-        leadTime = S.Number{ default = 5, min = 1, max = 15, step = 0.5, label = L["Warn this many seconds before"], order = 1 },
-        tankAuto = S.Bool{ default = true, label = L["Tank specs: remind about tank abilities automatically"], order = 2,
+        leadTime = S.Number{ section = L["When to remind"], default = 5, min = 1, max = 15, step = 0.5, label = L["Warn this many seconds before"], order = 1 },
+        tankAuto = S.Bool{ section = L["When to remind"], default = true, label = L["Tank specs: remind about tank abilities automatically"], order = 2,
             desc = L["Abilities the Encounter Journal marks for tanks get a defensive reminder without setting each one up."] },
-        deadlyAuto = S.Bool{ default = true, label = L["Every spec: remind about deadly abilities automatically"], order = 2.5,
+        deadlyAuto = S.Bool{ section = L["When to remind"], default = true, label = L["Every spec: remind about deadly abilities automatically"], order = 2.5,
             desc = L["Abilities the Encounter Journal marks as deadly get a personal defensive reminder, whatever your role."] },
-        onlyWhenTanking = S.Bool{ default = true, label = L["Only when I'm tanking that boss"], order = 3,
+        onlyWhenTanking = S.Bool{ section = L["When to remind"], default = true, label = L["Only when I'm tanking that boss"], order = 3,
             desc = L["Uses the boss's threat. If the game hides it, you are warned anyway."] },
-        skipCovered = S.Bool{ default = true, label = L["Skip when a defensive is already running"], order = 4 },
-        retrigger = S.Number{ default = 6, min = 0, max = 20, step = 1, label = L["Ignore repeats within (seconds)"], order = 5 },
-        sound = S.Bool{ default = true, label = L["Play a sound"], order = 10 },
-        speech = S.Bool{ default = false, label = L["Speak the defensive's name"], order = 11 },
-        iconSize = S.Number{ default = 56, min = 32, max = 96, step = 2, label = L["Icon size"], order = 20 },
+        skipCovered = S.Bool{ section = L["When to remind"], default = true, label = L["Skip when a defensive is already running"], order = 4 },
+        retrigger = S.Number{ section = L["When to remind"], default = 6, min = 0, max = 20, step = 1, label = L["Ignore repeats within (seconds)"], order = 5 },
+        sound = S.Bool{ section = L["How it looks and sounds"], default = true, label = L["Play a sound"], order = 10 },
+        speech = S.Bool{ section = L["How it looks and sounds"], default = false, label = L["Speak the defensive's name"], order = 11 },
+        iconSize = S.Number{ section = L["How it looks and sounds"], default = 56, min = 32, max = 96, step = 2, label = L["Icon size"], order = 20 },
         presets = S.Map{ hidden = true, of = S.List{ of = S.String{ default = "" }, max = 20 } },
         bindings = S.Map{ hidden = true, of = S.Map{ of = S.Map{ of = S.Table{ fields = {
             mode = S.Enum{ default = "auto", values = MODES },
@@ -38,7 +38,11 @@ local R = ns.Modules:New("Reminders", {
         } } } } },
     } },
     options = function()
-        return { { type = "Button", label = L["Test reminder"], style = "accent", func = function() ns.BossModBridge:Test() end } }
+        return {
+            { type = "Header", label = L["Try it"] },
+            { type = "Description", label = L["Sends two fake boss abilities through everything, so you see and hear a real reminder. Move the reminder with /oui edit."] },
+            { type = "Button", label = L["Test reminder"], style = "accent", func = function() ns.BossModBridge:Test() end },
+        }
     end,
 })
 ns.Reminders = R

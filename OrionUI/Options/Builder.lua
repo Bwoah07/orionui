@@ -32,11 +32,19 @@ local function Changed(M)
     if M.enabled then ns.SafeCall(M.name, M.Refresh, M) end
 end
 
+-- A field's `section = "..."` starts a new card with that heading when it differs from the
+-- previous field's (keep a section's fields next to each other with `order`). This keeps flat
+-- settings tables readable without nesting their saved data.
 local function Collect(M, node, prefix, out)
+    local section
     for _, name in ipairs(SortedFields(node.fields)) do
         local field = node.fields[name]
         local path = prefix and (prefix .. "." .. name) or name
         local label = field.label or Humanize(name)
+        if field.section and field.section ~= section then
+            section = field.section
+            out[#out + 1] = { type = "Header", label = section }
+        end
         if field.kind == "table" then
             out[#out + 1] = { type = "Header", label = label }
             Collect(M, field, path, out)

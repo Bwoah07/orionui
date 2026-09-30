@@ -8,16 +8,16 @@ local L = ns.L
 local S = ns.Schema
 
 local M = ns.Modules:New("CombatAlert", {
-    category = "qol", label = L["Combat alert"],
+    category = "qol", label = L["Combat alert"], order = 3,
     desc = L["A short message in the middle of the screen when you enter or leave combat."],
     profileKey = "layout",
     schema = S.Table{ fields = {
-        showEnter = S.Bool{ default = true, label = L["Show when entering combat"], order = 1 },
-        showLeave = S.Bool{ default = true, label = L["Show when leaving combat"], order = 2 },
-        duration = S.Number{ default = 1.5, min = 0.5, max = 5, step = 0.5, label = L["Duration (seconds)"], order = 3 },
-        fontSize = S.Number{ default = 22, min = 10, max = 48, step = 1, label = L["Text size"], order = 4 },
-        enterColor = S.Color{ default = { 1, 0.3, 0.3, 1 }, label = L["Entering colour"], order = 5 },
-        leaveColor = S.Color{ default = { 0.3, 1, 0.5, 1 }, label = L["Leaving colour"], order = 6 },
+        showEnter = S.Bool{ section = L["When"], default = true, label = L["Show when entering combat"], order = 1 },
+        showLeave = S.Bool{ section = L["When"], default = true, label = L["Show when leaving combat"], order = 2 },
+        duration = S.Number{ section = L["Look"], default = 1.5, min = 0.5, max = 5, step = 0.5, label = L["Duration (seconds)"], order = 3 },
+        fontSize = S.Number{ section = L["Look"], default = 22, min = 10, max = 48, step = 1, label = L["Text size"], order = 4 },
+        enterColor = S.Color{ section = L["Look"], default = { 1, 0.3, 0.3, 1 }, label = L["Entering colour"], order = 5 },
+        leaveColor = S.Color{ section = L["Look"], default = { 0.3, 1, 0.5, 1 }, label = L["Leaving colour"], order = 6 },
     } },
 })
 
