@@ -1167,7 +1167,7 @@ IDs to confirm in game; custom reminders with timer/message/pull triggers and !O
 15. Other tank specs' data + helpers. Custom reminders. Import/export of reminder profiles.
 
 **Phase 4b: every class and spec** (built 2026-09-30: catalogs for all 40 specs in `Data/Defensives.lua`, class-wide
-lists plus spec extras, IDs unverified until `/oui check defensives` is run in game; Journal "deadly" abilities
+lists plus spec extras, every ID confirmed in game with `/oui check defensives` 2026-09-30; Journal "deadly" abilities
 get a defensive reminder for every role, setting `deadlyAuto`, default on)
 - Defensive catalog + default priority for **every** spec (all 13 classes, DPS and healers too), same
   format as `Data/Defensives.lua`: research from current guides, then confirm names with

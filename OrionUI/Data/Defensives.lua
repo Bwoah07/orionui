@@ -62,7 +62,8 @@ ns.Data.Defensives = {
 }
 
 -- Every other spec (Phase 4b, 2026-09-30). Researched from own class knowledge and current
--- guides; "unverified" until /oui check defensives returns the right names in game.
+-- guides. All 40 specs' IDs return the right names in game (/oui check defensives,
+-- 2026-09-30); durations are still estimates.
 -- Most personal defensives are class-wide, so each class has a shared list and specs add
 -- their extras. Entries are listed in default priority order (see DefensivePresets below).
 -- duration = 0 for heals and short absorbs: they never count as "already covering" you.
@@ -72,7 +73,7 @@ end
 
 local CLASS = {
     DEATHKNIGHT = {
-        D("ams",         48707, 5,  2, "magic"), -- unverified for DPS specs (tank IDs ingame)
+        D("ams",         48707, 5,  2, "magic"),
         D("icebound",    48792, 8,  3),
         D("lichborne",   49039, 10, 1),
         D("death_pact",  48743, 0,  1),          -- talent, heal

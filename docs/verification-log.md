@@ -237,3 +237,8 @@ Prot Paladin (86659, 31850, 387174, 204018, 642), Vengeance (204021, 187827, 203
 (22812, 61336, 200851, 102558, 22842). Cooldowns read out of combat also confirm several charge setups
 (e.g. Shield Block, Spell Reflection, Fiery Brand report charge info). Durations remain estimates.
 Custom reminders confirmed working by Stig.
+
+## 2026-09-30: defensive catalog for all 40 specs
+
+`/oui check defensives` (on a Subtlety Rogue): "40 specs, 0 spell IDs the game doesn't know". Every key
+returned the expected spell name, and the rogue's four were reported known. Durations are still estimates.
