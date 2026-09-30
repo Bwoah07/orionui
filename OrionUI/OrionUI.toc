@@ -89,6 +89,7 @@ Classes\DeathKnight\BoilingPoint.lua
 Modules\CombatAlert.lua
 Modules\FocusCastBar.lua
 Modules\TopBar.lua
+Modules\HudStack.lua
 
 # RaidControl (Stig's own addon, built in; no notes, no settings windows)
 RaidControl\Locales\enUS.lua

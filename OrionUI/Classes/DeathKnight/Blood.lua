@@ -31,7 +31,7 @@ local M = ns.Modules:New("BloodDK", {
     desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
-    schemaVersion = 6,
+    schemaVersion = 7,
     migrations = {
         [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end,
         -- The first build guessed a 3s proc; the talent actually gives 15s (3s is the echo).
@@ -48,6 +48,17 @@ local M = ns.Modules:New("BloodDK", {
         [5] = function(db) if db.boilingPoint then db.boilingPoint.showTime = nil end end,
         -- Stig (2026-09-30): Bone Shield as an EUI-style icon (stacks top, time bottom);
         -- Boiling Point: red while the proc waits, blue after you cast Blood Boil.
+        -- Stig (2026-09-30): Bone Shield beside the cooldown row; Boiling Point thin and longer,
+        -- right above the rune bar (which moves up for the Death and Decay bar, Modules/HudStack.lua).
+        [7] = function(db)
+            db.boneShield = db.boneShield or {}
+            db.boneShield.attach, db.boneShield.attachSide, db.boneShield.attachGap = "cooldowns", "LEFT", 1
+            db.boneShield.iconSize = 36
+            db.boilingPoint = db.boilingPoint or {}
+            local bp = db.boilingPoint
+            bp.attach, bp.attachSide, bp.attachGap, bp.matchWidth = "runes", "ABOVE", 1, false
+            bp.width, bp.height = 140, 8
+        end,
         [6] = function(db)
             local bs, bp = db.boneShield, db.boilingPoint
             if bs then
@@ -64,7 +75,7 @@ local M = ns.Modules:New("BloodDK", {
     schema = S.Table{ fields = {
         boneShield = S.Table{ label = L["Bone Shield"], order = 1, fields = {
             show = S.Bool{ default = true, label = L["Show the Bone Shield counter"], order = 1 },
-            iconSize = S.Number{ default = 40, min = 20, max = 96, step = 1, label = L["Icon size"], order = 2 },
+            iconSize = S.Number{ default = 36, min = 20, max = 96, step = 1, label = L["Icon size"], order = 2 },
             fontSize = S.Number{ default = 16, min = 8, max = 40, step = 1, label = L["Stack count size"], order = 3 },
             showTime = S.Bool{ default = true, label = L["Show time left at the bottom"], order = 3.5,
                 desc = L["In combat the time is copied from your Cooldown Manager's Bone Shield icon."] },
@@ -76,7 +87,7 @@ local M = ns.Modules:New("BloodDK", {
             downWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Show \"Bone Shield down\" in combat"], order = 8 },
             soundOnDrop = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Sound when Bone Shield drops"], order = 9 },
             soundOnGain = S.Bool{ section = L["Bone Shield warnings"], default = false, label = L["Sound when Bone Shield comes back"], order = 10 },
-            attach = S.Enum{ section = L["Bone Shield position"], default = "none", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
+            attach = S.Enum{ section = L["Bone Shield position"], default = "cooldowns", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
                 label = L["Attach to Cooldown Manager"], order = 20,
                 desc = L["Sticks to a Cooldown Manager row, so it moves with it and stays lined up."] },
             attachSide = S.Enum{ section = L["Bone Shield position"], default = "LEFT", values = ns.CDMAnchor.SIDES, valueLabels = ns.CDMAnchor.SIDE_LABELS,
@@ -88,8 +99,8 @@ local M = ns.Modules:New("BloodDK", {
                 desc = L["Red when it procs: cast Blood Boil. Blue after you cast it, while the echo is coming, glowing if a new proc rolls."] },
             style = S.Enum{ default = "bar", values = { "bar", "icon" }, label = L["Style"], order = 2,
                 valueLabels = { bar = L["Bar"], icon = L["Icon"] } },
-            width = S.Number{ default = 90, min = 30, max = 600, step = 2, label = L["Bar width"], order = 3 },
-            height = S.Number{ default = 20, min = 4, max = 60, step = 1, label = L["Bar height / icon size"], order = 4 },
+            width = S.Number{ default = 140, min = 30, max = 600, step = 2, label = L["Bar width"], order = 3 },
+            height = S.Number{ default = 8, min = 4, max = 60, step = 1, label = L["Bar height / icon size"], order = 4 },
             procColor = S.Color{ section = L["Boiling Point colours"], default = { 0.9, 0.2, 0.2, 1 }, label = L["Proc colour (cast Blood Boil)"], order = 5 },
             echoColor = S.Color{ section = L["Boiling Point colours"], default = { 0.2, 0.55, 1, 1 }, label = L["Echo colour (after casting)"], order = 6 },
             glow = S.Bool{ section = L["Boiling Point colours"], default = true, label = L["Glow when a new proc rolls during the echo"], order = 7 },
@@ -98,13 +109,13 @@ local M = ns.Modules:New("BloodDK", {
             window = S.Number{ section = L["Boiling Point timing"], default = 15, min = 1, max = 30, step = 0.5, label = L["Proc lasts (seconds)"], order = 9,
                 desc = L["The talent gives 15 seconds to use the empowered Blood Boil."] },
             sound = S.Bool{ section = L["Boiling Point timing"], default = false, label = L["Play a sound when it procs"], order = 11 },
-            attach = S.Enum{ section = L["Boiling Point position"], default = "none", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
+            attach = S.Enum{ section = L["Boiling Point position"], default = "runes", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
                 label = L["Attach to Cooldown Manager"], order = 20,
                 desc = L["Sticks to a Cooldown Manager row, so it moves with it and stays lined up."] },
             attachSide = S.Enum{ section = L["Boiling Point position"], default = "ABOVE", values = ns.CDMAnchor.SIDES, valueLabels = ns.CDMAnchor.SIDE_LABELS,
                 label = L["Side"], order = 21 },
             attachGap = S.Number{ section = L["Boiling Point position"], default = 1, min = -10, max = 40, step = 1, label = L["Gap (pixels)"], order = 22 },
-            matchWidth = S.Bool{ section = L["Boiling Point position"], default = true, label = L["Same width as the row (above or below it)"], order = 23 },
+            matchWidth = S.Bool{ section = L["Boiling Point position"], default = false, label = L["Same width as the row (above or below it)"], order = 23 },
         } },
     } },
 })
