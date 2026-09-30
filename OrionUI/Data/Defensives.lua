@@ -8,8 +8,12 @@
 --             or lower strength ("skip when covered").
 --   dmg       "all" | "physical" | "magic": what it is good against.
 --
--- Spell IDs marked "ingame" returned the right name in game on 2026-09-29
--- (docs/verification-log.md). Durations are unverified.
+-- Sources for the non-Blood specs (2026-09-30): Maxroll Mythic+ guides for 12.1, Warcraft
+-- Wiki and Wowhead for spell IDs. Status per line:
+--   ingame  the game returned the right name for the ID (docs/verification-log.md)
+--   xref    the ID appears with the same meaning in another addon's source we checked
+--   web     from Wowhead/Warcraft Wiki only; confirm with /ouidev secrets all
+-- Talented spells the player doesn't have are skipped automatically (C_SpellBook check).
 local _, ns = ...
 
 ns.Data.Defensives = {
@@ -22,12 +26,53 @@ ns.Data.Defensives = {
         { key = "rune_tap",       spell = 194679, duration = 4,  strength = 1, dmg = "all" },      -- ingame (talent)
         { key = "lichborne",      spell = 49039,  duration = 10, strength = 1, dmg = "all" },      -- ingame
     },
+    [66] = { -- Protection Paladin
+        { key = "guardian_kings",  spell = 86659,  duration = 8,  strength = 3, dmg = "all" },   -- xref
+        { key = "ardent_defender", spell = 31850,  duration = 8,  strength = 3, dmg = "all" },   -- xref
+        { key = "eye_of_tyr",      spell = 387174, duration = 9,  strength = 2, dmg = "all" },   -- web (talent)
+        { key = "spellwarding",    spell = 204018, duration = 10, strength = 2, dmg = "magic" }, -- web (talent; shares CD with BoP)
+        { key = "divine_shield",   spell = 642,    duration = 8,  strength = 3, dmg = "all" },   -- xref (immunity, last resort)
+    },
+    [581] = { -- Vengeance Demon Hunter
+        { key = "fiery_brand",   spell = 204021, duration = 10, strength = 2, dmg = "all" },      -- xref
+        { key = "metamorphosis", spell = 187827, duration = 15, strength = 3, dmg = "all" },      -- xref
+        { key = "demon_spikes",  spell = 203720, duration = 8,  strength = 1, dmg = "physical" }, -- xref
+        { key = "darkness",      spell = 196718, duration = 8,  strength = 1, dmg = "all" },      -- xref
+    },
+    [268] = { -- Brewmaster Monk
+        { key = "celestial_infusion", spell = 1241059, duration = 16, strength = 2, dmg = "all" },   -- web (Midnight)
+        { key = "celestial_brew",     spell = 322507,  duration = 8,  strength = 2, dmg = "all" },   -- xref (choice with Infusion)
+        { key = "fortifying_brew",    spell = 115203,  duration = 15, strength = 3, dmg = "all" },   -- xref
+        { key = "diffuse_magic",      spell = 122783,  duration = 6,  strength = 2, dmg = "magic" }, -- xref (talent)
+        { key = "dampen_harm",        spell = 122278,  duration = 10, strength = 2, dmg = "all" },   -- xref (talent)
+        { key = "exploding_keg",      spell = 325153,  duration = 3,  strength = 1, dmg = "physical" }, -- web (talent)
+    },
+    [73] = { -- Protection Warrior
+        { key = "shield_wall",      spell = 871,   duration = 8, strength = 3, dmg = "all" },      -- xref
+        { key = "last_stand",       spell = 12975, duration = 15, strength = 2, dmg = "all" },     -- xref
+        { key = "demo_shout",       spell = 1160,  duration = 8, strength = 1, dmg = "all" },      -- web
+        { key = "spell_reflection", spell = 23920, duration = 5, strength = 1, dmg = "magic" },    -- web
+        { key = "shield_block",     spell = 2565,  duration = 6, strength = 1, dmg = "physical" }, -- web
+    },
+    [104] = { -- Guardian Druid
+        { key = "barkskin",           spell = 22812,  duration = 8,  strength = 2, dmg = "all" },  -- xref
+        { key = "survival_instincts", spell = 61336,  duration = 6,  strength = 3, dmg = "all" },  -- xref
+        { key = "rage_of_sleeper",    spell = 200851, duration = 8,  strength = 2, dmg = "all" },  -- web (talent)
+        { key = "incarnation",        spell = 102558, duration = 30, strength = 3, dmg = "all" },  -- web (talent)
+        { key = "frenzied_regen",     spell = 22842,  duration = 3,  strength = 1, dmg = "all" },  -- xref (heal)
+    },
 }
 
 -- Default priority per spec: the first ready, not-covered, damage-matching entry wins.
--- Users reorder these on the Defensives page (stored in the reminders profile).
+-- Medium cooldowns come first so the big ones stay available for the worst hits.
+-- Users reorder these on the Defensive priority page (stored in the reminders profile).
 ns.Data.DefensivePresets = {
     [250] = { "vampiric_blood", "drw", "icebound", "ams", "tombstone", "rune_tap", "lichborne" },
+    [66]  = { "eye_of_tyr", "guardian_kings", "ardent_defender", "spellwarding", "divine_shield" },
+    [581] = { "fiery_brand", "demon_spikes", "metamorphosis", "darkness" },
+    [268] = { "celestial_infusion", "celestial_brew", "dampen_harm", "diffuse_magic", "fortifying_brew", "exploding_keg" },
+    [73]  = { "shield_block", "demo_shout", "last_stand", "shield_wall", "spell_reflection" },
+    [104] = { "barkskin", "rage_of_sleeper", "survival_instincts", "incarnation", "frenzied_regen" },
 }
 
 function ns.Data.DefensiveByKey(specID, key)
