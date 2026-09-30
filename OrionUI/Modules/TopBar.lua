@@ -489,6 +489,10 @@ local function Create()
 
     local hearth = SecureTile(bar)
     tiles.hearth = hearth
+    -- Our own flat icon (same family as friends / guild / portals), not the toy's game art.
+    hearth.icon:SetTexture(ICONS .. "IconHearth")
+    hearth.icon:SetTexCoord(0, 1, 0, 1)
+    hearth.icon:SetVertexColor(0.4, 0.85, 0.95)
     hearth:SetScript("PreClick", function(_, button)
         if button == "LeftButton" and not InCombatLockdown() then M:RollHearth() end
     end)
@@ -504,7 +508,7 @@ local function Create()
             GameTooltip:AddDoubleLine(L["Cooldown"], L["Ready"], 0.7, 0.7, 0.7, 0.37, 0.83, 0.37)
         end
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["Left-click: random hearthstone"], 0.2, 0.6, 1)
+        GameTooltip:AddLine(L["Left-click: random hearthstone"] .. (self.leftID and (" |cff8a8a95(" .. L["next:"] .. " " .. ItemName(self.leftID) .. ")|r") or ""), 0.2, 0.6, 1)
         if self.middleID then GameTooltip:AddLine(L["Middle-click:"] .. " " .. ItemName(self.middleID), 0.2, 0.6, 1) end
         if self.rightID then GameTooltip:AddLine(L["Right-click:"] .. " " .. ItemName(self.rightID), 0.2, 0.6, 1) end
         GameTooltip:Show()
@@ -548,7 +552,6 @@ function M:RollHearth()
     t.leftID = id
     t:SetAttribute("type1", "macro")
     t:SetAttribute("macrotext1", id and ("/use item:" .. id) or "")
-    t.icon:SetTexture(C_Item.GetItemIconByID(id or ns.Data.HEARTHSTONE_ITEM))
     UpdateItemCooldown(t, id or ns.Data.HEARTHSTONE_ITEM)
 end
 
