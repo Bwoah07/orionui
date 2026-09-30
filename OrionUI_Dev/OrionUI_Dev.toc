@@ -17,5 +17,6 @@ Probes\Auras.lua
 Probes\Threat.lua
 Probes\BossMod.lua
 Probes\Journal.lua
+Probes\Bone.lua
 Watch.lua
 Slash.lua
