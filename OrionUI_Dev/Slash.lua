@@ -14,6 +14,9 @@ local HELP = {
     "/ouidev cdm [name]                   what the Cooldown Manager can track for this spec",
     "/ouidev capture eui [module]         save your EUI profile (or one module) for the installer, then /reload",
     "/ouidev install eui [preset]         list / import a locally saved EUI preset (dev only), then reload",
+    "/ouidev capture editmode             save your active Blizzard Edit Mode layout, then /reload",
+    "/ouidev dump eui <module>            decode an EUI module to a table (for tinkering), then /reload",
+    "/ouidev apply eui <module>           import the edited module table (dev only)",
     "/ouidev all                          secrets + restrictions + auras + threat in one box",
     "/ouidev watch on|off                 auto snapshots on combat/boss/M+ start (default on)",
     "/ouidev log [N]                      show the saved log (last N lines)",
@@ -33,6 +36,8 @@ local COMMANDS = {
     cdm = function(a) ns.ProbeCDM(a) end,
     capture = function(a) ns.ProbeCapture(a) end,
     install = function(a) ns.ProbeInstall(a) end,
+    dump = function(a) ns.ProbeDump(a) end,
+    apply = function(a) ns.ProbeApply(a) end,
     all = function()
         local lines, quiet = {}, { show = false }
         for _, probe in ipairs({ ns.ProbeRestrictions, ns.ProbeSecrets, ns.ProbeAuras, ns.ProbeThreat }) do

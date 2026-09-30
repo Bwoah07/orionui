@@ -187,3 +187,73 @@ function ns.ProbeInstall(args)
     if args[1] == "eui" then InstallEUI(args[2] and args[2]:lower()) return end
     ns.Chat("/ouidev install eui [preset]")
 end
+
+---------------------------------------------------------------------------
+-- Tinkering loop for EUI modules (Stig, 2026-09-30: "take my CDM export and make it straight"):
+--   /ouidev dump eui <module>   decode your current module export into a plain Lua table in
+--                               OrionUIDevDB.dumps (readable from the SavedVariables file after /reload)
+--   /ouidev apply eui <module>  import an edited table from OrionUI_Dev/Private/Presets.lua
+--                               (ns.PrivatePresets.euiTables[folder]) onto your current profile
+-- Uses EllesmereUI.DecodeImportString and EllesmereUI.ImportProfile (which accepts a decoded
+-- payload table); both are EUI's own public profile functions.
+---------------------------------------------------------------------------
+
+local function DumpEUI(module)
+    local EUI = _G.EllesmereUI
+    local folder = module and ModuleFolder(module)
+    if not folder then ns.Chat("/ouidev dump eui <module>, e.g. cooldownmanager, resourcebars, unitframes") return end
+    if not (EUI and EUI.ExportProfile and EUI.DecodeImportString) then ns.Chat("EllesmereUI export/decode API missing.") return end
+    local key = EUI.GetCurrentProfileKey()
+    local ok, str = ns.Try(EUI.ExportProfile, key, { [folder] = true }, true,
+        folder == "EllesmereUICooldownManager", nil, false, false, false)
+    if not ok or type(str) ~= "string" then ns.Chat("Export failed: " .. tostring(str)) return end
+    local payload, err = EUI.DecodeImportString(str)
+    if type(payload) ~= "table" then ns.Chat("Decode failed: " .. tostring(err)) return end
+    ns.db.dumps = ns.db.dumps or {}
+    ns.db.dumps[folder] = { profile = key, date = date("%Y-%m-%d %H:%M"), payload = payload }
+    ns.Chat(("Dumped %s from '%s'. /reload so it's written to disk."):format(folder, key))
+end
+
+local function ApplyEUI(module)
+    local EUI = _G.EllesmereUI
+    local folder = module and ModuleFolder(module)
+    local tables = ns.PrivatePresets and ns.PrivatePresets.euiTables or {}
+    local payload = folder and tables[folder]
+    if not payload then ns.Chat("No edited table for that module in Private/Presets.lua.") return end
+    if InCombatLockdown() then ns.Chat("Leave combat first.") return end
+    if not (EUI and EUI.ImportProfile) then ns.Chat("EllesmereUI import API missing.") return end
+    local key = EUI.GetCurrentProfileKey()
+    local ok, res, err = ns.Try(EUI.ImportProfile, payload, key)
+    if not ok then ns.Chat("Import errored: " .. tostring(res)) return end
+    if res == false then ns.Chat("EUI refused it: " .. tostring(err)) return end
+    ns.Chat(("Applied the edited %s to '%s'. Reloading..."):format(folder, key))
+    ReloadUI()
+end
+
+-- /ouidev capture editmode: your active Blizzard Edit Mode layout as a share string.
+local function CaptureEditMode()
+    local info = C_EditMode.GetLayouts()
+    if not info then ns.Chat("No Edit Mode data.") return end
+    -- activeLayout counts Blizzard's two preset layouts first; info.layouts holds only yours.
+    local layout = info.layouts and info.layouts[info.activeLayout - 2]
+    if not layout then ns.Chat("Your active Edit Mode layout is a Blizzard preset; make your own layout first.") return end
+    local ok, str = ns.Try(C_EditMode.ConvertLayoutInfoToString, layout)
+    if not ok or type(str) ~= "string" then ns.Chat("Edit Mode export failed: " .. tostring(str)) return end
+    ns.db.captures = ns.db.captures or {}
+    ns.db.captures.editmode = { name = layout.layoutName, string = str, date = date("%Y-%m-%d %H:%M") }
+    ns.Chat(("Saved Edit Mode layout '%s'. /reload so it's written to disk."):format(tostring(layout.layoutName)))
+end
+
+local oldCapture = ns.ProbeCapture
+function ns.ProbeCapture(args)
+    if args[1] == "editmode" then CaptureEditMode() return end
+    return oldCapture(args)
+end
+function ns.ProbeDump(args)
+    if args[1] == "eui" then DumpEUI(args[2]) return end
+    ns.Chat("/ouidev dump eui <module>")
+end
+function ns.ProbeApply(args)
+    if args[1] == "eui" then ApplyEUI(args[2]) return end
+    ns.Chat("/ouidev apply eui <module>")
+end
