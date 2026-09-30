@@ -474,7 +474,6 @@ local function Create()
 
     local friends = PlainTile("friends")
     friends.icon:SetTexture(ICONS .. "IconFriends")
-    friends.icon:SetVertexColor(0.45, 0.75, 1)
     friends:SetScript("OnEnter", function(self)
         SocialTooltip(self, L["Friends"], OnlineFriends(), L["Left-click: open Friends"])
     end)
@@ -482,7 +481,6 @@ local function Create()
 
     local guild = PlainTile("guild")
     guild.icon:SetTexture(ICONS .. "IconGuild")
-    guild.icon:SetVertexColor(1, 0.8, 0.35)
     guild:SetScript("OnEnter", function(self)
         if not IsInGuild() then
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
@@ -498,10 +496,9 @@ local function Create()
 
     local hearth = SecureTile(bar)
     tiles.hearth = hearth
-    -- Our own flat icon (same family as friends / guild / portals), not the toy's game art.
+    -- Our own flat white house icon (same family as friends / guild / portals), not the toy's game art.
     hearth.icon:SetTexture(ICONS .. "IconHearth")
     hearth.icon:SetTexCoord(0, 1, 0, 1)
-    hearth.icon:SetVertexColor(0.4, 0.85, 0.95)
     hearth:SetScript("PreClick", function(_, button)
         if button == "LeftButton" and not InCombatLockdown() then M:RollHearth() end
     end)
@@ -525,7 +522,6 @@ local function Create()
 
     local portals = PlainTile("portals")
     portals.icon:SetTexture(ICONS .. "IconPortal")
-    portals.icon:SetVertexColor(0.6, 0.5, 1)
     portals:SetScript("OnClick", ToggleFlyout)
     portals:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
@@ -549,9 +545,6 @@ local function Create()
     stats = CreateFrame("Frame", nil, UIParent)
     stats:SetFrameStrata("LOW")
     stats:SetSize(140, 14)
-    stats.bg = stats:CreateTexture(nil, "BACKGROUND")
-    stats.bg:SetAllPoints()
-    stats.bg:SetColorTexture(0, 0, 0, 0.55)
     statsText = stats:CreateFontString(nil, "OVERLAY")
     statsText:SetPoint("CENTER")
     statsText:SetShadowOffset(1, -1)
