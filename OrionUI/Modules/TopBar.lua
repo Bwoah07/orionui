@@ -189,10 +189,10 @@ local function Duration(sec)
     return ("%dm"):format(m)
 end
 
--- Green / yellow / red colour codes for "higher is better" values.
-local function Tint(v, good, ok)
-    if v >= good then return "|cff5fd35f" elseif v >= ok then return "|cffe8c547" end
-    return "|cffe05252"
+-- Labels white, values in OrionUI blue (Stig, 2026-09-30).
+local function BlueHex()
+    local r, g, b = ns.Theme:Accent()
+    return ("|cff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 end
 
 local function UpdateTexts()
@@ -202,8 +202,8 @@ local function UpdateTexts()
         local fps = math.floor(GetFramerate() + 0.5)
         local _, _, home, world = GetNetStats()
         local ms = math.max(home or 0, world or 0)
-        statsText:SetText(("|cff8a8a95FPS|r %s%d|r   |cff8a8a95MS|r %s%d|r"):format(
-            Tint(fps, 60, 30), fps, Tint(-ms, -99, -199), ms))
+        local blue = BlueHex()
+        statsText:SetText(("|cffffffffFPS|r %s%d|r   |cffffffffMS|r %s%d|r"):format(blue, fps, blue, ms))
     end
 end
 
