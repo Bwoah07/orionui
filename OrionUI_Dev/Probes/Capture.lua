@@ -90,15 +90,52 @@ local function FindSet(key)
     end
 end
 
+-- Every saved module capture, by short name: "unitframes" -> { folder, string }.
+local function Modules()
+    local out = {}
+    for _, set in ipairs(Sets()) do
+        for _, layer in ipairs(set.layers or {}) do
+            out[layer.folder:gsub("^EllesmereUI", ""):lower()] = layer
+        end
+    end
+    return out
+end
+
 local function ListSets()
     if #Sets() == 0 then ns.Chat("No local EUI presets (OrionUI_Dev/Private/Presets.lua is missing).") return end
-    ns.Chat("Local EUI presets, install with /ouidev install eui <name>:")
+    ns.Chat("Whole profiles, /ouidev install eui <name>:")
     for _, set in ipairs(Sets()) do ns.Chat(("  %s: %s"):format(set.key, set.note or "")) end
+    local names = {}
+    for name in pairs(Modules()) do names[#names + 1] = name end
+    table.sort(names)
+    ns.Chat("Single modules onto your current EUI profile: " .. table.concat(names, ", "))
+end
+
+-- One module capture onto the active EUI profile; nothing else in the profile changes.
+local function InstallModule(layer)
+    local EUI = _G.EllesmereUI
+    if not (EUI and EUI.ImportProfileSilent and EUI.GetCurrentProfileKey) then
+        ns.Chat("EllesmereUI isn't loaded, or this EUI version has no ImportProfileSilent.")
+        return
+    end
+    if InCombatLockdown() then ns.Chat("Leave combat first.") return end
+    local profile = EUI.GetCurrentProfileKey()
+    local ok, res, err = ns.Try(EUI.ImportProfileSilent, {
+        importString = layer.string, profileName = profile, cleanSlate = false, applyUIScale = false,
+    })
+    if not ok then ns.Chat("EUI import errored: " .. tostring(res)) return end
+    if not res then ns.Chat("EUI refused the import: " .. tostring(err)) return end
+    ns.Chat(("Added %s to EUI profile '%s'. Reloading..."):format(layer.folder, profile))
+    ReloadUI()
 end
 
 local function InstallEUI(key)
     local set = key and FindSet(key)
-    if not set then ListSets() return end
+    if not set then
+        local layer = key and Modules()[key]
+        if layer then InstallModule(layer) else ListSets() end
+        return
+    end
     local EUI = _G.EllesmereUI
     if not (EUI and EUI.ImportProfileSilent) then
         ns.Chat("EllesmereUI isn't loaded, or this EUI version has no ImportProfileSilent.")
