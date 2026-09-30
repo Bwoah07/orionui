@@ -1,6 +1,10 @@
--- Top bar: a thin full-width bar with teleport buttons on the left (a random hearthstone
--- from a pool you pick, optional Dalaran/Garrison hearthstones, any extra item or toy IDs)
--- and FPS | MS plus a clock on the right.
+-- Top bar: a small, movable, transparent strip (not a full-width bar; Stig 2026-09-30) with
+-- teleport buttons (a random hearthstone from a pool you pick, optional Dalaran/Garrison
+-- hearthstones, any extra item or toy IDs) followed by FPS | MS and a clock.
+--
+-- Two frames on purpose: `bar` holds the secure buttons, so it is only moved or resized out
+-- of combat; `info` (clock and stats) is a plain frame anchored to its right, free to resize
+-- every second as the text changes.
 --
 -- The buttons are secure action buttons (a /use macro), so they can only be created or
 -- changed out of combat: all layout goes through ns.Combat:Defer. The random pick happens
@@ -14,13 +18,11 @@ local GetTime, GetFramerate, GetNetStats = GetTime, GetFramerate, GetNetStats
 
 local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"],
-    desc = L["A thin bar along the top of the screen: hearthstone buttons, FPS and latency, and a clock."],
+    desc = L["A small movable strip with hearthstone buttons, FPS and latency, and a clock. Move it with /oui edit."],
     profileKey = "layout",
     schema = S.Table{ fields = {
-        position = S.Enum{ default = "TOP", values = { "TOP", "BOTTOM" },
-            valueLabels = { TOP = L["Top of the screen"], BOTTOM = L["Bottom of the screen"] }, label = L["Position"], order = 1 },
-        height = S.Number{ default = 22, min = 16, max = 40, step = 1, label = L["Height"], order = 2 },
-        bgAlpha = S.Number{ default = 0.75, min = 0, max = 1, step = 0.05, label = L["Background opacity"], order = 3 },
+        height = S.Number{ default = 24, min = 16, max = 48, step = 1, label = L["Button size"], order = 2 },
+        background = S.Bool{ default = false, label = L["Dark background behind it"], order = 3 },
         fontSize = S.Number{ default = 12, min = 8, max = 20, step = 1, label = L["Text size"], order = 4 },
         showClock = S.Bool{ default = true, label = L["Show clock"], order = 10 },
         clock24 = S.Bool{ default = true, label = L["24-hour clock"], order = 11 },
@@ -35,7 +37,7 @@ local M = ns.Modules:New("TopBar", {
     } },
 })
 
-local bar, clockBtn, statsBtn, clockText, statsText
+local bar, info, clockBtn, statsBtn, clockText, statsText
 local buttons = {}   -- secure buttons in use, left to right
 local spare = {}     -- released secure buttons, reused (secure frames can't be deleted)
 local ticker
@@ -109,7 +111,7 @@ end
 
 local function ShowTooltip(btn)
     if not btn.itemID then return end
-    GameTooltip:SetOwner(btn, M.db.position == "TOP" and "ANCHOR_BOTTOMRIGHT" or "ANCHOR_TOPRIGHT")
+    GameTooltip:SetOwner(btn, "ANCHOR_BOTTOMRIGHT")
     if HasToy(btn.itemID) then GameTooltip:SetToyByItemID(btn.itemID) else GameTooltip:SetItemByID(btn.itemID) end
     if btn.random then
         GameTooltip:AddLine(" ")
@@ -158,17 +160,18 @@ local function LayoutButtons()
     end
     for id in tostring(db.extraItems or ""):gmatch("%d+") do want[#want + 1] = { item = tonumber(id) } end
 
-    local size = db.height - 4
+    local size = db.height - 2
     for i, w in ipairs(want) do
         local btn = AcquireButton()
         btn:SetSize(size, size)
-        btn:SetPoint("LEFT", bar, "LEFT", 4 + (i - 1) * (size + 3), 0)
+        btn:SetPoint("LEFT", bar, "LEFT", 1 + (i - 1) * (size + 3), 0)
         btn.random = w.random
         if w.random then RollHearth(btn) else SetItem(btn, w.item) end
         UpdateCooldown(btn)
         btn:Show()
         buttons[i] = btn
     end
+    bar:SetWidth(math.max(1, #want * (size + 3) - 1))
 end
 
 ---------------------------------------------------------------------------
@@ -203,12 +206,13 @@ local function UpdateTexts()
         end
         statsText:SetText(table.concat(parts, "  |cff55555f|||r  "))
     end
-    statsBtn:SetWidth(statsText:GetStringWidth() + 12)
-    clockBtn:SetWidth(clockText:GetStringWidth() + 12)
+    statsBtn:SetWidth((db.showFPS or db.showMS) and (statsText:GetStringWidth() + 12) or 0.1)
+    clockBtn:SetWidth(db.showClock and clockText:GetStringWidth() + 12 or 0.1)
+    info:SetWidth(statsBtn:GetWidth() + clockBtn:GetWidth() + 4)
 end
 
-local function TextButton(fontString)
-    local b = CreateFrame("Button", nil, bar)
+local function TextButton()
+    local b = CreateFrame("Button", nil, info)
     b:SetHeight(1)
     local fs = b:CreateFontString(nil, "OVERLAY")
     fs:SetPoint("CENTER")
@@ -219,11 +223,17 @@ local function EnsureBar()
     if bar then return end
     bar = CreateFrame("Frame", "OrionUITopBar", UIParent) -- named: secure children need a stable parent
     bar:SetFrameStrata("LOW")
-    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
-    bar.bg:SetAllPoints()
-    bar.line = bar:CreateTexture(nil, "BORDER")
-    bar.line:SetHeight(1)
-    bar.line:SetColorTexture(0, 0, 0, 1)
+    bar:SetSize(1, 24)
+    info = CreateFrame("Frame", nil, UIParent)
+    info:SetFrameStrata("LOW")
+    -- Optional dark backdrop covering both parts (a plain texture on `info`, never on `bar`).
+    info.bg = info:CreateTexture(nil, "BACKGROUND")
+    info.bg:SetPoint("TOPLEFT", bar, "TOPLEFT", -3, 3)
+    info.bg:SetPoint("BOTTOMRIGHT", info, "BOTTOMRIGHT", 3, -3)
+    info.bg:SetColorTexture(0.04, 0.04, 0.05, 0.6)
+    ns.Movers:Register("TopBar", {
+        label = L["Top bar"], getFrame = function() return bar end, default = { x = -120, y = 360 },
+    })
 
     clockBtn, clockText = TextButton()
     clockBtn:SetScript("OnClick", function() if ToggleCalendar then ToggleCalendar() end end)
@@ -256,29 +266,25 @@ end
 -- so it is also changed only out of combat).
 local function LayoutBar()
     local db = M.db
-    bar:ClearAllPoints()
-    bar:SetPoint(db.position, UIParent, db.position, 0, 0)
-    bar:SetPoint("LEFT", UIParent, "LEFT")
-    bar:SetPoint("RIGHT", UIParent, "RIGHT")
     bar:SetHeight(db.height)
-    bar.bg:SetColorTexture(0.04, 0.04, 0.05, db.bgAlpha)
-    bar.line:ClearAllPoints()
-    local edge = db.position == "TOP" and "BOTTOM" or "TOP"
-    bar.line:SetPoint(edge .. "LEFT")
-    bar.line:SetPoint(edge .. "RIGHT")
+    info:ClearAllPoints()
+    info:SetPoint("LEFT", bar, "RIGHT", #buttons > 0 and 6 or 0, 0)
+    info:SetHeight(db.height)
+    info.bg:SetShown(db.background)
     for _, fs in ipairs({ clockText, statsText }) do fs:SetFont(ns.Theme:Font(), db.fontSize, "OUTLINE") end
-    clockBtn:ClearAllPoints()
-    clockBtn:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -4, 0)
-    clockBtn:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -4, 0)
-    clockBtn:SetShown(db.showClock)
     statsBtn:ClearAllPoints()
-    local anchor = db.showClock and clockBtn or bar
-    statsBtn:SetPoint("TOPRIGHT", anchor, db.showClock and "TOPLEFT" or "TOPRIGHT", db.showClock and -2 or -4, 0)
-    statsBtn:SetPoint("BOTTOMRIGHT", anchor, db.showClock and "BOTTOMLEFT" or "BOTTOMRIGHT", db.showClock and -2 or -4, 0)
+    statsBtn:SetPoint("TOPLEFT", info, "TOPLEFT")
+    statsBtn:SetPoint("BOTTOMLEFT", info, "BOTTOMLEFT")
     statsBtn:SetShown(db.showFPS or db.showMS)
+    clockBtn:ClearAllPoints()
+    clockBtn:SetPoint("TOPLEFT", statsBtn, "TOPRIGHT", 4, 0)
+    clockBtn:SetPoint("BOTTOMLEFT", statsBtn, "BOTTOMRIGHT", 4, 0)
+    clockBtn:SetShown(db.showClock)
     LayoutButtons()
+    info:SetPoint("LEFT", bar, "RIGHT", #buttons > 0 and 6 or 0, 0)
     UpdateTexts()
     bar:Show()
+    info:Show()
 end
 
 function M:Refresh()
@@ -301,6 +307,7 @@ end
 function M:OnDisable()
     ticker = nil
     if bar then
+        info:Hide()
         ns.Combat:Defer("TopBar", function() bar:Hide() end)
     end
 end
