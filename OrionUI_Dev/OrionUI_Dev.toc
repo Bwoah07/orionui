@@ -19,5 +19,6 @@ Probes\BossMod.lua
 Probes\Journal.lua
 Probes\Bone.lua
 Probes\Casts.lua
+Probes\CDM.lua
 Watch.lua
 Slash.lua
