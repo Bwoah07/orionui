@@ -1,10 +1,10 @@
--- Top bar: a small, movable, transparent strip (not a full-width bar; Stig 2026-09-30) with
--- teleport buttons (a random hearthstone from a pool you pick, optional Dalaran/Garrison
--- hearthstones, any extra item or toy IDs) followed by FPS | MS and a clock.
+-- Top bar: a small, movable, transparent strip (not a full-width bar; Stig 2026-09-30):
+-- the clock in the middle, buttons on each side of it (a random hearthstone from a pool you
+-- pick, Dalaran/Garrison hearthstones, any item or toy IDs), FPS | MS small under the clock.
 --
--- Two frames on purpose: `bar` holds the secure buttons, so it is only moved or resized out
--- of combat; `info` (clock and stats) is a plain frame anchored to its right, free to resize
--- every second as the text changes.
+-- Everything hangs off one frame, `bar`, which holds secure buttons: it and the clock slot
+-- have a fixed size set out of combat, so nothing the secure buttons anchor to ever moves or
+-- resizes in combat. The clock text just changes inside its fixed slot.
 --
 -- The buttons are secure action buttons (a /use macro), so they can only be created or
 -- changed out of combat: all layout goes through ns.Combat:Defer. The random pick happens
@@ -18,7 +18,7 @@ local GetTime, GetFramerate, GetNetStats = GetTime, GetFramerate, GetNetStats
 
 local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"],
-    desc = L["A small movable strip with hearthstone buttons, FPS and latency, and a clock. Move it with /oui edit."],
+    desc = L["A small movable strip: the clock in the middle, hearthstone buttons on each side, FPS and latency under it. Move it with /oui edit."],
     profileKey = "layout",
     schema = S.Table{ fields = {
         height = S.Number{ default = 24, min = 16, max = 48, step = 1, label = L["Button size"], order = 2 },
@@ -29,15 +29,15 @@ local M = ns.Modules:New("TopBar", {
         realmTime = S.Bool{ default = false, label = L["Use realm time"], order = 12 },
         showFPS = S.Bool{ default = true, label = L["Show FPS"], order = 13 },
         showMS = S.Bool{ default = true, label = L["Show latency (MS)"], order = 14 },
-        hearthButton = S.Bool{ default = true, label = L["Random hearthstone button"], order = 20 },
-        dalaran = S.Bool{ default = false, label = L["Dalaran Hearthstone button"], order = 21 },
-        garrison = S.Bool{ default = false, label = L["Garrison Hearthstone button"], order = 22 },
-        extraItems = S.String{ default = "", label = L["Extra buttons (item or toy IDs, comma separated)"], order = 23 },
+        leftButtons = S.String{ default = "hearth", label = L["Buttons left of the clock"], order = 20,
+            desc = L["Separated by spaces or commas: hearth (random hearthstone), dalaran, garrison, or any item or toy ID. Closest to the clock first."] },
+        rightButtons = S.String{ default = "dalaran garrison", label = L["Buttons right of the clock"], order = 21,
+            desc = L["Same words as the left side. Buttons you don't own are left out."] },
         pool = S.Map{ hidden = true, of = S.Bool{ default = false } },
     } },
 })
 
-local bar, info, clockBtn, statsBtn, clockText, statsText
+local bar, clockBtn, statsBtn, clockText, statsText
 local buttons = {}   -- secure buttons in use, left to right
 local spare = {}     -- released secure buttons, reused (secure frames can't be deleted)
 local ticker
@@ -142,7 +142,45 @@ local function AcquireButton()
     return btn
 end
 
+-- "hearth dalaran 12345" -> { {random=true}, {item=140192}, {item=12345} }, owned ones only.
+local FIXED = {}
+for _, t in ipairs(ns.Data.TeleportToys) do FIXED[t.key] = t.item end
+
+local function ParseButtons(text)
+    local out = {}
+    for word in tostring(text or ""):lower():gmatch("[%w]+") do
+        if word == "hearth" then
+            out[#out + 1] = { random = true }
+        elseif FIXED[word] then
+            if Owns(FIXED[word]) then out[#out + 1] = { item = FIXED[word] } end
+        elseif tonumber(word) then
+            out[#out + 1] = { item = tonumber(word) }
+        end
+    end
+    return out
+end
+
+local function PlaceSide(list, side, size)
+    for i, w in ipairs(list) do
+        local btn = AcquireButton()
+        btn:SetSize(size, size)
+        local offset = 4 + (i - 1) * (size + 3)
+        if side == "LEFT" then
+            btn:SetPoint("RIGHT", clockBtn, "LEFT", -offset, 0)
+        else
+            btn:SetPoint("LEFT", clockBtn, "RIGHT", offset, 0)
+        end
+        btn.random = w.random
+        if w.random then RollHearth(btn) else SetItem(btn, w.item) end
+        UpdateCooldown(btn)
+        btn:Show()
+        buttons[#buttons + 1] = btn
+    end
+    return #list > 0 and (4 + #list * (size + 3) - 3) or 0
+end
+
 -- Rebuilds the buttons from settings. Out of combat only (called via Combat:Defer).
+-- Returns the width of the wider side so the bar stays centred on the clock.
 local function LayoutButtons()
     for _, btn in ipairs(buttons) do
         btn:Hide()
@@ -152,26 +190,10 @@ local function LayoutButtons()
         spare[#spare + 1] = btn
     end
     wipe(buttons)
-    local db = M.db
-    local want = {}
-    if db.hearthButton then want[#want + 1] = { random = true } end
-    for _, t in ipairs(ns.Data.TeleportToys) do
-        if db[t.key] and Owns(t.item) then want[#want + 1] = { item = t.item } end
-    end
-    for id in tostring(db.extraItems or ""):gmatch("%d+") do want[#want + 1] = { item = tonumber(id) } end
-
-    local size = db.height - 2
-    for i, w in ipairs(want) do
-        local btn = AcquireButton()
-        btn:SetSize(size, size)
-        btn:SetPoint("LEFT", bar, "LEFT", 1 + (i - 1) * (size + 3), 0)
-        btn.random = w.random
-        if w.random then RollHearth(btn) else SetItem(btn, w.item) end
-        UpdateCooldown(btn)
-        btn:Show()
-        buttons[i] = btn
-    end
-    bar:SetWidth(math.max(1, #want * (size + 3) - 1))
+    local db, size = M.db, M.db.height - 2
+    local left = PlaceSide(ParseButtons(db.leftButtons), "LEFT", size)
+    local right = PlaceSide(ParseButtons(db.rightButtons), "RIGHT", size)
+    return math.max(left, right)
 end
 
 ---------------------------------------------------------------------------
@@ -206,13 +228,11 @@ local function UpdateTexts()
         end
         statsText:SetText(table.concat(parts, "  |cff55555f|||r  "))
     end
-    statsBtn:SetWidth((db.showFPS or db.showMS) and (statsText:GetStringWidth() + 12) or 0.1)
-    clockBtn:SetWidth(db.showClock and clockText:GetStringWidth() + 12 or 0.1)
-    info:SetWidth(statsBtn:GetWidth() + clockBtn:GetWidth() + 4)
+    statsBtn:SetWidth(statsText:GetStringWidth() + 8) -- not an anchor for anything secure
 end
 
 local function TextButton()
-    local b = CreateFrame("Button", nil, info)
+    local b = CreateFrame("Button", nil, bar)
     b:SetHeight(1)
     local fs = b:CreateFontString(nil, "OVERLAY")
     fs:SetPoint("CENTER")
@@ -224,15 +244,12 @@ local function EnsureBar()
     bar = CreateFrame("Frame", "OrionUITopBar", UIParent) -- named: secure children need a stable parent
     bar:SetFrameStrata("LOW")
     bar:SetSize(1, 24)
-    info = CreateFrame("Frame", nil, UIParent)
-    info:SetFrameStrata("LOW")
-    -- Optional dark backdrop covering both parts (a plain texture on `info`, never on `bar`).
-    info.bg = info:CreateTexture(nil, "BACKGROUND")
-    info.bg:SetPoint("TOPLEFT", bar, "TOPLEFT", -3, 3)
-    info.bg:SetPoint("BOTTOMRIGHT", info, "BOTTOMRIGHT", 3, -3)
-    info.bg:SetColorTexture(0.04, 0.04, 0.05, 0.6)
+    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.bg:SetPoint("TOPLEFT", -3, 3)
+    bar.bg:SetPoint("BOTTOMRIGHT", 3, -3)
+    bar.bg:SetColorTexture(0.04, 0.04, 0.05, 0.6)
     ns.Movers:Register("TopBar", {
-        label = L["Top bar"], getFrame = function() return bar end, default = { x = -120, y = 360 },
+        label = L["Top bar"], getFrame = function() return bar end, default = { x = 0, y = 360 },
     })
 
     clockBtn, clockText = TextButton()
@@ -262,29 +279,28 @@ local function EnsureBar()
     statsBtn:SetScript("OnLeave", GameTooltip_Hide)
 end
 
--- Geometry of the bar itself (not secure, but its secure children move with it,
--- so it is also changed only out of combat).
+-- Geometry of the whole strip. Out of combat only: bar and the clock slot are what the
+-- secure buttons anchor to, so their size is fixed here and never touched in combat.
 local function LayoutBar()
     local db = M.db
-    bar:SetHeight(db.height)
-    info:ClearAllPoints()
-    info:SetPoint("LEFT", bar, "RIGHT", #buttons > 0 and 6 or 0, 0)
-    info:SetHeight(db.height)
-    info.bg:SetShown(db.background)
     for _, fs in ipairs({ clockText, statsText }) do fs:SetFont(ns.Theme:Font(), db.fontSize, "OUTLINE") end
-    statsBtn:ClearAllPoints()
-    statsBtn:SetPoint("TOPLEFT", info, "TOPLEFT")
-    statsBtn:SetPoint("BOTTOMLEFT", info, "BOTTOMLEFT")
-    statsBtn:SetShown(db.showFPS or db.showMS)
+    statsText:SetFont(ns.Theme:Font(), math.max(8, db.fontSize - 3), "OUTLINE")
+    -- Fixed clock slot, wide enough for the longest time string in this format.
+    clockText:SetText(db.clock24 and "00:00" or "12:00 PM")
+    local slot = db.showClock and (clockText:GetStringWidth() + 14) or 4
     clockBtn:ClearAllPoints()
-    clockBtn:SetPoint("TOPLEFT", statsBtn, "TOPRIGHT", 4, 0)
-    clockBtn:SetPoint("BOTTOMLEFT", statsBtn, "BOTTOMRIGHT", 4, 0)
-    clockBtn:SetShown(db.showClock)
-    LayoutButtons()
-    info:SetPoint("LEFT", bar, "RIGHT", #buttons > 0 and 6 or 0, 0)
+    clockBtn:SetPoint("CENTER", bar, "CENTER")
+    clockBtn:SetSize(slot, db.height)
+    clockText:SetShown(db.showClock)
+    statsBtn:ClearAllPoints()
+    statsBtn:SetPoint("TOP", clockBtn, "BOTTOM", 0, 1)
+    statsBtn:SetHeight(db.fontSize)
+    statsBtn:SetShown(db.showFPS or db.showMS)
+    local side = LayoutButtons()
+    bar:SetSize(slot + 2 * side, db.height)
+    bar.bg:SetShown(db.background)
     UpdateTexts()
     bar:Show()
-    info:Show()
 end
 
 function M:Refresh()
@@ -307,7 +323,6 @@ end
 function M:OnDisable()
     ticker = nil
     if bar then
-        info:Hide()
         ns.Combat:Defer("TopBar", function() bar:Hide() end)
     end
 end
