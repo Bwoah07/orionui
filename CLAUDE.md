@@ -1005,7 +1005,8 @@ allows redistribution. Textures: `.tga` or `.blp`, power-of-two dimensions (256Ã
 
 ## 13. Style direction for the pack
 
-Collected from Stig's feedback on screenshots:
+Collected from Stig's feedback on screenshots. **Reference screenshots Stig loves live in
+`docs/style-library/`** (see its README); match them in the style pass.
 
 - **CDM:** Kira-style: cropped/zoomed icons, 1px black borders, near-zero gaps, bold outlined
   centered numbers, stacks in a consistent corner, no glows/shadows/decoration. Rune/resource bar,
