@@ -1163,6 +1163,16 @@ Blood module confirmed in game by Stig)
 IDs to confirm in game; custom reminders with timer/message/pull triggers and !OUI:C:1! sharing)
 15. Other tank specs' data + helpers. Custom reminders. Import/export of reminder profiles.
 
+**Phase 4b: every class and spec (next up, agreed with Stig 2026-09-30)**
+- Defensive catalog + default priority for **every** spec (all 13 classes, DPS and healers too), same
+  format as `Data/Defensives.lua`: research from current guides, then confirm names with
+  `/ouidev secrets all` (extend `OrionUI_Dev/SpellLists.lua`). Most defensives are class-wide; share
+  them per class and add spec extras.
+- Reminder rules for non-tanks: today "Automatic" only fires for tank-tagged abilities on tank specs.
+  Add an automatic rule for Journal "deadly"/big group-damage abilities for every role (personal
+  defensive), configurable, off-by-default decisions to confirm with Stig.
+- Stig is still testing the rest of his UI; style pass and installer wait until he is ready.
+
 **Phase 5: Installer** (`OrionUI_Installer`)
 16. Framework + EUI page (RegisterExternalInstaller + ImportProfileSilent) + BigWigs via LAP.
 17. DBM importer, snapshot importer (NSRT, Waypoint UI), Edit Mode, CDM layouts, OrionUI stores.
