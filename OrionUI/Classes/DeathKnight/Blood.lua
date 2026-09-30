@@ -31,8 +31,12 @@ local M = ns.Modules:New("BloodDK", {
     desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
-    schemaVersion = 2,
-    migrations = { [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end },
+    schemaVersion = 3,
+    migrations = {
+        [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end,
+        -- The first build guessed a 3s proc; the talent actually gives 15s (3s is the echo).
+        [3] = function(db) if db.boilingPoint and db.boilingPoint.window == 3 then db.boilingPoint.window = 15 end end,
+    },
     schema = S.Table{ fields = {
         boneShield = S.Table{ label = L["Bone Shield"], order = 1, fields = {
             show = S.Bool{ default = true, label = L["Show the Bone Shield counter"], order = 1 },
@@ -54,10 +58,12 @@ local M = ns.Modules:New("BloodDK", {
                 valueLabels = { bar = L["Thin bar"], icon = L["Icon"] } },
             width = S.Number{ default = 240, min = 60, max = 600, step = 2, label = L["Bar width"], order = 3 },
             height = S.Number{ default = 6, min = 2, max = 30, step = 1, label = L["Bar height / icon size"], order = 4 },
-            window = S.Number{ default = 3, min = 1, max = 15, step = 0.5, label = L["Countdown length (seconds)"], order = 5,
-                desc = L["How long the empowered Blood Boil lasts. The game doesn't say, so set it to match the talent."] },
-            pulse = S.Bool{ default = true, label = L["Pulse while active"], order = 6 },
-            sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 7 },
+            window = S.Number{ default = 15, min = 1, max = 30, step = 0.5, label = L["Proc lasts (seconds)"], order = 5,
+                desc = L["The talent gives 15 seconds to use the empowered Blood Boil."] },
+            echo = S.Bool{ default = true, label = L["Show the 3 second echo after casting it"], order = 6 },
+            showTime = S.Bool{ default = true, label = L["Show seconds left"], order = 7 },
+            pulse = S.Bool{ default = true, label = L["Pulse while you should use it"], order = 8 },
+            sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 9 },
         } },
     } },
 })

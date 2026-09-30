@@ -217,3 +217,10 @@ see above).
 - **`SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE` spell IDs are readable in combat**: Blood Boil 50842 (repeated
   show/hide, treated as the Boiling Point proc), Marrowrend 195182, Vampiric Strike 433895, Death and Decay 43265.
 - 1310372 = Blood Debt, 433925 = Essence of the Blood Queen (not Boiling Point).
+
+## 2026-09-30: Boiling Point (researched)
+
+Warcraft Wiki (patch 12.0.0 talent): Heart Strike can empower the next Blood Boil (buff "Boiling Point",
+15 s); the empowered Blood Boil deals +50% and echoes after 3 s. Players report the buff can't be tracked in
+the Cooldown Manager; the Blood Boil highlight is the usable signal. The OrionUI indicator shows the
+15 s proc window from the highlight, then a 3 s echo countdown after our Blood Boil cast.
