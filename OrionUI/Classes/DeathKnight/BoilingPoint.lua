@@ -6,8 +6,8 @@
 -- What the bar shows:
 --   BLUE, draining over 15s   a proc is up: cast Blood Boil
 --   RED, draining over 3s     you cast the empowered Blood Boil: the echo is coming
---   GLOW                      a proc is up and castable (also while red: a new proc
---                             rolled during the echo, react and cast again)
+--   GLOW                      a new proc rolled while the bar is red: react and cast
+--                             Blood Boil again
 --
 -- Signals (readable in combat, verified 2026-09-30): the game's Blood Boil highlight
 -- (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE) and our own Blood Boil cast
@@ -27,7 +27,8 @@ local BLOOD_BOIL = 50842
 local ECHO = 3          -- seconds, from the talent text
 local CAST_GRACE = 1    -- seconds after the highlight goes out that a cast still counts
 local TICK = 0.1
-local GLOW_PAD = 4
+local GLOW_PAD = 3   -- glow outline sits this far outside the bar
+local GLOW_WIDTH = 2
 
 local BP = { name = "BoilingPoint" }
 ns.BoilingPoint = BP
@@ -57,26 +58,36 @@ end
 local function Create()
     if frame then return end
     frame = CreateFrame("Frame", nil, UIParent)
-    glow = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    -- Glow: a 2px outline just outside the bar's border, pulsing. Drawn around the bar,
+    -- never behind it, so nothing bleeds through the empty part of the bar.
+    glow = CreateFrame("Frame", nil, frame)
     glow:SetPoint("TOPLEFT", -GLOW_PAD, GLOW_PAD)
     glow:SetPoint("BOTTOMRIGHT", GLOW_PAD, -GLOW_PAD)
-    glow:SetBlendMode("ADD")
+    glow.edges = {}
+    for i = 1, 4 do glow.edges[i] = glow:CreateTexture(nil, "OVERLAY") end
+    local e = glow.edges
+    e[1]:SetPoint("TOPLEFT"); e[1]:SetPoint("TOPRIGHT"); e[1]:SetHeight(GLOW_WIDTH)
+    e[2]:SetPoint("BOTTOMLEFT"); e[2]:SetPoint("BOTTOMRIGHT"); e[2]:SetHeight(GLOW_WIDTH)
+    e[3]:SetPoint("TOPLEFT"); e[3]:SetPoint("BOTTOMLEFT"); e[3]:SetWidth(GLOW_WIDTH)
+    e[4]:SetPoint("TOPRIGHT"); e[4]:SetPoint("BOTTOMRIGHT"); e[4]:SetWidth(GLOW_WIDTH)
     glow:Hide()
     glowAnim = glow:CreateAnimationGroup()
     glowAnim:SetLooping("BOUNCE")
     local a = glowAnim:CreateAnimation("Alpha")
-    a:SetFromAlpha(0.95)
-    a:SetToAlpha(0.2)
-    a:SetDuration(0.35)
+    a:SetFromAlpha(1)
+    a:SetToAlpha(0.25)
+    a:SetDuration(0.3)
 
-    local bg = frame:CreateTexture(nil, "BACKGROUND", nil, -6)
+    -- Opaque background + 1px black border + one flat fill: nothing else.
+    local bg = frame:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.85)
+    bg:SetColorTexture(0.05, 0.05, 0.05, 1)
     bar = CreateFrame("StatusBar", nil, frame)
     bar:SetPoint("TOPLEFT", 1, -1)
     bar:SetPoint("BOTTOMRIGHT", -1, 1)
-    bar:SetStatusBarTexture(ns.Media:Fetch("statusbar"))
+    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     bar:SetMinMaxValues(0, 1)
+    bar:SetValue(0)
     icon = frame:CreateTexture(nil, "ARTWORK")
     icon:SetPoint("TOPLEFT", 1, -1)
     icon:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -98,7 +109,7 @@ end
 
 local function SetGlow(on, color)
     if on then
-        glow:SetColorTexture(color[1], color[2], color[3], 1)
+        for i = 1, 4 do glow.edges[i]:SetColorTexture(color[1], color[2], color[3], 1) end
         glow:Show()
         if not glowAnim:IsPlaying() then glowAnim:Play() end
     else
@@ -149,8 +160,9 @@ function BP:Render()
     end
     lastPhase = phase
     label:SetText(db.showTime and ("%.1f"):format(left) or "")
-    -- Glow = a proc you can act on: the blue phase, or a new proc banked during the echo.
-    SetGlow(db.glow and procUp, db.procColor)
+    -- Glow only when a proc rolls while the echo is running: the blue bar already says
+    -- "cast Blood Boil", the glow says "another one is ready, cast again".
+    SetGlow(db.glow and procUp and phase == "echo", db.procColor)
     frame:Show()
     if not ticker then ticker = C_Timer.NewTicker(TICK, function() BP:Render() end) end
 end
