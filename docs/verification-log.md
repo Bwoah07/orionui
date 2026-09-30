@@ -228,3 +228,12 @@ the Cooldown Manager; the Blood Boil highlight is the usable signal. The OrionUI
   7 tracked bars, 11 essential, 17 utility, ...) contains anything named "Boiling". **Boiling Point can't be
   tracked by the CDM**, so the Blood Boil highlight + cast approach stays. (HiddenActive/HiddenPassive
   categories reject `GetCooldownViewerCategorySet`.)
+
+## 2026-09-30: All tank defensive spell IDs confirmed by name
+
+`/ouidev secrets all` on the Blood DK returned the expected names for every ID in `Data/Defensives.lua`:
+Prot Paladin (86659, 31850, 387174, 204018, 642), Vengeance (204021, 187827, 203720, 196718), Brewmaster
+(1241059, 322507, 115203, 122783, 122278, 325153), Prot Warrior (871, 12975, 1160, 23920, 2565), Guardian
+(22812, 61336, 200851, 102558, 22842). Cooldowns read out of combat also confirm several charge setups
+(e.g. Shield Block, Spell Reflection, Fiery Brand report charge info). Durations remain estimates.
+Custom reminders confirmed working by Stig.

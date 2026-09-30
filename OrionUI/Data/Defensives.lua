@@ -9,10 +9,8 @@
 --   dmg       "all" | "physical" | "magic": what it is good against.
 --
 -- Sources for the non-Blood specs (2026-09-30): Maxroll Mythic+ guides for 12.1, Warcraft
--- Wiki and Wowhead for spell IDs. Status per line:
---   ingame  the game returned the right name for the ID (docs/verification-log.md)
---   xref    the ID appears with the same meaning in another addon's source we checked
---   web     from Wowhead/Warcraft Wiki only; confirm with /ouidev secrets all
+-- Wiki and Wowhead for spell IDs. "ingame" = the game returned the right name for the ID
+-- (/ouidev secrets all, 2026-09-30, docs/verification-log.md). Durations are unverified.
 -- Talented spells the player doesn't have are skipped automatically (C_SpellBook check).
 local _, ns = ...
 
@@ -27,39 +25,39 @@ ns.Data.Defensives = {
         { key = "lichborne",      spell = 49039,  duration = 10, strength = 1, dmg = "all" },      -- ingame
     },
     [66] = { -- Protection Paladin
-        { key = "guardian_kings",  spell = 86659,  duration = 8,  strength = 3, dmg = "all" },   -- xref
-        { key = "ardent_defender", spell = 31850,  duration = 8,  strength = 3, dmg = "all" },   -- xref
-        { key = "eye_of_tyr",      spell = 387174, duration = 9,  strength = 2, dmg = "all" },   -- web (talent)
-        { key = "spellwarding",    spell = 204018, duration = 10, strength = 2, dmg = "magic" }, -- web (talent; shares CD with BoP)
-        { key = "divine_shield",   spell = 642,    duration = 8,  strength = 3, dmg = "all" },   -- xref (immunity, last resort)
+        { key = "guardian_kings",  spell = 86659,  duration = 8,  strength = 3, dmg = "all" },   -- ingame
+        { key = "ardent_defender", spell = 31850,  duration = 8,  strength = 3, dmg = "all" },   -- ingame
+        { key = "eye_of_tyr",      spell = 387174, duration = 9,  strength = 2, dmg = "all" },   -- ingame (talent)
+        { key = "spellwarding",    spell = 204018, duration = 10, strength = 2, dmg = "magic" }, -- ingame (talent; shares CD with BoP)
+        { key = "divine_shield",   spell = 642,    duration = 8,  strength = 3, dmg = "all" },   -- ingame (immunity, last resort)
     },
     [581] = { -- Vengeance Demon Hunter
-        { key = "fiery_brand",   spell = 204021, duration = 10, strength = 2, dmg = "all" },      -- xref
-        { key = "metamorphosis", spell = 187827, duration = 15, strength = 3, dmg = "all" },      -- xref
-        { key = "demon_spikes",  spell = 203720, duration = 8,  strength = 1, dmg = "physical" }, -- xref
-        { key = "darkness",      spell = 196718, duration = 8,  strength = 1, dmg = "all" },      -- xref
+        { key = "fiery_brand",   spell = 204021, duration = 10, strength = 2, dmg = "all" },      -- ingame
+        { key = "metamorphosis", spell = 187827, duration = 15, strength = 3, dmg = "all" },      -- ingame
+        { key = "demon_spikes",  spell = 203720, duration = 8,  strength = 1, dmg = "physical" }, -- ingame
+        { key = "darkness",      spell = 196718, duration = 8,  strength = 1, dmg = "all" },      -- ingame
     },
     [268] = { -- Brewmaster Monk
-        { key = "celestial_infusion", spell = 1241059, duration = 16, strength = 2, dmg = "all" },   -- web (Midnight)
-        { key = "celestial_brew",     spell = 322507,  duration = 8,  strength = 2, dmg = "all" },   -- xref (choice with Infusion)
-        { key = "fortifying_brew",    spell = 115203,  duration = 15, strength = 3, dmg = "all" },   -- xref
-        { key = "diffuse_magic",      spell = 122783,  duration = 6,  strength = 2, dmg = "magic" }, -- xref (talent)
-        { key = "dampen_harm",        spell = 122278,  duration = 10, strength = 2, dmg = "all" },   -- xref (talent)
-        { key = "exploding_keg",      spell = 325153,  duration = 3,  strength = 1, dmg = "physical" }, -- web (talent)
+        { key = "celestial_infusion", spell = 1241059, duration = 16, strength = 2, dmg = "all" },   -- ingame (Midnight)
+        { key = "celestial_brew",     spell = 322507,  duration = 8,  strength = 2, dmg = "all" },   -- ingame (choice with Infusion)
+        { key = "fortifying_brew",    spell = 115203,  duration = 15, strength = 3, dmg = "all" },   -- ingame
+        { key = "diffuse_magic",      spell = 122783,  duration = 6,  strength = 2, dmg = "magic" }, -- ingame (talent)
+        { key = "dampen_harm",        spell = 122278,  duration = 10, strength = 2, dmg = "all" },   -- ingame (talent)
+        { key = "exploding_keg",      spell = 325153,  duration = 3,  strength = 1, dmg = "physical" }, -- ingame (talent)
     },
     [73] = { -- Protection Warrior
-        { key = "shield_wall",      spell = 871,   duration = 8, strength = 3, dmg = "all" },      -- xref
-        { key = "last_stand",       spell = 12975, duration = 15, strength = 2, dmg = "all" },     -- xref
-        { key = "demo_shout",       spell = 1160,  duration = 8, strength = 1, dmg = "all" },      -- web
-        { key = "spell_reflection", spell = 23920, duration = 5, strength = 1, dmg = "magic" },    -- web
-        { key = "shield_block",     spell = 2565,  duration = 6, strength = 1, dmg = "physical" }, -- web
+        { key = "shield_wall",      spell = 871,   duration = 8, strength = 3, dmg = "all" },      -- ingame
+        { key = "last_stand",       spell = 12975, duration = 15, strength = 2, dmg = "all" },     -- ingame
+        { key = "demo_shout",       spell = 1160,  duration = 8, strength = 1, dmg = "all" },      -- ingame
+        { key = "spell_reflection", spell = 23920, duration = 5, strength = 1, dmg = "magic" },    -- ingame
+        { key = "shield_block",     spell = 2565,  duration = 6, strength = 1, dmg = "physical" }, -- ingame
     },
     [104] = { -- Guardian Druid
-        { key = "barkskin",           spell = 22812,  duration = 8,  strength = 2, dmg = "all" },  -- xref
-        { key = "survival_instincts", spell = 61336,  duration = 6,  strength = 3, dmg = "all" },  -- xref
-        { key = "rage_of_sleeper",    spell = 200851, duration = 8,  strength = 2, dmg = "all" },  -- web (talent)
-        { key = "incarnation",        spell = 102558, duration = 30, strength = 3, dmg = "all" },  -- web (talent)
-        { key = "frenzied_regen",     spell = 22842,  duration = 3,  strength = 1, dmg = "all" },  -- xref (heal)
+        { key = "barkskin",           spell = 22812,  duration = 8,  strength = 2, dmg = "all" },  -- ingame
+        { key = "survival_instincts", spell = 61336,  duration = 6,  strength = 3, dmg = "all" },  -- ingame
+        { key = "rage_of_sleeper",    spell = 200851, duration = 8,  strength = 2, dmg = "all" },  -- ingame (talent)
+        { key = "incarnation",        spell = 102558, duration = 30, strength = 3, dmg = "all" },  -- ingame (talent)
+        { key = "frenzied_regen",     spell = 22842,  duration = 3,  strength = 1, dmg = "all" },  -- ingame (heal)
     },
 }
 
