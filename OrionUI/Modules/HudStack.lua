@@ -60,17 +60,28 @@ local function Hook()
     return runes ~= nil
 end
 
-function M:OnEnable()
-    -- EUI builds these frames around login; retry briefly until they exist.
-    local tries = 0
-    local function Try()
-        tries = tries + 1
-        Hook()
+-- The Death and Decay bar is created and shown by EUI whenever it likes (often only once D&D is
+-- first cast), so rather than relying on hooks alone we check twice a second whether it's showing
+-- and move the runes when that changes. Cheap: two lookups and a comparison.
+local lastShown
+local function Check()
+    Hook()
+    local tracked, runes = Tracked(), Runes()
+    local shown = tracked ~= nil and tracked:IsShown()
+    -- Also re-place when EUI has moved the runes back to its own anchor.
+    local _, rel = runes and runes:GetPoint(1)
+    local want = shown and tracked or Power()
+    if shown ~= lastShown or (runes and rel ~= want) then
+        lastShown = shown
         Place()
-        if (not Tracked() or not Runes()) and tries < 20 then self:After(1, Try) end
     end
-    Try()
-    ns.Events:On("PLAYER_ENTERING_WORLD", self, function() Hook() Place() end)
+end
+
+function M:OnEnable()
+    lastShown = nil
+    self:NewTicker(0.5, Check)
+    ns.Events:On("PLAYER_ENTERING_WORLD", self, function() lastShown = nil Check() end)
+    Check()
 end
 
 function M:Refresh() Place() end
