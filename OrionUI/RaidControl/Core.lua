@@ -1807,6 +1807,17 @@ function RC:OnInitialize()
         self.db.profile.battleResIcon = "auto"
     end
 
+    -- OrionUI: RaidControl's accent is OrionUI blue. Runs once per profile after the
+    -- palette migrations above, so a colour the user picks later is kept.
+    if not self.db.profile.orionBlueMigration then
+        local blue = addonTable.Theme and addonTable.Theme.BRAND
+        if blue then
+            self.db.profile.accentColor = { r = blue.r, g = blue.g, b = blue.b, a = 1 }
+            self.db.profile.useClassColor = false
+        end
+        self.db.profile.orionBlueMigration = true
+    end
+
     if self.ApplyTheme then
         self:ApplyTheme(self.db.profile.theme or "Starforge", false)
     end

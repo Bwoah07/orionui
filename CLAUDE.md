@@ -819,7 +819,8 @@ opens OrionUI's options.
 ### 9.1 Options
 
 - Our own window (we cannot add a tab inside EUI's sidebar; see §11.1.4). It must **look native
-  to EUI**: read EUI's accent color, fonts, and theme live via its public functions / skin API;
+  to EUI**: read EUI's fonts and theme live via its public functions / skin API (the accent is OrionUI's
+  own blue `{0.20, 0.60, 1.0}`, Stig 2026-09-30, also RaidControl's default accent);
   fall back to our own defaults if EUI is absent.
 - Left sidebar grouped by module `category` (General, Reminders, Tank, QoL, Profiles, Installer).
 - Pages are **auto-built from module option schemas** (`Options/Builder.lua`) so new modules get UI

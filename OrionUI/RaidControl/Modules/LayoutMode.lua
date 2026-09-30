@@ -240,19 +240,27 @@ function LayoutMode:SkinEllesmereGameMenuButton(button)
         button.Text = button:CreateFontString(nil, "OVERLAY")
         button.Text:SetPoint("CENTER")
     end
-    if button.Text then
-        RC:SetFont(button.Text, 13, "")
+    -- OrionUI: same look as EllesmereUI's own Escape-menu button (its background colour
+    -- setting, a quiet 1px border, a white hover wash, the EUI font one size down).
+    local function SetMenuFont()
+        if button.Text then
+            local path = ns.Theme and ns.Theme:Font() or STANDARD_TEXT_FONT
+            button.Text:SetFont(path, 12, "")
+            button.Text:SetShadowOffset(1, -1)
+            button.Text:SetShadowColor(0, 0, 0, 1)
+        end
     end
+    SetMenuFont()
 
     local function RefreshVisual(hovered)
         local background = button._raidControlMenuBackground
-        local backgroundColor = hovered and RC.Config.ButtonHover or RC.Config.ButtonBg
-        if background and backgroundColor then
-            background:SetColorTexture(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a or 1)
+        local c = EllesmereUIDB and EllesmereUIDB.popupMenuButtonBackgroundColor or { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }
+        if background then
+            local lift = hovered and 0.1 or 0
+            background:SetColorTexture(c.r + lift, c.g + lift, c.b + lift, c.a == nil and 0.8 or c.a)
         end
-        local borderColor = hovered and RC.Config.AccentHover or RC.Config.InputBorder
         for _, border in ipairs(button._raidControlMenuBorders or {}) do
-            border:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, hovered and 1 or (borderColor.a or 0.88))
+            border:SetColorTexture(1, 1, 1, hovered and 0.25 or 0.12)
         end
     end
 
@@ -263,9 +271,7 @@ function LayoutMode:SkinEllesmereGameMenuButton(button)
         RefreshVisual(false)
     end)
     button.RefreshTheme = function()
-        if button.Text then
-            RC:SetFont(button.Text, 13, "")
-        end
+        SetMenuFont()
         RefreshVisual(false)
         SetGameMenuButtonText(button)
     end

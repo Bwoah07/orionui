@@ -1,14 +1,14 @@
--- Look & feel for our windows (CLAUDE.md §9.1, §13). Reads EllesmereUI's accent colour
--- and font live when EUI is loaded so our options look native next to it; falls back
--- to our own palette otherwise. Flat opaque panels, 1px borders, one accent colour,
+-- Look & feel for our windows (CLAUDE.md §9.1, §13). OrionUI's accent is its own blue
+-- (Stig, 2026-09-30); the font follows EllesmereUI's when it is loaded. Flat opaque panels, 1px borders, one accent colour,
 -- soft drop shadow, generous spacing.
 local _, ns = ...
 
 local Theme = {}
 ns.Theme = Theme
 
--- Fallback accent (used without EUI).
-local ACCENT = { r = 0.62, g = 0.48, b = 1.0 }
+-- OrionUI blue. Also used by the built-in RaidControl (RaidControl/Core.lua).
+local ACCENT = { r = 0.20, g = 0.60, b = 1.0 }
+Theme.BRAND = ACCENT
 Theme.colors = {
     bg       = { 0.067, 0.067, 0.082, 1 },
     sidebar  = { 0.047, 0.047, 0.058, 1 },
@@ -22,11 +22,7 @@ Theme.colors = {
     faint    = { 0.40, 0.40, 0.45, 1 },
 }
 
--- EllesmereUI.ELLESMERE_GREEN is updated in place when the EUI theme changes
--- (EllesmereUI_UICore.lua), so reading it each time is always current.
 function Theme:Accent()
-    local eg = EllesmereUI and EllesmereUI.ELLESMERE_GREEN
-    if type(eg) == "table" and type(eg.r) == "number" then return eg.r, eg.g, eg.b end
     return ACCENT.r, ACCENT.g, ACCENT.b
 end
 
