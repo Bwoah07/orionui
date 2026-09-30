@@ -183,7 +183,7 @@ local function GetRaidControlBrandText()
         math.floor((accent.g or 0.82) * 255 + 0.5),
         math.floor((accent.b or 0.62) * 255 + 0.5)
     )
-    return prefix .. "Orion|r|cffffffffUI|r" -- OrionUI: the Escape-menu button is OrionUI's own
+    return "|cffffffffOrion|r" .. prefix .. "UI|r" -- OrionUI: the Escape-menu button is OrionUI's own
 end
 
 local function SetGameMenuButtonText(button)
@@ -245,7 +245,7 @@ function LayoutMode:SkinEllesmereGameMenuButton(button)
     local function SetMenuFont()
         if button.Text then
             local path = ns.Theme and ns.Theme:Font() or STANDARD_TEXT_FONT
-            button.Text:SetFont(path, 12, "")
+            button.Text:SetFont(path, 15, "")
             button.Text:SetShadowOffset(1, -1)
             button.Text:SetShadowColor(0, 0, 0, 1)
         end
