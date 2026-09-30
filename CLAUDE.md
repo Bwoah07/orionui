@@ -805,8 +805,8 @@ as-is (it is his own addon) by a re-runnable port script, as its own AceAddon `O
 SavedVariable `OrionUIRaidControlDB`. Ace3 + LibSharedMedia are embedded for it (`.pkgmeta` externals).
 Left out on purpose: Boss Notes, Note Reminders, NSRT note sharing, OrionImport, and RaidControl's own settings
 windows (Settings, SettingsV2, BlizzardOptions). `RaidControl/Bridge.lua` stands in for its Settings module so
-every Settings button opens `/oui`; `RaidControl/Options.lua` generates the "Raid tools" pages from its AceDB
-defaults, grouped by key prefix. Raid Split opens in the plain workspace host (`/oui split`). The whole thing
+every Settings button opens `/oui`; `RaidControl/Options.lua` holds seven hand-picked "Raid tools" pages
+(sections, plain names; the rest keep RaidControl defaults). Raid Split opens in the plain workspace host (`/oui split`). The whole thing
 stays off when the standalone RaidControl addon is enabled. These files are exempt from our file-size rule and
 luacheck. Untested in game. Since 2026-09-30 the standalone addon is uninstalled and the copy is edited in
 place (tools/port-raidcontrol.py refuses to run without a source). The Escape-menu button reads "OrionUI" and

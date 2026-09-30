@@ -10,11 +10,10 @@ ns.Options = Options
 
 local CATEGORIES = {
     { key = "general",   label = L["General"] },
+    { key = "qol",       label = L["Interface"] },
     { key = "reminders", label = L["Reminders"] },
-    { key = "tank",      label = L["Tank"] },
+    { key = "tank",      label = L["Class"] },
     { key = "raid",      label = L["Raid tools"] },
-    { key = "qol",       label = L["Quality of life"] },
-    { key = "profiles",  label = L["Profiles"] },
 }
 local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 900, 600, 200, 52
 local PAD, CARD_GAP = 16, 20
