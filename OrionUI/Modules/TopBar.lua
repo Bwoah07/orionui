@@ -29,7 +29,7 @@ local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"], order = 1,
     desc = L["Clock, friends, guild, hearthstones and Mythic+ portals in one small bar. In combat only FPS and latency stay. Move it with /oui edit."],
     profileKey = "layout",
-    schemaVersion = 3,
+    schemaVersion = 4,
     migrations = {
         -- v1 had left/right button lists; the hearthstone and extra buttons now have their own settings.
         [2] = function(db)
@@ -43,6 +43,8 @@ local M = ns.Modules:New("TopBar", {
         end,
         -- Bigger, easier to read FPS / MS (Stig, 2026-09-30).
         [3] = function(db) if db.statsSize == 11 then db.statsSize = nil end end,
+        -- The hand-picked hearthstone pool became one on/off switch (Stig, 2026-09-30).
+        [4] = function(db) db.pool = nil end,
     },
     schema = S.Table{ fields = {
         height = S.Number{ section = L["Look"], default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
@@ -63,6 +65,8 @@ local M = ns.Modules:New("TopBar", {
         } },
         travel = S.Table{ label = L["Hearthstones and portals"], order = 30, fields = {
             hearth = S.Bool{ default = true, label = L["Hearthstone button"], order = 1 },
+            random = S.Bool{ default = true, label = L["Random hearthstone on left-click"], order = 1.5,
+                desc = L["On: a random hearthstone toy you own each time. Off: your normal Hearthstone."] },
             middleClick = S.String{ default = "dalaran", label = L["Middle-click uses"], order = 2,
                 desc = L["dalaran, garrison, or an item or toy ID. Empty = nothing."] },
             rightClick = S.String{ default = "garrison", label = L["Right-click uses"], order = 3,
@@ -70,7 +74,6 @@ local M = ns.Modules:New("TopBar", {
             portals = S.Bool{ default = true, label = L["Mythic+ portals button"], order = 4 },
             extraItems = S.String{ default = "", label = L["Extra buttons (item or toy IDs)"], order = 5 },
         } },
-        pool = S.Map{ hidden = true, of = S.Bool{ default = false } },
     } },
 })
 
@@ -101,12 +104,13 @@ local function OwnedHearthstones()
     return list
 end
 
+-- Left-click choices: every hearthstone you own when random is on, else the plain Hearthstone
+-- (or, without one in your bags, your first hearthstone toy).
 local function Pool()
-    local owned, picked = OwnedHearthstones(), {}
-    for _, id in ipairs(owned) do
-        if M.db.pool[tostring(id)] then picked[#picked + 1] = id end
-    end
-    return #picked > 0 and picked or owned
+    local owned = OwnedHearthstones()
+    if M.db.travel.random then return owned end
+    if Owns(ns.Data.HEARTHSTONE_ITEM) then return { ns.Data.HEARTHSTONE_ITEM } end
+    return owned[1] and { owned[1] } or {}
 end
 
 local FIXED = {}
@@ -513,7 +517,7 @@ local function Create()
             GameTooltip:AddDoubleLine(L["Cooldown"], L["Ready"], 0.7, 0.7, 0.7, 0.37, 0.83, 0.37)
         end
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["Left-click: random hearthstone"] .. (self.leftID and (" |cff8a8a95(" .. L["next:"] .. " " .. ItemName(self.leftID) .. ")|r") or ""), 0.2, 0.6, 1)
+        GameTooltip:AddLine((M.db.travel.random and L["Left-click: random hearthstone"] or L["Left-click: Hearthstone"]) .. (self.leftID and (" |cff8a8a95(" .. L["next:"] .. " " .. ItemName(self.leftID) .. ")|r") or ""), 0.2, 0.6, 1)
         if self.middleID then GameTooltip:AddLine(L["Middle-click:"] .. " " .. ItemName(self.middleID), 0.2, 0.6, 1) end
         if self.rightID then GameTooltip:AddLine(L["Right-click:"] .. " " .. ItemName(self.rightID), 0.2, 0.6, 1) end
         GameTooltip:Show()
@@ -721,35 +725,4 @@ function M:OnDisable()
             bar:Hide()
         end)
     end
-end
-
----------------------------------------------------------------------------
--- Options: the hearthstone pool
----------------------------------------------------------------------------
-
-M.options = function(self)
-    local out = {
-        { type = "Header", label = L["Random hearthstone pool"] },
-        { type = "Description", label = L["Tick the hearthstones left-click may pick. With none ticked it picks from all you own."] },
-    }
-    local owned = OwnedHearthstones()
-    if #owned == 0 then
-        out[#out + 1] = { type = "Description", label = L["No hearthstones found yet. Open this page again after your toys have loaded."] }
-    end
-    for _, id in ipairs(owned) do
-        out[#out + 1] = {
-            type = "Toggle", label = ItemName(id),
-            get = function() return self.db.pool[tostring(id)] == true end,
-            set = function(v)
-                self.db.pool[tostring(id)] = v or nil
-                if self.enabled then self:Refresh() end
-            end,
-        }
-    end
-    out[#out + 1] = { type = "Button", label = L["Clear (use all I own)"], func = function()
-        wipe(self.db.pool)
-        if self.enabled then self:Refresh() end
-        if ns.Options then ns.Options:Refresh() end
-    end }
-    return out
 end

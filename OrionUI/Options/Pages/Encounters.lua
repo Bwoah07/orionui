@@ -61,9 +61,9 @@ local function TagText(tags)
 end
 
 local function AutoText(tags)
-    if ns.Reminders:AutoMode(tags) == "defensive" then
-        return L["Automatic (defensive)"]
-    end
+    local mode = ns.Reminders:AutoMode(tags)
+    if mode == "defensive" then return L["Automatic (defensive)"] end
+    if mode == "warn" then return L["Automatic (warning)"] end
     return L["Automatic (off)"]
 end
 

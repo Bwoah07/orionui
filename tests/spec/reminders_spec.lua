@@ -256,4 +256,20 @@ describe("Scheduler", function()
             end
         end
     end)
+    it("picks sensible automatic reminders per role", function()
+        local ns = Start()
+        local R = ns.Reminders
+        ns.Player.role = "TANK"
+        assert.are.equal("defensive", (R:AutoMode({ tank = true })))
+        assert.are.equal("warn", (R:AutoMode({ interruptible = true })))
+        ns.Player.role = "HEALER"
+        assert.are.equal("off", (R:AutoMode({ tank = true })))
+        assert.are.equal("warn", (R:AutoMode({ healer = true })))
+        assert.are.equal("off", (R:AutoMode({ interruptible = true })))
+        ns.Player.role = "DAMAGER"
+        assert.are.equal("warn", (R:AutoMode({ dps = true })))
+        assert.are.equal("warn", (R:AutoMode({ important = true })))
+        assert.are.equal("defensive", (R:AutoMode({ deadly = true })))
+        assert.are.equal("off", (R:AutoMode({})))
+    end)
 end)

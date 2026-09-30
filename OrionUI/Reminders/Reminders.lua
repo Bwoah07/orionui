@@ -24,6 +24,9 @@ local R = ns.Modules:New("Reminders", {
             desc = L["Abilities the Encounter Journal marks for tanks get a defensive reminder without setting each one up."] },
         deadlyAuto = S.Bool{ section = L["When to remind"], default = true, label = L["Every spec: remind about deadly abilities automatically"], order = 2.5,
             desc = L["Abilities the Encounter Journal marks as deadly get a personal defensive reminder, whatever your role."] },
+        roleAuto = S.Bool{ section = L["When to remind"], default = true, label = L["Warn about important abilities and ones for my role"], order = 2.6,
+            desc = L["Journal \"important\" abilities, plus healer abilities for healers and damage-dealer abilities for DPS, get a warning (no defensive)."] },
+        interruptAuto = S.Bool{ section = L["When to remind"], default = true, label = L["Warn before interruptible casts (tanks and DPS)"], order = 2.7 },
         onlyWhenTanking = S.Bool{ section = L["When to remind"], default = true, label = L["Only when I'm tanking that boss"], order = 3,
             desc = L["Uses the boss's threat. If the game hides it, you are warned anyway."] },
         skipCovered = S.Bool{ section = L["When to remind"], default = true, label = L["Skip when a defensive is already running"], order = 4 },
@@ -79,13 +82,26 @@ end
 
 -- What "auto" means for a mechanic with these tags. Second value: the tank rule decided it
 -- (then threat ownership is checked). The tank rule wins so ownership still applies.
+-- Sensible defaults per role (Stig, 2026-09-30: "those that make sense should be on"):
+--   tank busters / tank abilities -> defensive, for tanks
+--   deadly abilities              -> defensive, for everyone
+--   important + your role's       -> warning (healer abilities for healers, DPS ones for DPS)
+--   interruptible casts           -> warning, for tanks and DPS
+-- Anything with no Journal tag stays off until you turn it on.
 function R:AutoMode(tags)
     tags = tags or {}
-    if self.db.tankAuto and ns.Player.role == "TANK" and (tags.tank or tags.buster) then
+    local db, role = self.db, ns.Player.role
+    if db.tankAuto and role == "TANK" and (tags.tank or tags.buster) then
         return "defensive", true
     end
-    if self.db.deadlyAuto and tags.deadly then
+    if db.deadlyAuto and tags.deadly then
         return "defensive", false
+    end
+    if db.roleAuto and (tags.important or (role == "HEALER" and tags.healer) or (role == "DAMAGER" and tags.dps)) then
+        return "warn", false
+    end
+    if db.interruptAuto and tags.interruptible and role ~= "HEALER" then
+        return "warn", false
     end
     return "off", false
 end
