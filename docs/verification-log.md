@@ -190,3 +190,20 @@ see above).
   JournalCatalog must set the Journal difficulty to the instance difficulty before scraping (and restore
   the user's choice afterwards), and skip filtered sections.
 - The same spell can appear more than once (Tempest Winds, Lingering Storm): dedupe by spellID per encounter.
+
+## 2026-09-30: Bone Shield display options (`/ouidev bone`, open world, Blood)
+
+- **In combat, `C_UnitAuras.GetUnitAuraInstanceIDs("player", ...)` throws** ("Auras cannot be accessed when
+  secret while tainted"), like `GetAuraDataByIndex`. Out of combat it works, and so do
+  `GetAuraApplicationDisplayCount` (Bone Shield "12"), `GetAuraDuration` and colour curves.
+- **Blizzard's Cooldown Manager frames** (`BuffIconCooldownViewer` children): `cooldownID` is **plain** even
+  in combat. `GetSpellID()` and `auraInstanceID` are **secret** while the buff is up and nil when it isn't.
+  The `Applications` stack text is a secret string, and **passing it to our own `FontString:SetText` works**.
+  That's the in-combat path for showing a stack count (it needs the buff in the CDM's tracked buffs).
+- **Engine aura sounds work for the player's own buffs.** `C_UnitAuras.AddAuraSound(trigger,
+  { unitToken = "player", spellID = 195181, soundFileID = 567397 })` played the raid-warning sound in combat
+  on Bone Shield **Removed** and **Added**. File 567397 (RaidWarning.ogg) confirmed.
+- Not possible in combat: reading the stack number, so thresholds like "below 5" and a filled/segmented bar
+  driven by stacks. Colour curves reject secret inputs from addon code (`Evaluate` is AllowedWhenUntainted).
+- Boiling Point: no aura named "Boiling..." was up at the time. Candidates seen: 1310372 (7 stacks),
+  433925 (1 stack); names to be confirmed.

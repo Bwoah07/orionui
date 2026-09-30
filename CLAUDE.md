@@ -759,7 +759,11 @@ Features Stig explicitly liked:
   bars, **or** a plain icon with count inside the CDM rows. User-selectable.
 - Defensive presets for the reminder engine (VB / DRW / IBF / AMS ordering by mechanic type).
 
-[VERIFY all spell IDs and whether each value is readable in combat via `OrionUI_Dev` probes.]
+**As built (2026-09-30), `Classes/DeathKnight/Blood.lua`:** Bone Shield counter. Out of combat it reads the
+aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
+up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
+stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
+Boiling Point option that works is a CDM tracked-buff icon with count (mirrorable).
 
 ### 8.4 Other tank specs (after Blood)
 
