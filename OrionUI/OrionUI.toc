@@ -82,6 +82,7 @@ Options\Pages\Defensives.lua
 Options\Pages\CustomReminders.lua
 
 Classes\Framework\CDMMirror.lua
+Classes\Framework\CDMAnchor.lua
 Classes\DeathKnight\Blood.lua
 Classes\DeathKnight\BoilingPoint.lua
 

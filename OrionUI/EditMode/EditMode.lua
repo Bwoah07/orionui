@@ -175,9 +175,12 @@ function EditMode:Toggle(show)
     BuildGrid()
     if #ns.Movers.list == 0 then ns.Print(L["Nothing to move yet."]) end
     for _, mover in ipairs(ns.Movers.list) do
-        local o = OverlayFor(mover)
-        self:Place(o)
-        o:Show()
+        -- Frames attached to a Cooldown Manager row move with the row, not on their own.
+        if not (mover.attached and mover.attached()) then
+            local o = OverlayFor(mover)
+            self:Place(o)
+            o:Show()
+        end
     end
     Select(nil)
     -- Other movable things (the built-in RaidControl's own layout mode) follow ours.

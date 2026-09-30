@@ -852,6 +852,10 @@ opens OrionUI's options.
 - Soft dependency (`## OptionalDeps: EllesmereUI, ...`); OrionUI must work without EUI.
 - Anchor our frames to EUI CDM/aura groups when present (Kira's `CDMAnchor` pattern): matching
   width to the CDM rows is what makes the whole HUD read as one unit.
+  **Built (2026-09-30):** `Classes/Framework/CDMAnchor.lua` attaches a frame to an EUI CDM row
+  (`ECME_CDMBar_cooldowns|utility|buffs`, Blizzard viewers as fallback) on a side with a gap, optionally
+  matching its width; movers skip attached frames. Used by Bone Shield and Boiling Point (setting
+  "Attach to Cooldown Manager", default Free).
 - Use `EllesmereUI.RegisterSkin(name, applyFn)` for our windows if appropriate.
 
 ---

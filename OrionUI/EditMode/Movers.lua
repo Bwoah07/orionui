@@ -49,6 +49,7 @@ end
 function Movers:Apply(mover)
     local f = mover.getFrame()
     if not f then return end
+    if mover.attached and mover.attached() then return end -- follows a Cooldown Manager row instead
     local x, y = Position(mover)
     ns.Combat:Defer("mover:" .. mover.key, function()
         f:ClearAllPoints()
@@ -118,6 +119,7 @@ function Movers:Register(key, spec)
         label = spec.label or key,
         getFrame = spec.getFrame or function() return spec.frame end,
         default = spec.default or { x = 0, y = 0 },
+        attached = spec.attached, -- optional: true while the frame is attached to something else
     }
     self.list[#self.list + 1] = mover
     self.byKey[key] = mover

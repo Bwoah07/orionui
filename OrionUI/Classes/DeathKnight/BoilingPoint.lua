@@ -60,6 +60,8 @@ end
 -- Frame
 ---------------------------------------------------------------------------
 
+local mover
+
 local function Create()
     if frame then return end
     frame = CreateFrame("Frame", nil, UIParent)
@@ -102,8 +104,9 @@ local function Create()
     frame.edge:SetAllPoints()
     ns.Theme:Skin(frame.edge, { 0, 0, 0, 0 })
     frame:Hide()
-    ns.Movers:Register("BloodBoilingPoint", {
+    mover = ns.Movers:Register("BloodBoilingPoint", {
         label = L["Boiling Point"], getFrame = function() return frame end, default = { x = 0, y = -160 },
+        attached = function() local db = DB() return db.attach ~= "none" and ns.CDMAnchor:Row(db.attach) ~= nil end,
     })
 end
 
@@ -188,6 +191,14 @@ function BP:Refresh()
         icon:Hide()
     end
     ns.Theme:SetBorderColor(frame.edge, 0, 0, 0, 1)
+    -- Attached to a CDM row (and as wide as it, for the bar), or back to its own saved spot.
+    local cfg = { attach = db.attach, attachSide = db.attachSide, attachGap = db.attachGap,
+        matchWidth = db.matchWidth and db.style ~= "icon" }
+    if not ns.CDMAnchor:Place(frame, cfg, function() BP:Refresh() end) then
+        ns.CDMAnchor:Release(frame)
+        ns.Movers:Apply(mover)
+    end
+    ns.CDMAnchor:WhenReady("BoilingPoint", cfg, function() if ns.BloodDK.enabled then BP:Refresh() end end)
     lastPhase = nil
     self:Render()
 end

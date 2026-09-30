@@ -76,6 +76,12 @@ local M = ns.Modules:New("BloodDK", {
             downWarning = S.Bool{ default = true, label = L["Show \"Bone Shield down\" in combat"], order = 8 },
             soundOnDrop = S.Bool{ default = true, label = L["Sound when Bone Shield drops"], order = 9 },
             soundOnGain = S.Bool{ default = false, label = L["Sound when Bone Shield comes back"], order = 10 },
+            attach = S.Enum{ default = "none", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
+                label = L["Attach to Cooldown Manager"], order = 20,
+                desc = L["Sticks to a Cooldown Manager row, so it moves with it and stays lined up."] },
+            attachSide = S.Enum{ default = "LEFT", values = ns.CDMAnchor.SIDES, valueLabels = ns.CDMAnchor.SIDE_LABELS,
+                label = L["Side"], order = 21 },
+            attachGap = S.Number{ default = 1, min = -10, max = 40, step = 1, label = L["Gap (pixels)"], order = 22 },
         } },
         boilingPoint = S.Table{ label = L["Boiling Point"], order = 2, fields = {
             show = S.Bool{ default = true, label = L["Show Boiling Point"], order = 1,
@@ -92,6 +98,13 @@ local M = ns.Modules:New("BloodDK", {
             window = S.Number{ default = 15, min = 1, max = 30, step = 0.5, label = L["Proc lasts (seconds)"], order = 9,
                 desc = L["The talent gives 15 seconds to use the empowered Blood Boil."] },
             sound = S.Bool{ default = false, label = L["Play a sound when it procs"], order = 11 },
+            attach = S.Enum{ default = "none", values = ns.CDMAnchor.CHOICES, valueLabels = ns.CDMAnchor.CHOICE_LABELS,
+                label = L["Attach to Cooldown Manager"], order = 20,
+                desc = L["Sticks to a Cooldown Manager row, so it moves with it and stays lined up."] },
+            attachSide = S.Enum{ default = "ABOVE", values = ns.CDMAnchor.SIDES, valueLabels = ns.CDMAnchor.SIDE_LABELS,
+                label = L["Side"], order = 21 },
+            attachGap = S.Number{ default = 1, min = -10, max = 40, step = 1, label = L["Gap (pixels)"], order = 22 },
+            matchWidth = S.Bool{ default = true, label = L["Same width as the row (above or below it)"], order = 23 },
         } },
     } },
 })
@@ -147,7 +160,7 @@ end
 -- Display
 ---------------------------------------------------------------------------
 
-local frame, icon, count, timer, blink
+local frame, icon, count, timer, blink, mover
 
 local function Create()
     if frame then return end
@@ -168,8 +181,9 @@ local function Create()
     a:SetToAlpha(0.25)
     a:SetDuration(0.35)
     frame:Hide()
-    ns.Movers:Register("BloodBoneShield", {
+    mover = ns.Movers:Register("BloodBoneShield", {
         label = L["Bone Shield"], getFrame = function() return frame end, default = { x = 0, y = -120 },
+        attached = function() local db = M.db.boneShield return db.attach ~= "none" and ns.CDMAnchor:Row(db.attach) ~= nil end,
     })
 end
 
@@ -187,6 +201,12 @@ local function Layout()
     count:SetPoint("CENTER", frame, "TOP", 0, 0)
     timer:ClearAllPoints()
     timer:SetPoint("CENTER", frame, "BOTTOM", 0, 1)
+    -- Attached to a CDM row, or back to its own saved spot.
+    if not ns.CDMAnchor:Place(frame, db) then
+        ns.CDMAnchor:Release(frame)
+        ns.Movers:Apply(mover)
+    end
+    ns.CDMAnchor:WhenReady("BoneShield", db, function() if M.enabled then Layout() end end)
 end
 
 local function SetBlink(on)
