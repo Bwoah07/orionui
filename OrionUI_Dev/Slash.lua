@@ -12,6 +12,7 @@ local HELP = {
     "/ouidev bone [sound]                 Bone Shield display options + find Boiling Point",
     "/ouidev casts                        90s log of your casts and proc glows (spell readable?)",
     "/ouidev cdm [name]                   what the Cooldown Manager can track for this spec",
+    "/ouidev capture eui                  save your EllesmereUI profile for the installer (then /reload)",
     "/ouidev all                          secrets + restrictions + auras + threat in one box",
     "/ouidev watch on|off                 auto snapshots on combat/boss/M+ start (default on)",
     "/ouidev log [N]                      show the saved log (last N lines)",
@@ -29,6 +30,7 @@ local COMMANDS = {
     bone = function(a) ns.ProbeBone(a) end,
     casts = function(a) ns.ProbeCasts(a) end,
     cdm = function(a) ns.ProbeCDM(a) end,
+    capture = function(a) ns.ProbeCapture(a) end,
     all = function()
         local lines, quiet = {}, { show = false }
         for _, probe in ipairs({ ns.ProbeRestrictions, ns.ProbeSecrets, ns.ProbeAuras, ns.ProbeThreat }) do
