@@ -26,8 +26,9 @@ Surveyed 2026-09-30 from module headers only; details to be read per module when
 | KeySync | 298 | M+ keystone sharing over addon comms | Port |
 | CombatLogger | 243 | Prompt to enable combat logging per content | Port (EUI QoL has AutoLogging: check overlap) |
 | AutoVendor | 79 | Auto repair / sell junk | Covered by EUI QoL? check; else port (fail closed, §8.5) |
-| MarkerBar / Control / ActionStrip | ~2100 | Marker bar, pull/ready buttons | **Skip**: EUI QoL → Raid Tools covers this |
-| LayoutMode / Workspace / FrameScaling / SettingsV2 | ~5000 | Its own UI shell and edit mode | Skip: OrionUI has these |
+| MarkerBar / Control / ActionStrip | ~2100 | Top bar, marker bar, pull/ready buttons, action strip | **Port** (Stig, 2026-09-30): the top bar, drop-down menu and action strip do more than EUI's Raid Tools |
+| LayoutMode | 817 | Launcher drop-down menu (secure) + its layout mode | **Port the launcher drop-down menu** (Stig); its layout/edit mode is replaced by OrionUI's |
+| Workspace / FrameScaling / SettingsV2 | ~4200 | Its own UI shell and settings | Skip: OrionUI has these |
 | Screenshot | 526 | Screenshot CVar profile | Low priority |
 | RaidDemo | 391 | Demo roster for testing UI | Port as a dev/test helper |
 | OrionImport | 308 | Import of Orion guild settings | Replace with the OrionUI installer |
