@@ -763,8 +763,11 @@ Features Stig explicitly liked:
 aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
 up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
 stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
-Boiling Point can't be tracked by the CDM at all; ours follows the Blood Boil highlight
-(15 s proc window) and our own Blood Boil cast (3 s echo). Low stacks in combat use Ossuary (up at 5+
+Boiling Point can't be tracked by the CDM at all; ours follows the Blood Boil highlight and our
+own Blood Boil cast. Confirmed working by Stig (2026-09-30): blue bar = proc up (15 s window), red bar =
+3 s echo after the empowered cast (a cast up to 1 s after the highlight clears still counts), thin gold
+glow = a new proc rolled during the echo, and echoes chain (a proc rolled mid-echo keeps the red bar going).
+The highlight flickers, so it is never treated as "proc ended" on its own for the echo chain. Low stacks in combat use Ossuary (up at 5+
 stacks) from the CDM; expiry uses a clock restarted by Marrowrend/Death's Caress casts (readable in the
 open world; unverified in instances).
 
@@ -1149,8 +1152,8 @@ Waiting on Stig's in-game check before Phase 2.
 9. DBM adapter.
 10. `/oui test reminder` end-to-end with a fake mechanic.
 
-**Phase 3: Defensive reminders for Blood DK** (items 11-13 built 2026-09-29; defensive durations
-unverified; item 14 next)
+**Phase 3: Defensive reminders for Blood DK** (done 2026-09-30; defensive durations unverified;
+Blood module confirmed in game by Stig)
 11. Data for Blood DK + Stig's current dungeons (authored by us).
 12. TankOwnership, DefensiveResolver (strategy chosen from Phase 0 results), Coverage, Scheduler, Output.
 13. Encounter ability browser + preset editor UI.
