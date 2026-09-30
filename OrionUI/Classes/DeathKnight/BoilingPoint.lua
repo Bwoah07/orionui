@@ -4,11 +4,11 @@
 -- How the talent works (Warcraft Wiki, 12.x): Heart Strike can empower your next Blood
 -- Boil for 15 seconds; the empowered Blood Boil deals more damage and echoes 3 seconds
 -- later. So there are two phases to show:
---   1. proc: from the Blood Boil highlight until you cast it (or 15s pass): "use it"
+--   1. proc: from the Blood Boil highlight until you cast Blood Boil (or 15s pass)
 --   2. echo: 3 seconds after casting the empowered Blood Boil
 --
 -- Signals, readable in combat in the open world (verified 2026-09-30): the game's Blood
--- Boil highlight (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW/HIDE, spell 50842) and our own
+-- Boil highlight (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW, spell 50842) and our own
 -- Blood Boil cast (UNIT_SPELLCAST_SUCCEEDED). The buff itself can't be tracked (the CDM
 -- doesn't list it either). If casts turn secret in an instance, the echo phase is skipped.
 local _, ns = ...
@@ -129,16 +129,15 @@ function BP:Refresh()
     self:Draw()
 end
 
+-- The highlight flickers off and on while the 15s buff is still up (seen in game), so
+-- only its appearance matters: it starts the proc window, or restarts it when a new
+-- Heart Strike roll refreshes the buff. The window ends when we cast Blood Boil or the
+-- time runs out, never because the highlight blinked off.
 local function OnGlow(_, event, spellID)
     if ns.Secret.Is(spellID) or spellID ~= BLOOD_BOIL then return end
-    if event == "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" then
-        if BP.phase ~= "proc" then
-            if DB().sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
-            SetPhase("proc")
-        end
-    elseif BP.phase == "proc" then
-        SetPhase(nil) -- highlight gone without our cast: proc expired or was used up elsewhere
-    end
+    if event ~= "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" then return end
+    if BP.phase ~= "proc" and DB().sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
+    SetPhase("proc")
 end
 
 -- Casting the empowered Blood Boil starts the echo countdown. The cast event arrives
@@ -151,7 +150,6 @@ end
 function BP:Enable()
     Create()
     ns.Events:On("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", self, OnGlow)
-    ns.Events:On("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", self, OnGlow)
     ns.Events:OnUnit("UNIT_SPELLCAST_SUCCEEDED", { "player" }, self, OnCast)
     self:Refresh()
 end
