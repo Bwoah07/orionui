@@ -9,6 +9,8 @@
 -- /ouidev capture eui <module> (e.g. nameplates, actionbars, unitframes) saves only that
 -- module, via ExportProfile's includedFolders set, into OrionUIDevDB.captures.euiModules.
 -- EUI stamps such strings partialImport, so the installer can apply the pieces one by one.
+-- A module capture leaves out fonts/colours, overrides, window skins and (unless it is the
+-- CDM itself) CDM spell layouts, so layering it on another profile changes only that module.
 local _, ns = ...
 
 -- "nameplates" -> "EllesmereUINameplates" when that addon exists (case-insensitive).
@@ -33,7 +35,15 @@ local function CaptureEUI(module)
         folder = ModuleFolder(module)
         if not folder then ns.Chat("No EUI module called '" .. module .. "' (try nameplates, actionbars, unitframes, cooldownmanager).") return end
     end
-    local ok, str = ns.Try(EUI.ExportProfile, key, folder and { [folder] = true } or nil)
+    local ok, str
+    if folder then
+        -- ExportProfile(name, includedFolders, includeLayout, includeCDM, cdmSpecs,
+        --               includeGlobals, includeOverrides, includeBlizzSkin)
+        ok, str = ns.Try(EUI.ExportProfile, key, { [folder] = true }, true,
+            folder == "EllesmereUICooldownManager", nil, false, false, false)
+    else
+        ok, str = ns.Try(EUI.ExportProfile, key)
+    end
     if not ok or type(str) ~= "string" or str == "" then
         ns.Chat("EUI export failed: " .. tostring(str))
         return
@@ -67,6 +77,11 @@ end
 -- gitignored) through EUI's partner-installer API, the same path OrionUI_Installer will use:
 -- EllesmereUI.ImportProfileSilent{ importString, profileName, cleanSlate, applyUIScale }.
 -- It never reloads by itself, so we reload right after it succeeds. Nothing is shipped from here.
+--
+-- Module layers (ns.PrivatePresets.euiModules, e.g. only the minimap from another profile):
+-- EUI merges an import onto the ACTIVE profile, and the base import only becomes active
+-- after its reload. So the layers are applied on the next login (pending flag), onto the
+-- base profile, with cleanSlate = false and the user's UI scale kept.
 local function InstallEUI()
     local preset = ns.PrivatePresets and ns.PrivatePresets.eui
     if not preset then ns.Chat("No local EUI preset (OrionUI_Dev/Private/Presets.lua is missing).") return end
@@ -84,9 +99,37 @@ local function InstallEUI()
     })
     if not ok then ns.Chat("EUI import errored: " .. tostring(res)) return end
     if not res then ns.Chat("EUI refused the import: " .. tostring(err)) return end
+    local layers = ns.PrivatePresets.euiModules
+    ns.db.pendingEUILayers = (layers and #layers > 0) and preset.name or nil
     ns.Chat(("Imported EUI profile '%s' (%s). Reloading..."):format(preset.name, preset.note or ""))
     ReloadUI()
 end
+
+local function ApplyPendingLayers()
+    local target = ns.db and ns.db.pendingEUILayers
+    if not target then return end
+    ns.db.pendingEUILayers = nil -- one attempt only, never a reload loop
+    local EUI = _G.EllesmereUI
+    if not (EUI and EUI.ImportProfileSilent and EUI.GetCurrentProfileKey) then ns.Chat("EUI missing, module layers skipped.") return end
+    if EUI.GetCurrentProfileKey() ~= target then
+        ns.Chat(("Active EUI profile isn't '%s', module layers skipped."):format(target))
+        return
+    end
+    local applied = 0
+    for _, layer in ipairs(ns.PrivatePresets.euiModules or {}) do
+        local ok, res, err = ns.Try(EUI.ImportProfileSilent, {
+            importString = layer.string, profileName = target, cleanSlate = false, applyUIScale = false,
+        })
+        if ok and res then
+            applied = applied + 1
+            ns.Chat("Layered " .. layer.folder .. " (" .. (layer.note or "") .. ") onto " .. target .. ".")
+        else
+            ns.Chat("|cffff5555Layer failed|r " .. tostring(layer.folder) .. ": " .. tostring(ok and err or res))
+        end
+    end
+    if applied > 0 then ns.Chat("Type /reload to see the layered modules.") end
+end
+ns.On("PLAYER_LOGIN", function() ApplyPendingLayers() end)
 
 function ns.ProbeInstall(args)
     if args[1] == "eui" then InstallEUI() return end

@@ -5,7 +5,7 @@
 ## Version: @project-version@
 ## Category: Development Tools
 ## SavedVariables: OrionUIDevDB
-## OptionalDeps: BigWigs, DBM-Core
+## OptionalDeps: BigWigs, DBM-Core, EllesmereUI
 
 Core.lua
 Report.lua
