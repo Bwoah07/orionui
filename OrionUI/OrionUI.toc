@@ -56,6 +56,7 @@ Encounters\EncounterMonitor.lua
 
 Data\Defensives.lua
 Data\Hearthstones.lua
+Data\Interrupts.lua
 Reminders\TankOwnership.lua
 Reminders\Readiness.lua
 Reminders\Coverage.lua

@@ -44,8 +44,22 @@ local function CheckHearthstones()
     ns.CopyBox:Show(L["Hearthstone check"], table.concat(lines, "\n"))
 end
 
+-- Interrupt spell IDs per class (Data/Interrupts.lua) and which one the focus cast bar uses.
+local function CheckInterrupts()
+    local lines = {}
+    local using = ns.FocusCastBarKick and ns.FocusCastBarKick()
+    lines[1] = "focus cast bar uses: " .. tostring(using and C_Spell.GetSpellName(using) or "none")
+    for class, ids in pairs(ns.Data.Interrupts) do
+        for _, id in ipairs(ids) do
+            lines[#lines + 1] = ("%-12s %7d  %s"):format(class, id, C_Spell.GetSpellName(id) or "MISSING")
+        end
+    end
+    ns.CopyBox:Show(L["Interrupt check"], table.concat(lines, "\n"))
+end
+
 ns.Slash:Register("check", function(args)
     if args[1] == "defensives" then Check()
     elseif args[1] == "hearthstones" then CheckHearthstones()
-    else ns.Print("/oui check defensives | hearthstones") end
-end, "defensives | hearthstones  (IDs with the game's names)")
+    elseif args[1] == "interrupts" then CheckInterrupts()
+    else ns.Print("/oui check defensives | hearthstones | interrupts") end
+end, "defensives | hearthstones | interrupts  (IDs with the game's names)")

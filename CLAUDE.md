@@ -787,7 +787,8 @@ confirm unrelated popups; never do that).
 
 **Built (2026-09-30), asked for by Stig even though EUI has similar:** `Modules/FocusCastBar.lua` (engine-driven
 bar from `UnitCastingDuration`/`UnitChannelDuration` + `SetTimerDuration`, secret name/icon passed straight to widgets,
-interrupt colour via `SetVertexColorFromBoolean`) and `Modules/TopBar.lua` (secure /use buttons: random hearthstone
+interrupt colour via `SetVertexColorFromBoolean`; kick-ready tint from our own interrupt in `Data/Interrupts.lua`, shield,
+important-cast colour + glow from `C_Spell.IsSpellImportant`, cast target name) and `Modules/TopBar.lua` (secure /use buttons: random hearthstone
 from a user-picked pool in `Data/Hearthstones.lua`, optional Dalaran/Garrison, extra item/toy IDs; FPS | MS; clock).
 Both untested in game.
 
