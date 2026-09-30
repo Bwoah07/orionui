@@ -1,4 +1,4 @@
--- Media lookup. Our own media (none yet, CLAUDE.md §12.3) is registered with
+-- Media lookup. Our own media (CLAUDE.md §12.3) is registered with
 -- LibSharedMedia when it is loaded (EllesmereUI and most packs load it); we don't
 -- embed LSM ourselves. Lookups fall back to Blizzard defaults so nothing breaks
 -- without it.
@@ -16,7 +16,10 @@ local FALLBACK = {
 
 -- Our media, registered on login: { type, name, path }.
 Media.own = {
-    -- { "statusbar", "Orion Flat", ns.MEDIA_PATH .. "Textures\\Flat.tga" },
+    -- Grayscale 256x32 bar textures we made ourselves (2026-09-30); the game tints them.
+    { "statusbar", "Orion Flat",   ns.MEDIA_PATH .. "Textures\\Flat.tga" },
+    { "statusbar", "Orion Smooth", ns.MEDIA_PATH .. "Textures\\Smooth.tga" },
+    { "statusbar", "Orion Stripe", ns.MEDIA_PATH .. "Textures\\Stripe.tga" },
 }
 
 local function LSM()
@@ -40,3 +43,7 @@ function Media:List(mediaType)
     local lsm = LSM()
     return lsm and lsm:List(mediaType) or {}
 end
+
+-- Register as soon as this file loads too: EllesmereUI (an OptionalDep, so loaded first)
+-- brings LibSharedMedia, and registering early puts our textures in its pickers right away.
+Media:Register()
