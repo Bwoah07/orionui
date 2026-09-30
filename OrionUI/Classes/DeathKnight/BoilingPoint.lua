@@ -1,16 +1,17 @@
--- Boiling Point indicator for Blood DK (our own design, CLAUDE.md §8.3): a thin bar in
--- the resource-bar style, or a plain icon with a countdown swipe.
+-- Boiling Point indicator for Blood DK (design from Stig's reference, CLAUDE.md §8.3): a
+-- compact bar (or an icon) that
+--   * turns BLUE and glows when Boiling Point procs: react and cast Blood Boil,
+--   * turns RED after you cast the empowered Blood Boil, counting down the echo.
 --
 -- How the talent works (Warcraft Wiki, 12.x): Heart Strike can empower your next Blood
 -- Boil for 15 seconds; the empowered Blood Boil deals more damage and echoes 3 seconds
--- later. So there are two phases to show:
---   1. proc: from the Blood Boil highlight until you cast Blood Boil (or 15s pass)
---   2. echo: 3 seconds after casting the empowered Blood Boil
+-- later.
 --
 -- Signals, readable in combat in the open world (verified 2026-09-30): the game's Blood
--- Boil highlight (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW, spell 50842) and our own
--- Blood Boil cast (UNIT_SPELLCAST_SUCCEEDED). The buff itself can't be tracked (the CDM
--- doesn't list it either). If casts turn secret in an instance, the echo phase is skipped.
+-- Boil highlight (SPELL_ACTIVATION_OVERLAY_GLOW_SHOW, spell 50842) and our own Blood Boil
+-- cast (UNIT_SPELLCAST_SUCCEEDED). The buff itself can't be tracked (the Cooldown Manager
+-- doesn't offer it). The highlight blinks off and on during the buff, so only its
+-- appearance counts. If casts turn secret in an instance, the red echo phase is skipped.
 local _, ns = ...
 
 local L = ns.L
@@ -18,18 +19,33 @@ local L = ns.L
 local BLOOD_BOIL = 50842
 local ECHO = 3 -- seconds, from the talent text
 local TICK = 0.05
+local GLOW_PAD = 4
 
 local BP = { name = "BoilingPoint", phase = nil } -- nil | "proc" | "echo"
 ns.BoilingPoint = BP
 
-local frame, fill, icon, cd, pulse, label, ticker
+local frame, bg, fill, icon, cd, glow, glowAnim, label, ticker
 
 local function DB() return ns.BloodDK.db.boilingPoint end
 
 local function Create()
     if frame then return end
     frame = CreateFrame("Frame", nil, UIParent)
-    ns.Theme:Skin(frame, { 0, 0, 0, 0.55 })
+    -- Glow sits behind the bar, a few pixels larger, pulsing while the proc is up.
+    glow = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    glow:SetPoint("TOPLEFT", -GLOW_PAD, GLOW_PAD)
+    glow:SetPoint("BOTTOMRIGHT", GLOW_PAD, -GLOW_PAD)
+    glow:SetBlendMode("ADD")
+    glow:Hide()
+    glowAnim = glow:CreateAnimationGroup()
+    glowAnim:SetLooping("BOUNCE")
+    local a = glowAnim:CreateAnimation("Alpha")
+    a:SetFromAlpha(0.9)
+    a:SetToAlpha(0.2)
+    a:SetDuration(0.35)
+    bg = frame:CreateTexture(nil, "BACKGROUND", nil, -6)
+    bg:SetAllPoints()
+    bg:SetColorTexture(0, 0, 0, 0.85)
     fill = frame:CreateTexture(nil, "ARTWORK")
     fill:SetPoint("TOPLEFT", 1, -1)
     fill:SetPoint("BOTTOMLEFT", 1, 1)
@@ -41,13 +57,10 @@ local function Create()
     cd = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     cd:SetAllPoints(icon)
     label = frame:CreateFontString(nil, "OVERLAY")
-    label:SetPoint("BOTTOM", frame, "TOP", 0, 2)
-    pulse = frame:CreateAnimationGroup()
-    pulse:SetLooping("BOUNCE")
-    local a = pulse:CreateAnimation("Alpha")
-    a:SetFromAlpha(1)
-    a:SetToAlpha(0.45)
-    a:SetDuration(0.3)
+    label:SetPoint("CENTER")
+    frame.edge = CreateFrame("Frame", nil, frame)
+    frame.edge:SetAllPoints()
+    ns.Theme:Skin(frame.edge, { 0, 0, 0, 0 })
     frame:Hide()
     ns.Movers:Register("BloodBoilingPoint", {
         label = L["Boiling Point"], getFrame = function() return frame end, default = { x = 0, y = -160 },
@@ -67,6 +80,33 @@ local function StopTicker()
     if ticker then ticker:Cancel() ticker = nil end
 end
 
+local function PhaseColor()
+    local db = DB()
+    return BP.phase == "echo" and db.echoColor or db.procColor
+end
+
+local function SetGlow(on)
+    if on then
+        local c = PhaseColor()
+        glow:SetColorTexture(c[1], c[2], c[3], 1)
+        glow:Show()
+        if not glowAnim:IsPlaying() then glowAnim:Play() end
+    else
+        if glowAnim:IsPlaying() then glowAnim:Stop() end
+        glow:Hide()
+    end
+end
+
+function BP:Draw()
+    if not frame or not self.phase then return end
+    local db = DB()
+    local left = Remaining()
+    if db.style == "bar" then
+        fill:SetWidth(math.max(0.01, (frame:GetWidth() - 2) * left / PhaseLength()))
+    end
+    label:SetText(db.showTime and ("%.1f"):format(left) or "")
+end
+
 local function SetPhase(phase)
     BP.phase = phase
     BP.startedAt = phase and GetTime() or nil
@@ -83,65 +123,42 @@ local function SetPhase(phase)
     BP:Refresh()
 end
 
-function BP:Draw()
-    if not frame or not self.phase then return end
-    local db = DB()
-    local left = Remaining()
-    if db.style == "bar" then
-        fill:SetWidth(math.max(0.01, (frame:GetWidth() - 2) * left / PhaseLength()))
-    end
-    if db.showTime then
-        label:SetText((self.phase == "echo" and L["Echo"] .. " " or "") .. ("%.1f"):format(left))
-    else
-        label:SetText(self.phase == "echo" and L["Echo"] or "")
-    end
-end
-
 function BP:Refresh()
     if not frame then return end
     local db = DB()
-    local r, g, b = ns.Theme:Accent()
-    label:SetFont(ns.Theme:Font(), 11, "OUTLINE")
+    label:SetFont(ns.Theme:Font(), math.max(9, math.floor(db.height * 0.6)), "OUTLINE")
     if db.style == "icon" then
-        local s = math.max(16, db.height * 4)
+        local s = math.max(16, db.height * 2)
         frame:SetSize(s, s)
         fill:Hide()
         icon:Show()
         cd:Show()
-        ns.Theme:SetBorderColor(frame, r, g, b, 1)
+        label:Hide()
     else
         frame:SetSize(db.width, db.height)
         fill:Show()
         icon:Hide()
         cd:Hide()
-        ns.Theme:SetBorderColor(frame, 0, 0, 0, 1)
+        label:Show()
     end
-    -- The echo phase is drawn dimmer: the button press is done, the damage is coming.
-    if self.phase == "echo" then fill:SetColorTexture(r * 0.5, g * 0.5, b * 0.5) else fill:SetColorTexture(r, g, b) end
+    local c = PhaseColor()
+    fill:SetColorTexture(c[1], c[2], c[3], 1)
+    ns.Theme:SetBorderColor(frame.edge, 0, 0, 0, 1)
     local show = db.show and self.phase ~= nil and (self.phase ~= "echo" or db.echo)
     frame:SetShown(show)
-    if show and db.pulse and self.phase == "proc" then
-        if not pulse:IsPlaying() then pulse:Play() end
-    elseif pulse:IsPlaying() then
-        pulse:Stop()
-        frame:SetAlpha(1)
-    end
+    SetGlow(show and db.glow and self.phase == "proc")
     self:Draw()
 end
 
--- The highlight flickers off and on while the 15s buff is still up (seen in game), so
--- only its appearance matters: it starts the proc window, or restarts it when a new
--- Heart Strike roll refreshes the buff. The window ends when we cast Blood Boil or the
--- time runs out, never because the highlight blinked off.
-local function OnGlow(_, event, spellID)
+-- Only the highlight appearing counts: it starts the proc window, or restarts it when a
+-- new Heart Strike roll refreshes the buff.
+local function OnGlow(_, _, spellID)
     if ns.Secret.Is(spellID) or spellID ~= BLOOD_BOIL then return end
-    if event ~= "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" then return end
     if BP.phase ~= "proc" and DB().sound then PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959) end
     SetPhase("proc")
 end
 
--- Casting the empowered Blood Boil starts the echo countdown. The cast event arrives
--- just before the highlight goes away (seen in game).
+-- Casting the empowered Blood Boil turns the bar red for the echo.
 local function OnCast(_, _, _, _, spellID)
     if ns.Secret.Is(spellID) or spellID ~= BLOOD_BOIL then return end
     if BP.phase == "proc" then SetPhase("echo") end
@@ -159,7 +176,7 @@ function BP:Disable()
     StopTicker()
     self.phase, self.startedAt = nil, nil
     if frame then
-        if pulse:IsPlaying() then pulse:Stop() end
+        SetGlow(false)
         frame:Hide()
     end
 end
