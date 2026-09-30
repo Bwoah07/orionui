@@ -73,18 +73,32 @@ function ns.ProbeCapture(args)
     ns.Chat("/ouidev capture eui [module]")
 end
 
--- /ouidev install eui: imports a locally saved EUI preset (OrionUI_Dev/Private/Presets.lua,
+-- /ouidev install eui [set]: imports a locally saved EUI preset set (OrionUI_Dev/Private/Presets.lua,
 -- gitignored) through EUI's partner-installer API, the same path OrionUI_Installer will use:
 -- EllesmereUI.ImportProfileSilent{ importString, profileName, cleanSlate, applyUIScale }.
 -- It never reloads by itself, so we reload right after it succeeds. Nothing is shipped from here.
 --
--- Module layers (ns.PrivatePresets.euiModules, e.g. only the minimap from another profile):
+-- A set is a base profile plus module layers (e.g. only the minimap from another profile).
 -- EUI merges an import onto the ACTIVE profile, and the base import only becomes active
 -- after its reload. So the layers are applied on the next login (pending flag), onto the
 -- base profile, with cleanSlate = false and the user's UI scale kept.
-local function InstallEUI()
-    local preset = ns.PrivatePresets and ns.PrivatePresets.eui
-    if not preset then ns.Chat("No local EUI preset (OrionUI_Dev/Private/Presets.lua is missing).") return end
+local function Sets() return ns.PrivatePresets and ns.PrivatePresets.euiSets or {} end
+
+local function FindSet(key)
+    for _, set in ipairs(Sets()) do
+        if set.key == key then return set end
+    end
+end
+
+local function ListSets()
+    if #Sets() == 0 then ns.Chat("No local EUI presets (OrionUI_Dev/Private/Presets.lua is missing).") return end
+    ns.Chat("Local EUI presets, install with /ouidev install eui <name>:")
+    for _, set in ipairs(Sets()) do ns.Chat(("  %s: %s"):format(set.key, set.note or "")) end
+end
+
+local function InstallEUI(key)
+    local set = key and FindSet(key)
+    if not set then ListSets() return end
     local EUI = _G.EllesmereUI
     if not (EUI and EUI.ImportProfileSilent) then
         ns.Chat("EllesmereUI isn't loaded, or this EUI version has no ImportProfileSilent.")
@@ -92,37 +106,38 @@ local function InstallEUI()
     end
     if InCombatLockdown() then ns.Chat("Leave combat first.") return end
     local ok, res, err = ns.Try(EUI.ImportProfileSilent, {
-        importString = preset.string,
-        profileName = preset.name,
+        importString = set.string,
+        profileName = set.name,
         cleanSlate = true,     -- replaces only a profile with this same name
         applyUIScale = true,   -- use the capture's UI scale
     })
     if not ok then ns.Chat("EUI import errored: " .. tostring(res)) return end
     if not res then ns.Chat("EUI refused the import: " .. tostring(err)) return end
-    local layers = ns.PrivatePresets.euiModules
-    ns.db.pendingEUILayers = (layers and #layers > 0) and preset.name or nil
-    ns.Chat(("Imported EUI profile '%s' (%s). Reloading..."):format(preset.name, preset.note or ""))
+    ns.db.pendingEUILayers = (set.layers and #set.layers > 0) and set.key or nil
+    ns.Chat(("Imported EUI preset '%s' as profile '%s'. Reloading..."):format(set.key, set.name))
     ReloadUI()
 end
 
 local function ApplyPendingLayers()
-    local target = ns.db and ns.db.pendingEUILayers
-    if not target then return end
+    local key = ns.db and ns.db.pendingEUILayers
+    if not key then return end
     ns.db.pendingEUILayers = nil -- one attempt only, never a reload loop
+    local set = FindSet(key)
+    if not set then return end
     local EUI = _G.EllesmereUI
     if not (EUI and EUI.ImportProfileSilent and EUI.GetCurrentProfileKey) then ns.Chat("EUI missing, module layers skipped.") return end
-    if EUI.GetCurrentProfileKey() ~= target then
-        ns.Chat(("Active EUI profile isn't '%s', module layers skipped."):format(target))
+    if EUI.GetCurrentProfileKey() ~= set.name then
+        ns.Chat(("Active EUI profile isn't '%s', module layers skipped."):format(set.name))
         return
     end
     local applied = 0
-    for _, layer in ipairs(ns.PrivatePresets.euiModules or {}) do
+    for _, layer in ipairs(set.layers) do
         local ok, res, err = ns.Try(EUI.ImportProfileSilent, {
-            importString = layer.string, profileName = target, cleanSlate = false, applyUIScale = false,
+            importString = layer.string, profileName = set.name, cleanSlate = false, applyUIScale = false,
         })
         if ok and res then
             applied = applied + 1
-            ns.Chat("Layered " .. layer.folder .. " (" .. (layer.note or "") .. ") onto " .. target .. ".")
+            ns.Chat("Layered " .. layer.folder .. " onto " .. set.name .. ".")
         else
             ns.Chat("|cffff5555Layer failed|r " .. tostring(layer.folder) .. ": " .. tostring(ok and err or res))
         end
@@ -132,6 +147,6 @@ end
 ns.On("PLAYER_LOGIN", function() ApplyPendingLayers() end)
 
 function ns.ProbeInstall(args)
-    if args[1] == "eui" then InstallEUI() return end
-    ns.Chat("/ouidev install eui")
+    if args[1] == "eui" then InstallEUI(args[2] and args[2]:lower()) return end
+    ns.Chat("/ouidev install eui [preset]")
 end
