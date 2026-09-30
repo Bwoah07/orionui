@@ -10,3 +10,5 @@ Thumbs.db
 .vscode/
 .idea/
 /class-tracking-and-visuals.md
+# Local, never committed: presets captured from setups we must not ship (see docs-private/captures)
+/OrionUI_Dev/Private/

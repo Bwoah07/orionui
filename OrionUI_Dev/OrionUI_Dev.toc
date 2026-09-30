@@ -20,6 +20,7 @@ Probes\Journal.lua
 Probes\Bone.lua
 Probes\Casts.lua
 Probes\CDM.lua
+Private\Presets.lua
 Probes\Capture.lua
 Watch.lua
 Slash.lua

@@ -62,3 +62,33 @@ function ns.ProbeCapture(args)
     if args[1] == "eui" then CaptureEUI(args[2]) return end
     ns.Chat("/ouidev capture eui [module]")
 end
+
+-- /ouidev install eui: imports a locally saved EUI preset (OrionUI_Dev/Private/Presets.lua,
+-- gitignored) through EUI's partner-installer API, the same path OrionUI_Installer will use:
+-- EllesmereUI.ImportProfileSilent{ importString, profileName, cleanSlate, applyUIScale }.
+-- It never reloads by itself, so we reload right after it succeeds. Nothing is shipped from here.
+local function InstallEUI()
+    local preset = ns.PrivatePresets and ns.PrivatePresets.eui
+    if not preset then ns.Chat("No local EUI preset (OrionUI_Dev/Private/Presets.lua is missing).") return end
+    local EUI = _G.EllesmereUI
+    if not (EUI and EUI.ImportProfileSilent) then
+        ns.Chat("EllesmereUI isn't loaded, or this EUI version has no ImportProfileSilent.")
+        return
+    end
+    if InCombatLockdown() then ns.Chat("Leave combat first.") return end
+    local ok, res, err = ns.Try(EUI.ImportProfileSilent, {
+        importString = preset.string,
+        profileName = preset.name,
+        cleanSlate = true,     -- replaces only a profile with this same name
+        applyUIScale = true,   -- use the capture's UI scale
+    })
+    if not ok then ns.Chat("EUI import errored: " .. tostring(res)) return end
+    if not res then ns.Chat("EUI refused the import: " .. tostring(err)) return end
+    ns.Chat(("Imported EUI profile '%s' (%s). Reloading..."):format(preset.name, preset.note or ""))
+    ReloadUI()
+end
+
+function ns.ProbeInstall(args)
+    if args[1] == "eui" then InstallEUI() return end
+    ns.Chat("/ouidev install eui")
+end
