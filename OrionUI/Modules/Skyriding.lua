@@ -35,9 +35,11 @@ local M = ns.Modules:New("Skyriding", {
     category = "qol", label = L["Skyriding"], order = 5,
     desc = L["Vigor and Second Wind as segmented bars plus a speed bar while you are on a skyriding mount. Hides Blizzard's vigor display while it shows."],
     profileKey = "layout",
+    schemaVersion = 2,
+    migrations = { [2] = function(db) db.showWhen = "flying" end }, -- hide until take-off (Stig, 2026-10-01)
     schema = S.Table{ fields = {
         -- When it shows
-        showWhen = S.Enum{ section = L["When it shows"], default = "mounted", values = { "mounted", "flying" },
+        showWhen = S.Enum{ section = L["When it shows"], default = "flying", values = { "mounted", "flying" },
             valueLabels = { mounted = L["On a skyriding mount"], flying = L["Only while flying"] },
             label = L["Show"], order = 1 },
         hideInCombat = S.Bool{ section = L["When it shows"], default = false, label = L["Hide in combat"], order = 2 },
