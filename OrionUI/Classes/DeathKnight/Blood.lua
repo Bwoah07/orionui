@@ -28,7 +28,7 @@ local UPDATE_EVERY = 0.1
 
 local M = ns.Modules:New("BloodDK", {
     category = "tank", label = L["Blood Death Knight"],
-    desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
+    desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its Tracked Bars (EllesmereUI doesn't show them unless you add them there)."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
     schemaVersion = 8,

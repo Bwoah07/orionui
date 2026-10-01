@@ -74,9 +74,12 @@ function Mirror:IsActive(child)
     return child ~= nil and type(child.auraInstanceID) ~= "nil"
 end
 
--- The CDM's stack FontString (Applications frame holds an Applications FontString).
+-- The CDM's stack FontString. Icon items: Applications frame holding an Applications
+-- FontString. Tracked-bar items (BuffBarCooldownViewer): Icon.Applications.
+-- Tracked bars matter because EllesmereUI only shows the tracked bars you set up in it,
+-- so a buff can sit there for us to mirror without a second icon on screen (Stig, 2026-10-01).
 local function StackString(child)
-    local apps = child and child.Applications
+    local apps = child and (child.Applications or (child.Icon and child.Icon.Applications))
     local fs = apps and (apps.Applications or apps)
     if fs and fs.GetText then return fs end
 end
@@ -95,6 +98,7 @@ end
 function Mirror:CopyCountdown(child, target)
     local cd = child and child.Cooldown
     local fs = cd and cd.GetCountdownFontString and cd:GetCountdownFontString()
+    if not fs and child and child.Bar then fs = child.Bar.Duration end -- tracked-bar item
     if not (fs and fs.GetText) then return false end
     local text = fs:GetText()
     if type(text) == "nil" then return false end
