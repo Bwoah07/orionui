@@ -195,10 +195,13 @@ local function Duration(sec)
     return ("%dm"):format(m)
 end
 
--- Labels white, values in OrionUI blue (Stig, 2026-09-30), exactly the accent (Stig, 2026-10-01).
+-- Labels white, values in OrionUI blue (Stig, 2026-09-30). The exact accent was too dark for small
+-- digits on the dark outline (Stig, 2026-10-01), so the same blue is brightened to full strength
+-- (same hue and saturation, not mixed with white, so it stays the OrionUI blue).
 local function BlueHex()
     local r, g, b = ns.Theme:Accent()
-    local function Hex(v) return math.floor(v * 255 + 0.5) end
+    local scale = 1 / math.max(r, g, b, 0.01)
+    local function Hex(v) return math.floor(math.min(1, v * scale) * 255 + 0.5) end
     return ("|cff%02x%02x%02x"):format(Hex(r), Hex(g), Hex(b))
 end
 
