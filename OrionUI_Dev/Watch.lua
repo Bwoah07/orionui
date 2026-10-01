@@ -1,6 +1,7 @@
 -- Watch mode (on by default): takes probe snapshots automatically at the moments that
 -- are awkward to type commands in: shortly after entering combat, after an encounter
--- starts, and after a Mythic+ key starts. Results go to the saved log (/ouidev log).
+-- starts, and after a Mythic+ key starts. Results go to the saved log (/ouidev log),
+-- silently: no chat line per snapshot (Stig, 2026-10-01).
 local _, ns = ...
 
 local Report = ns.Report
@@ -17,7 +18,6 @@ local function Snapshot(reason)
     ns.ProbeSecrets(quiet)
     ns.ProbeAuras(quiet)
     ns.ProbeThreat(quiet)
-    ns.Chat("captured " .. reason .. " snapshot (/ouidev log to view)")
 end
 
 ns.On("PLAYER_REGEN_DISABLED", function()
