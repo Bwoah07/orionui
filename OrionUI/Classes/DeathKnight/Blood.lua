@@ -46,7 +46,7 @@ local M = ns.Modules:New("BloodDK", {
         end,
         -- The countdown number was removed (Stig, 2026-09-30).
         [5] = function(db) if db.boilingPoint then db.boilingPoint.showTime = nil end end,
-        -- Stig (2026-09-30): Bone Shield as an EUI-style icon (stacks top, time bottom);
+        -- Stig (2026-09-30): Bone Shield as an EUI-style icon (stacks top, time centred since 2026-10-01);
         -- Boiling Point: red while the proc waits, blue after you cast Blood Boil.
         -- Stig (2026-09-30): Bone Shield beside the cooldown row; Boiling Point thin and longer,
         -- right above the rune bar (which moves up for the Death and Decay bar, Modules/HudStack.lua).
@@ -77,7 +77,7 @@ local M = ns.Modules:New("BloodDK", {
             show = S.Bool{ default = true, label = L["Show the Bone Shield counter"], order = 1 },
             iconSize = S.Number{ default = 36, min = 20, max = 96, step = 1, label = L["Icon size"], order = 2 },
             fontSize = S.Number{ default = 16, min = 8, max = 40, step = 1, label = L["Stack count size"], order = 3 },
-            showTime = S.Bool{ default = true, label = L["Show time left at the bottom"], order = 3.5,
+            showTime = S.Bool{ default = true, label = L["Show time left in the centre"], order = 3.5,
                 desc = L["In combat the time is copied from your Cooldown Manager's Bone Shield icon."] },
             lowWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Blink and play a sound below 5 stacks"], order = 4,
                 desc = L["Uses Ossuary (up at 5+ stacks) because the game hides the number in combat."] },
@@ -183,8 +183,12 @@ local function Create()
     frame.border = CreateFrame("Frame", nil, frame)
     frame.border:SetAllPoints(icon)
     ns.Theme:Skin(frame.border, { 0, 0, 0, 0 })
-    count = frame:CreateFontString(nil, "OVERLAY")
-    timer = frame:CreateFontString(nil, "OVERLAY")
+    -- Text sits on its own frame above the border, so the border never cuts through the numbers.
+    frame.text = CreateFrame("Frame", nil, frame)
+    frame.text:SetAllPoints(frame)
+    frame.text:SetFrameLevel(frame.border:GetFrameLevel() + 2)
+    count = frame.text:CreateFontString(nil, "OVERLAY")
+    timer = frame.text:CreateFontString(nil, "OVERLAY")
     blink = frame:CreateAnimationGroup()
     blink:SetLooping("BOUNCE")
     local a = blink:CreateAnimation("Alpha")
@@ -199,7 +203,7 @@ local function Create()
 end
 
 -- Looks like an EllesmereUI Cooldown Manager icon (Stig, 2026-09-30): square cropped icon,
--- 1px black border, stack count at the top, time left at the bottom.
+-- 1px black border, stack count on the top edge, time left in the centre (Stig, 2026-10-01).
 local function Layout()
     local db = M.db.boneShield
     local font = ns.Theme:Font()
@@ -211,7 +215,7 @@ local function Layout()
     count:ClearAllPoints()
     count:SetPoint("CENTER", frame, "TOP", 0, 0)
     timer:ClearAllPoints()
-    timer:SetPoint("CENTER", frame, "BOTTOM", 0, 1)
+    timer:SetPoint("CENTER", frame, "CENTER", 0, 0)
     -- Attached to a CDM row, or back to its own saved spot.
     if not ns.CDMAnchor:Place(frame, db) then
         ns.CDMAnchor:Release(frame)

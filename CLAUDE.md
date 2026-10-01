@@ -761,7 +761,7 @@ Features Stig explicitly liked:
 - Defensive presets for the reminder engine (VB / DRW / IBF / AMS ordering by mechanic type).
 
 **As built (2026-09-30), `Classes/DeathKnight/Blood.lua`:** Bone Shield icon styled like an EUI CDM icon (stacks on top,
-time left at the bottom; in combat the time is copied from the CDM icon's own countdown text, `CDMMirror:CopyCountdown`). Out of combat it reads the
+time left in the centre (2026-10-01), text drawn above the border; in combat the time is copied from the CDM icon's own countdown text, `CDMMirror:CopyCountdown`). Out of combat it reads the
 aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
 up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
 stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
