@@ -31,7 +31,7 @@ local M = ns.Modules:New("BloodDK", {
     desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
-    schemaVersion = 7,
+    schemaVersion = 8,
     migrations = {
         [2] = function(db) if db.boneShield then db.boneShield.warnAt = nil end end,
         -- The first build guessed a 3s proc; the talent actually gives 15s (3s is the echo).
@@ -58,6 +58,11 @@ local M = ns.Modules:New("BloodDK", {
             local bp = db.boilingPoint
             bp.attach, bp.attachSide, bp.attachGap, bp.matchWidth = "runes", "ABOVE", 1, false
             bp.width, bp.height = 140, 8
+        end,
+        -- Stig (2026-10-01): the echo bar uses OrionUI blue (ns.Theme.BRAND).
+        [8] = function(db)
+            local c = db.boilingPoint and db.boilingPoint.echoColor
+            if type(c) == "table" and c[1] == 0.2 and c[2] == 0.55 and c[3] == 1 then db.boilingPoint.echoColor = nil end
         end,
         [6] = function(db)
             local bs, bp = db.boneShield, db.boilingPoint
@@ -102,7 +107,7 @@ local M = ns.Modules:New("BloodDK", {
             width = S.Number{ default = 140, min = 30, max = 600, step = 2, label = L["Bar width"], order = 3 },
             height = S.Number{ default = 8, min = 4, max = 60, step = 1, label = L["Bar height / icon size"], order = 4 },
             procColor = S.Color{ section = L["Boiling Point colours"], default = { 0.9, 0.2, 0.2, 1 }, label = L["Proc colour (cast Blood Boil)"], order = 5 },
-            echoColor = S.Color{ section = L["Boiling Point colours"], default = { 0.2, 0.55, 1, 1 }, label = L["Echo colour (after casting)"], order = 6 },
+            echoColor = S.Color{ section = L["Boiling Point colours"], default = { 0.15, 0.45, 0.85, 1 }, label = L["Echo colour (after casting)"], order = 6 },
             glow = S.Bool{ section = L["Boiling Point colours"], default = true, label = L["Glow when a new proc rolls during the echo"], order = 7 },
             glowColor = S.Color{ section = L["Boiling Point colours"], default = { 1, 0.82, 0.2, 1 }, label = L["Glow colour"], order = 7.5 },
             echo = S.Bool{ section = L["Boiling Point timing"], default = true, label = L["Show the 3 second echo after casting"], order = 8 },

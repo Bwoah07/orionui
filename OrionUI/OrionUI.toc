@@ -45,6 +45,7 @@ Core\API.lua
 Core\Slash.lua
 
 UI\Theme.lua
+UI\PixelGlow.lua
 UI\CopyBox.lua
 UI\Dialog.lua
 

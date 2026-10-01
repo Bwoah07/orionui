@@ -42,7 +42,7 @@ local queued = 0 -- echo windows banked by procs that rolled while an echo was r
 local MAX_QUEUE = 3
 local snapNext = false -- next paint starts a fresh window: jump to full, no easing
 
-local frame, bar, icon, glow, glowAnim, ticker
+local frame, bar, icon, glow, ticker
 
 local function DB() return ns.BloodDK.db.boilingPoint end
 
@@ -65,25 +65,8 @@ local mover
 local function Create()
     if frame then return end
     frame = CreateFrame("Frame", nil, UIParent)
-    -- Glow: a thin outline just outside the bar's border, pulsing gently. Drawn around the bar,
-    -- never behind it, so nothing bleeds through the empty part of the bar.
-    glow = CreateFrame("Frame", nil, frame)
-    glow:SetPoint("TOPLEFT", -GLOW_PAD, GLOW_PAD)
-    glow:SetPoint("BOTTOMRIGHT", GLOW_PAD, -GLOW_PAD)
-    glow.edges = {}
-    for i = 1, 4 do glow.edges[i] = glow:CreateTexture(nil, "OVERLAY") end
-    local e = glow.edges
-    e[1]:SetPoint("TOPLEFT"); e[1]:SetPoint("TOPRIGHT"); e[1]:SetHeight(GLOW_WIDTH)
-    e[2]:SetPoint("BOTTOMLEFT"); e[2]:SetPoint("BOTTOMRIGHT"); e[2]:SetHeight(GLOW_WIDTH)
-    e[3]:SetPoint("TOPLEFT"); e[3]:SetPoint("BOTTOMLEFT"); e[3]:SetWidth(GLOW_WIDTH)
-    e[4]:SetPoint("TOPRIGHT"); e[4]:SetPoint("BOTTOMRIGHT"); e[4]:SetWidth(GLOW_WIDTH)
-    glow:Hide()
-    glowAnim = glow:CreateAnimationGroup()
-    glowAnim:SetLooping("BOUNCE")
-    local a = glowAnim:CreateAnimation("Alpha")
-    a:SetFromAlpha(1)
-    a:SetToAlpha(0.35)
-    a:SetDuration(0.45)
+    -- Glow: thin lines with gaps travelling around the bar, like EllesmereUI's (Stig, 2026-10-01).
+    glow = ns.PixelGlow:New(frame, { lines = 8, thickness = GLOW_WIDTH, period = 4, pad = GLOW_PAD })
 
     -- Opaque background + 1px black border + one flat fill: nothing else.
     local bg = frame:CreateTexture(nil, "BACKGROUND")
@@ -113,12 +96,9 @@ end
 
 local function SetGlow(on, color)
     if on then
-        for i = 1, 4 do glow.edges[i]:SetColorTexture(color[1], color[2], color[3], 1) end
-        glow:Show()
-        if not glowAnim:IsPlaying() then glowAnim:Play() end
+        glow:Start(color[1], color[2], color[3], 1)
     else
-        if glowAnim:IsPlaying() then glowAnim:Stop() end
-        glow:Hide()
+        glow:Stop()
     end
 end
 
