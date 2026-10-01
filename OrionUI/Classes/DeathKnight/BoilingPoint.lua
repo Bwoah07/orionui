@@ -107,6 +107,7 @@ local function Create()
     mover = ns.Movers:Register("BloodBoilingPoint", {
         label = L["Boiling Point"], getFrame = function() return frame end, default = { x = 0, y = -160 },
         attached = function() local db = DB() return db.attach ~= "none" and ns.CDMAnchor:Row(db.attach) ~= nil end,
+        detach = function() DB().attach = "none" BP:Refresh() end,
     })
 end
 

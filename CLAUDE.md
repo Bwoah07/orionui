@@ -856,7 +856,7 @@ opens OrionUI's options.
   width to the CDM rows is what makes the whole HUD read as one unit.
   **Built (2026-09-30):** `Classes/Framework/CDMAnchor.lua` attaches a frame to an EUI CDM row
   (`ECME_CDMBar_cooldowns|utility|buffs`, Blizzard viewers as fallback) on a side with a gap, optionally
-  matching its width; movers skip attached frames. Used by Bone Shield and Boiling Point (setting
+  matching its width; movers skip attached frames; saving a spot in EUI Unlock Mode switches an attached frame to Free (2026-10-01). Used by Bone Shield and Boiling Point (setting
   "Attach to Cooldown Manager", default Free).
 - Use `EllesmereUI.RegisterSkin(name, applyFn)` for our windows if appropriate.
 

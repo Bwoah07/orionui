@@ -99,9 +99,18 @@ local function RegisterWithEUI(mover)
             return 100, 30
         end,
         -- EUI passes (key, point, relPoint, x, y, ...); we always store CENTER offsets.
+        -- Saving a spot for a frame that is attached to a CDM row means "put it here":
+        -- detach it first, or the attachment snaps it straight back (Stig, 2026-10-01).
         savePosition = function()
             local f = mover.getFrame()
-            if f and f:GetCenter() then Movers:Save(mover.key, CenterOffset(f)) end
+            if not (f and f:GetCenter()) then return end
+            local x, y = CenterOffset(f)
+            if mover.detach and mover.attached and mover.attached() then
+                M.db.positions[mover.key] = { x = math.floor(x + 0.5), y = math.floor(y + 0.5) }
+                mover.detach()
+            else
+                Movers:Save(mover.key, x, y)
+            end
         end,
         loadPosition = function()
             local x, y = Position(mover)
@@ -120,6 +129,7 @@ function Movers:Register(key, spec)
         getFrame = spec.getFrame or function() return spec.frame end,
         default = spec.default or { x = 0, y = 0 },
         attached = spec.attached, -- optional: true while the frame is attached to something else
+        detach = spec.detach,     -- optional: switch the frame to Free (and re-place it)
     }
     self.list[#self.list + 1] = mover
     self.byKey[key] = mover

@@ -171,7 +171,7 @@ end
 -- Display
 ---------------------------------------------------------------------------
 
-local frame, icon, count, timer, blink, mover
+local frame, icon, count, timer, blink, mover, Layout
 
 local function Create()
     if frame then return end
@@ -199,12 +199,13 @@ local function Create()
     mover = ns.Movers:Register("BloodBoneShield", {
         label = L["Bone Shield"], getFrame = function() return frame end, default = { x = 0, y = -120 },
         attached = function() local db = M.db.boneShield return db.attach ~= "none" and ns.CDMAnchor:Row(db.attach) ~= nil end,
+        detach = function() M.db.boneShield.attach = "none" Layout() end,
     })
 end
 
 -- Looks like an EllesmereUI Cooldown Manager icon (Stig, 2026-09-30): square cropped icon,
 -- 1px black border, stack count on the top edge, time left in the centre (Stig, 2026-10-01).
-local function Layout()
+function Layout()
     local db = M.db.boneShield
     local font = ns.Theme:Font()
     frame:SetSize(db.iconSize, db.iconSize)
