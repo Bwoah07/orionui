@@ -164,8 +164,8 @@ local function Read()
         end
     end
     local child = ns.CDMMirror:Find(BONE_SHIELD_SET)
-    -- No CDM frame to mirror: fail open. If it was up, keep showing it on our cast clock.
-    if not child then return state.wasActive and true or nil, nil, nil end
+    -- No CDM frame to mirror: fail open. In combat keep showing it on our cast clock.
+    if not child then return (state.wasActive or InCombatLockdown()) and true or nil, nil, nil end
     local active = ns.CDMMirror:IsActive(child)
     local low
     if active then
@@ -354,6 +354,17 @@ function M:OnDisable()
     if frame then SetBlink(false) frame:Hide() end
     if ns.BoilingPoint then ns.BoilingPoint:Disable() end
 end
+
+-- /oui bone: what the Bone Shield icon sees right now (run it in combat when it misbehaves).
+ns.Slash:Register("bone", function()
+    local ok, active, stacks, low, child = pcall(Read)
+    if not ok then ns.Print("Bone Shield: Read error: " .. tostring(active)) return end
+    local function T(v) return v == nil and "unknown" or tostring(v) end
+    ns.Print(("Bone Shield: active=%s stacks=%s low=%s cdmFrame=%s combat=%s aurasSecret=%s shown=%s enabled=%s"):format(
+        T(active), ns.Secret.Is(stacks) and "secret" or T(stacks), T(low), child and "found" or "none",
+        tostring(InCombatLockdown()), tostring(C_Secrets.ShouldAurasBeSecret()),
+        tostring(frame and frame:IsShown()), tostring(M.enabled)))
+end, "Bone Shield diagnostics")
 
 function M:Refresh()
     if not frame then return end

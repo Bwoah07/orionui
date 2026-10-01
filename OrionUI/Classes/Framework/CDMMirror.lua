@@ -49,7 +49,7 @@ local function Search(spellIDs)
         if viewer then
             for _, child in ipairs({ viewer:GetChildren() }) do
                 local id = child.cooldownID
-                if id ~= nil and not ns.Secret.Is(id) then
+                if not ns.Secret.Is(id) and id ~= nil then -- check secrecy before comparing
                     for spell in pairs(SpellsFor(id)) do
                         if spellIDs[spell] then return child end
                     end

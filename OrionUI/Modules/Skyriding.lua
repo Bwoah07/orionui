@@ -42,8 +42,11 @@ local M = ns.Modules:New("Skyriding", {
             label = L["Show"], order = 1 },
         hideInCombat = S.Bool{ section = L["When it shows"], default = false, label = L["Hide in combat"], order = 2 },
         hideBlizzard = S.Bool{ section = L["When it shows"], default = true, label = L["Hide Blizzard's vigor display while this shows"], order = 3 },
+        -- Position
+        cdmSpot = S.Bool{ section = L["Position"], default = true, label = L["Take the Cooldown Manager's place and width"], order = 5,
+            desc = L["Sits where the essential cooldowns row is (it hides while you skyride) and matches its width. Switch off to place it yourself in /oui edit."] },
         -- Size
-        width = S.Number{ section = L["Size"], default = 240, min = 100, max = 500, step = 2, label = L["Width"], order = 10 },
+        width = S.Number{ section = L["Size"], default = 240, min = 100, max = 500, step = 2, label = L["Width (when placed yourself)"], order = 10 },
         vigorHeight = S.Number{ section = L["Size"], default = 12, min = 4, max = 40, step = 1, label = L["Vigor height"], order = 11 },
         secondWindHeight = S.Number{ section = L["Size"], default = 6, min = 2, max = 30, step = 1, label = L["Second Wind height"], order = 12 },
         speedHeight = S.Number{ section = L["Size"], default = 14, min = 4, max = 40, step = 1, label = L["Speed height"], order = 13 },
@@ -88,6 +91,9 @@ local ticker
 local previewing, editing = false, false
 local hidBlizzard = false
 local lastSpeedPct = -1
+local curWidth, lastCDMWidth -- width taken from the cooldowns row (nil = our own setting)
+
+local function Width() return curWidth or M.db.width end
 
 ---------------------------------------------------------------------------
 -- Frames
@@ -135,9 +141,9 @@ end
 local function LayoutRow(row, n, height)
     local db = M.db
     row.count = n
-    row:SetSize(db.width, height)
+    row:SetSize(Width(), height)
     local gap = db.segmentGap
-    local w = n > 0 and (db.width - gap * (n - 1)) / n or db.width
+    local w = n > 0 and (Width() - gap * (n - 1)) / n or Width()
     local tex = Texture()
     for i = 1, max(n, #row.segs) do
         local seg = Segment(row, i)
@@ -191,8 +197,10 @@ local function EnsureFrames()
     vigorRow = NewRow()
     windRow = NewRow()
 
-    ns.Movers:Register("Skyriding", {
+    M.mover = ns.Movers:Register("Skyriding", {
         label = L["Skyriding"], getFrame = function() return root end, default = { x = 0, y = -220 },
+        attached = function() return M.db.cdmSpot and ns.CDMAnchor:Row("cooldowns") ~= nil end,
+        detach = function() M.db.cdmSpot = false; M:Refresh() end,
     })
 end
 
@@ -323,25 +331,57 @@ local function Stack()
         h = h + row:GetHeight() + (i < #rows and db.rowGap or 0)
     end
     speedRow:SetShown(db.showSpeed)
-    root:SetSize(db.width, max(h, 1))
+    root:SetSize(Width(), max(h, 1))
 end
 
-function M:Refresh()
-    if not root then return end
-    local db = self.db
-    speedRow:SetSize(db.width, db.speedHeight)
+---------------------------------------------------------------------------
+-- The Cooldown Manager's spot
+---------------------------------------------------------------------------
+
+-- EUI hides the essential cooldowns row while skyriding (Stig, 2026-10-01). A hidden frame keeps
+-- its place, so we centre on it; its width is remembered from the last time it measured, in case
+-- a hidden row reports no size. -> the row, or nil when we place ourselves.
+local function MeasureCDM()
+    curWidth = nil
+    if not M.db.cdmSpot then return nil end
+    local row = ns.CDMAnchor:Row("cooldowns")
+    if not row then return nil end
+    local w = (row:GetWidth() or 0) * row:GetEffectiveScale() / root:GetEffectiveScale()
+    if w > 20 then lastCDMWidth = floor(w + 0.5) end
+    curWidth = lastCDMWidth
+    return row
+end
+
+local function Position(row)
+    if row then
+        root:ClearAllPoints()
+        root:SetPoint("CENTER", row, "CENTER", 0, 0)
+    elseif M.mover then
+        ns.Movers:Apply(M.mover)
+    end
+end
+
+local function Layout()
+    local db = M.db
+    speedRow:SetSize(Width(), db.speedHeight)
     speedRow.bar:SetStatusBarTexture(Texture())
     speedRow.text:SetFont(ns.Theme:Font(), db.fontSize, "OUTLINE")
     speedRow.text:SetShown(db.showSpeedText)
     local tick = db.maxSpeed > 0 and min(1, db.fastAt / db.maxSpeed) or 0
     speedRow.tick:ClearAllPoints()
     speedRow.tick:SetSize(1, db.speedHeight - 2)
-    speedRow.tick:SetPoint("LEFT", speedRow.bar, "LEFT", tick * (db.width - 2), 0)
+    speedRow.tick:SetPoint("LEFT", speedRow.bar, "LEFT", tick * (Width() - 2), 0)
     speedRow.tick:SetShown(tick > 0 and tick < 1)
     LayoutRow(vigorRow, vigorRow.count > 0 and vigorRow.count or 6, db.vigorHeight)
     LayoutRow(windRow, windRow.count > 0 and windRow.count or 3, db.secondWindHeight)
     lastSpeedPct = -1
     Stack() -- sizes the frame even while hidden, so edit mode outlines it correctly
+end
+
+function M:Refresh()
+    if not root then return end
+    Position(MeasureCDM())
+    Layout()
     if previewing or editing then self:ShowFake() else self:Update() end
 end
 
@@ -381,6 +421,10 @@ function M:Update()
     local db = self.db
     local _, canGlide = C_PlayerInfo.GetGlidingInfo()
     local show = Wanted()
+    -- Measured every time (also while hidden) so the row's width is known before it hides.
+    local before = Width()
+    Position(MeasureCDM())
+    if Width() ~= before then Layout() end
     -- Blizzard's display stays hidden for the whole time on the mount, so it doesn't pop up
     -- between flights when ours is set to "only while flying".
     SetBlizzardHidden(db.hideBlizzard and canGlide == true)
