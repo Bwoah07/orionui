@@ -195,12 +195,11 @@ local function Duration(sec)
     return ("%dm"):format(m)
 end
 
--- Labels white, values in OrionUI blue (Stig, 2026-09-30): one colour for both values, lifted a
--- little towards white so small digits stay readable on a dark background.
+-- Labels white, values in OrionUI blue (Stig, 2026-09-30), exactly the accent (Stig, 2026-10-01).
 local function BlueHex()
     local r, g, b = ns.Theme:Accent()
-    local function Lift(v) return math.floor((v + (1 - v) * 0.25) * 255 + 0.5) end
-    return ("|cff%02x%02x%02x"):format(Lift(r), Lift(g), Lift(b))
+    local function Hex(v) return math.floor(v * 255 + 0.5) end
+    return ("|cff%02x%02x%02x"):format(Hex(r), Hex(g), Hex(b))
 end
 
 local function UpdateTexts()

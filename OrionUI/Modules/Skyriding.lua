@@ -63,7 +63,7 @@ local M = ns.Modules:New("Skyriding", {
             desc = L["Around this speed the game grants Thrill of the Skies, which makes vigor recharge faster. A thin tick marks it on the bar."] },
         -- Bars
         showSecondWind = S.Bool{ section = L["Bars"], default = true, label = L["Show Second Wind"], order = 30 },
-        vigorColor = S.Color{ section = L["Colours"], default = { 0.15, 0.45, 0.85, 1 }, label = L["Vigor"], order = 40 },
+        vigorColor = S.Color{ section = L["Colours"], default = { ns.Theme.BRAND.r, ns.Theme.BRAND.g, ns.Theme.BRAND.b, 1 }, label = L["Vigor"], order = 40 },
         secondWindColor = S.Color{ section = L["Colours"], default = { 0.85, 0.7, 0.2, 1 }, label = L["Second Wind"], order = 42 },
         speedColor = S.Color{ section = L["Colours"], default = { 0.55, 0.6, 0.7, 1 }, label = L["Speed"], order = 43 },
         fastColor = S.Color{ section = L["Colours"], default = { 0.3, 0.8, 0.95, 1 }, label = L["Speed, fast"], order = 44 },
