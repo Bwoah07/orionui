@@ -29,6 +29,7 @@ local SKYWARD_ASCENT = 372610
 local SECOND_WIND = 425782
 local BASE_RUN_SPEED = 7 -- yards per second at 100% speed
 local TICK = 0.05
+local RECHARGE_ALPHA = 0.45 -- the segment that is filling up is drawn see-through
 
 local M = ns.Modules:New("Skyriding", {
     category = "qol", label = L["Skyriding"], order = 5,
@@ -58,7 +59,6 @@ local M = ns.Modules:New("Skyriding", {
         -- Bars
         showSecondWind = S.Bool{ section = L["Bars"], default = true, label = L["Show Second Wind"], order = 30 },
         vigorColor = S.Color{ section = L["Colours"], default = { 0.15, 0.45, 0.85, 1 }, label = L["Vigor"], order = 40 },
-        rechargeColor = S.Color{ section = L["Colours"], default = { 0.15, 0.45, 0.85, 0.45 }, label = L["Recharging segment"], order = 41, hasAlpha = true },
         secondWindColor = S.Color{ section = L["Colours"], default = { 0.85, 0.7, 0.2, 1 }, label = L["Second Wind"], order = 42 },
         speedColor = S.Color{ section = L["Colours"], default = { 0.55, 0.6, 0.7, 1 }, label = L["Speed"], order = 43 },
         fastColor = S.Color{ section = L["Colours"], default = { 0.3, 0.8, 0.95, 1 }, label = L["Speed, fast"], order = 44 },
@@ -207,7 +207,6 @@ end
 -- Readable charges: full segments, one partly filled while it recharges, the rest empty.
 local function PaintSegments(row, cur, progress, color)
     row.whole:Hide()
-    local rc = M.db.rechargeColor
     for i = 1, row.count do
         local seg = row.segs[i]
         seg:Show()
@@ -216,8 +215,7 @@ local function PaintSegments(row, cur, progress, color)
             SetColor(seg.bar, color)
         elseif i == cur + 1 then
             seg.bar:SetValue(progress)
-            SetColor(seg.bar, color, rc[4])
-            seg.bar:GetStatusBarTexture():SetVertexColor(color[1], color[2], color[3], rc[4] or 0.45)
+            SetColor(seg.bar, color, RECHARGE_ALPHA)
         else
             seg.bar:SetValue(0)
         end
@@ -317,7 +315,7 @@ local function Stack()
     local rows = {}
     if db.showSpeed then rows[#rows + 1] = speedRow end
     rows[#rows + 1] = vigorRow
-    if db.showSecondWind and (windRow.count > 0 or previewing or editing) then rows[#rows + 1] = windRow end
+    if db.showSecondWind and windRow:IsShown() then rows[#rows + 1] = windRow end
     local h = 0
     for i, row in ipairs(rows) do
         row:ClearAllPoints()
@@ -343,6 +341,7 @@ function M:Refresh()
     LayoutRow(vigorRow, vigorRow.count > 0 and vigorRow.count or 6, db.vigorHeight)
     LayoutRow(windRow, windRow.count > 0 and windRow.count or 3, db.secondWindHeight)
     lastSpeedPct = -1
+    Stack() -- sizes the frame even while hidden, so edit mode outlines it correctly
     if previewing or editing then self:ShowFake() else self:Update() end
 end
 

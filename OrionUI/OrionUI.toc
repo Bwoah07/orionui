@@ -91,6 +91,7 @@ Modules\CombatAlert.lua
 Modules\FocusCastBar.lua
 Modules\TopBar.lua
 Modules\HudStack.lua
+Modules\Skyriding.lua
 
 # RaidControl (Stig's own addon, built in; no notes, no settings windows)
 RaidControl\Locales\enUS.lua

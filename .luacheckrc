@@ -29,7 +29,7 @@ read_globals = {
     "UnitAffectingCombat", "UnitCanAttack", "UnitDetailedThreatSituation", "UnitExists",
     "UnitGUID", "UnitIsUnit", "UnitThreatSituation",
     "canaccesstable", "canaccessvalue", "issecrettable", "issecretvalue",
-    "C_VoiceChat", "PlaySound", "SOUNDKIT", "C_CooldownViewer", "C_CurveUtil", "CreateColor",
+    "C_PlayerInfo", "C_VoiceChat", "PlaySound", "SOUNDKIT", "C_CooldownViewer", "C_CurveUtil", "CreateColor",
     "BuffIconCooldownViewer", "BuffBarCooldownViewer",
     "date", "geterrorhandler", "tinsert", "wipe",
 }

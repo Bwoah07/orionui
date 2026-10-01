@@ -796,6 +796,13 @@ with reset timers, hearthstone with left = random pool / middle / right = config
 in combat a secure state driver hides the tiles so only FPS | MS stays; our own icons in `Media/Textures/Icon*.tga`).
 Both untested in game.
 
+**Built (2026-10-01):** `Modules/Skyriding.lua` (Interface → Skyriding): vigor (Skyward Ascent 372610 charges) and Second
+Wind (425782 charges) as segmented bars, the recharging segment drawn see-through, plus a speed bar from
+`C_PlayerInfo.GetGlidingInfo` (forwardSpeed / 7 = % of run speed, fast colour + tick from 790%). Shows while `canGlide`
+(or only while gliding). When `currentCharges` is secret (combat) a row falls back to one engine-filled bar with
+dividers. Blizzard's vigor display is faded with `UIWidgetPowerBarContainerFrame:SetAlpha(0)` only while the player can
+glide [VERIFY that this is where 12.x draws vigor]. Mover "Skyriding", fake bars in edit mode and on Preview. Untested in game.
+
 ### 8.6 RaidControll
 
 Stig's own existing addon. **Decided (2026-09-30):** its features (raid organization, splitting the raid
