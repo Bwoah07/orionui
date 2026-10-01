@@ -801,7 +801,7 @@ Wind (425782 charges) as segmented bars, the recharging segment drawn see-throug
 `C_PlayerInfo.GetGlidingInfo` (forwardSpeed / 7 = % of run speed, fast colour + tick from 790%). Shows only while gliding by default (Stig, 2026-10-01; option: whole time on a skyriding mount, `canGlide`)
 (or only while gliding). When `currentCharges` is secret (combat) a row falls back to one engine-filled bar with
 dividers. Blizzard's vigor display is faded with `UIWidgetPowerBarContainerFrame:SetAlpha(0)` only while the player can
-glide [VERIFY that this is where 12.x draws vigor]. By default it takes the essential cooldowns row's place (centred on it) and width, since EUI hides that row while skyriding (Stig, 2026-10-01); the mover only applies with that off. Fake bars in edit mode and on Preview. Untested in game.
+glide [VERIFY that this is where 12.x draws vigor]. By default it takes the essential cooldowns row's width and sits right under EUI's power bar (ERB_PrimaryBar; centred on the hidden row if there is none), since EUI hides that row while skyriding (Stig, 2026-10-01); the mover only applies with that off. Fake bars in edit mode and on Preview. Untested in game.
 
 ### 8.6 RaidControll
 

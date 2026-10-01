@@ -46,7 +46,7 @@ local M = ns.Modules:New("Skyriding", {
         hideBlizzard = S.Bool{ section = L["When it shows"], default = true, label = L["Hide Blizzard's vigor display while this shows"], order = 3 },
         -- Position
         cdmSpot = S.Bool{ section = L["Position"], default = true, label = L["Take the Cooldown Manager's place and width"], order = 5,
-            desc = L["Sits where the essential cooldowns row is (it hides while you skyride) and matches its width. Switch off to place it yourself in /oui edit."] },
+            desc = L["Sits right under EllesmereUI's power bar, where the essential cooldowns row is (it hides while you skyride), and matches the row's width. Switch off to place it yourself in /oui edit."] },
         -- Size
         width = S.Number{ section = L["Size"], default = 240, min = 100, max = 500, step = 2, label = L["Width (when placed yourself)"], order = 10 },
         vigorHeight = S.Number{ section = L["Size"], default = 12, min = 4, max = 40, step = 1, label = L["Vigor height"], order = 11 },
@@ -201,7 +201,7 @@ local function EnsureFrames()
 
     M.mover = ns.Movers:Register("Skyriding", {
         label = L["Skyriding"], getFrame = function() return root end, default = { x = 0, y = -220 },
-        attached = function() return M.db.cdmSpot and ns.CDMAnchor:Row("cooldowns") ~= nil end,
+        attached = function() return M.db.cdmSpot and (ns.CDMAnchor:Row("cooldowns") or ns.CDMAnchor:Row("power")) ~= nil end,
         detach = function() M.db.cdmSpot = false; M:Refresh() end,
     })
 end
@@ -340,24 +340,33 @@ end
 -- The Cooldown Manager's spot
 ---------------------------------------------------------------------------
 
--- EUI hides the essential cooldowns row while skyriding (Stig, 2026-10-01). A hidden frame keeps
--- its place, so we centre on it; its width is remembered from the last time it measured, in case
--- a hidden row reports no size. -> the row, or nil when we place ourselves.
+-- EUI hides the essential cooldowns row while skyriding (Stig, 2026-10-01), so we take its width
+-- and sit right under EUI's power bar, where the row was (Stig asked for that spot the same day).
+-- No power bar: centre on the hidden row instead (a hidden frame keeps its place). The width is
+-- remembered from the last time it measured, in case a hidden row reports no size.
+-- -> anchor frame and how to attach ("under" | "center"), or nil when we place ourselves.
 local function MeasureCDM()
     curWidth = nil
     if not M.db.cdmSpot then return nil end
     local row = ns.CDMAnchor:Row("cooldowns")
-    if not row then return nil end
-    local w = (row:GetWidth() or 0) * row:GetEffectiveScale() / root:GetEffectiveScale()
+    local power = ns.CDMAnchor:Row("power")
+    local ref = row or power
+    if not ref then return nil end
+    local w = (ref:GetWidth() or 0) * ref:GetEffectiveScale() / root:GetEffectiveScale()
     if w > 20 then lastCDMWidth = floor(w + 0.5) end
     curWidth = lastCDMWidth
-    return row
+    if power then return power, "under" end
+    return row, "center"
 end
 
-local function Position(row)
-    if row then
+local function Position(anchor, how)
+    if anchor then
         root:ClearAllPoints()
-        root:SetPoint("CENTER", row, "CENTER", 0, 0)
+        if how == "under" then
+            root:SetPoint("TOP", anchor, "BOTTOM", 0, -M.db.rowGap)
+        else
+            root:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+        end
     elseif M.mover then
         ns.Movers:Apply(M.mover)
     end
