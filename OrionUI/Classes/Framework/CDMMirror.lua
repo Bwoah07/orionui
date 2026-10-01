@@ -33,12 +33,17 @@ local function SpellsFor(cooldownID)
             end
         end
     end
-    infoCache[cooldownID] = set
+    -- Cache only real answers: the info can be withheld in combat, and an empty set cached
+    -- then would hide the buff for the rest of the session.
+    if next(set) then infoCache[cooldownID] = set end
     return set
 end
 
 -- The CDM frame tracking any of `spellIDs` ({ [id] = true }), or nil.
-function Mirror:Find(spellIDs)
+-- The last match is remembered per spell set: in combat the lookup can fail (secret
+-- cooldownID or withheld info) while the frame found out of combat still shows the buff.
+local lastFound = setmetatable({}, { __mode = "k" })
+local function Search(spellIDs)
     for _, name in ipairs(VIEWERS) do
         local viewer = _G[name]
         if viewer then
@@ -52,6 +57,16 @@ function Mirror:Find(spellIDs)
             end
         end
     end
+end
+
+function Mirror:Find(spellIDs)
+    local child = Search(spellIDs)
+    if child then lastFound[spellIDs] = child return child end
+    local old = lastFound[spellIDs]
+    if not old then return nil end
+    -- Reuse it only while we can't tell what it tracks now (a pooled frame may have moved on).
+    local id = old.cooldownID
+    if ns.Secret.Is(id) or (id ~= nil and next(SpellsFor(id)) == nil) then return old end
 end
 
 -- Is the buff up? type() is safe on secrets; the CDM clears auraInstanceID when it drops.

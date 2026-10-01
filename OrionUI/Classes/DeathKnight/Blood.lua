@@ -144,8 +144,10 @@ end
 
 -- Reads everything we are allowed to read right now.
 -- -> active (tri), stacks (number|nil), low (tri), child (CDM frame|nil)
+local BONE_SHIELD_SET = { [BONE_SHIELD] = true }
 local function Read()
     if not C_Secrets.ShouldAurasBeSecret() then
+        ns.CDMMirror:Find(BONE_SHIELD_SET) -- out of combat: remember the CDM frame for later
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(BONE_SHIELD)
         if type(aura) == "nil" then return false, nil, nil end
         if ns.Secret.CanRead(aura) then
@@ -156,8 +158,9 @@ local function Read()
             if type(stacks) == "number" then return true, stacks, stacks < LOW_AT end
         end
     end
-    local child = ns.CDMMirror:Find({ [BONE_SHIELD] = true })
-    if not child then return nil, nil, nil end
+    local child = ns.CDMMirror:Find(BONE_SHIELD_SET)
+    -- No CDM frame to mirror: fail open. If it was up, keep showing it on our cast clock.
+    if not child then return state.wasActive and true or nil, nil, nil end
     local active = ns.CDMMirror:IsActive(child)
     local low
     if active then
