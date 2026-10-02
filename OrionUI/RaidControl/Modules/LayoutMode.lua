@@ -350,8 +350,17 @@ function LayoutMode:InstallEllesmereGameMenuButton(frame)
     self.ellesmereGameMenuButton = button
     self:SkinEllesmereGameMenuButton(button)
 
+    -- OrionUI: in combat the menu can't be re-laid out, so our button would sit on top of
+    -- Blizzard's (Stig, 2026-10-02). Hide it then; the next out-of-combat layout shows it again.
+    local function HideInCombat()
+        if IsInCombat() then button:Hide() return true end
+    end
+    frame:HookScript("OnShow", function()
+        if HideInCombat() then return end
+        C_Timer.After(0, function() LayoutMode:LayoutEllesmereGameMenuButton(frame) end)
+    end)
     hooksecurefunc(frame, "Layout", function()
-        if IsInCombat() then return end
+        if HideInCombat() then return end
         LayoutMode._gameMenuLayoutSerial = (LayoutMode._gameMenuLayoutSerial or 0) + 1
         local serial = LayoutMode._gameMenuLayoutSerial
         C_Timer.After(0, function()
