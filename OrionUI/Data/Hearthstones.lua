@@ -43,4 +43,5 @@ ns.Data.HearthstoneToys = {
 ns.Data.TeleportToys = {
     { key = "dalaran",  item = 140192 }, -- Dalaran Hearthstone
     { key = "garrison", item = 110560 }, -- Garrison Hearthstone
+    { key = "arcantina", item = 253629 }, -- Personal Key to the Arcantina (toy)
 }

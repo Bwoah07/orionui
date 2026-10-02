@@ -29,7 +29,7 @@ local M = ns.Modules:New("TopBar", {
     category = "qol", label = L["Top bar"], order = 1,
     desc = L["Clock, friends, guild, hearthstones and Mythic+ portals in one small bar. In combat only FPS and latency stay. Move it with /oui edit."],
     profileKey = "layout",
-    schemaVersion = 4,
+    schemaVersion = 5,
     migrations = {
         -- v1 had left/right button lists; the hearthstone and extra buttons now have their own settings.
         [2] = function(db)
@@ -45,6 +45,8 @@ local M = ns.Modules:New("TopBar", {
         [3] = function(db) if db.statsSize == 11 then db.statsSize = nil end end,
         -- The hand-picked hearthstone pool became one on/off switch (Stig, 2026-09-30).
         [4] = function(db) db.pool = nil end,
+        -- Right-click now defaults to the Key to the Arcantina (Stig, 2026-10-02).
+        [5] = function(db) if db.travel and db.travel.rightClick == "garrison" then db.travel.rightClick = nil end end,
     },
     schema = S.Table{ fields = {
         height = S.Number{ section = L["Look"], default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
@@ -76,9 +78,9 @@ local M = ns.Modules:New("TopBar", {
             random = S.Bool{ default = true, label = L["Random hearthstone on left-click"], order = 1.5,
                 desc = L["On: a random hearthstone toy you own each time. Off: your normal Hearthstone."] },
             middleClick = S.String{ default = "dalaran", label = L["Middle-click uses"], order = 2,
-                desc = L["dalaran, garrison, or an item or toy ID. Empty = nothing."] },
-            rightClick = S.String{ default = "garrison", label = L["Right-click uses"], order = 3,
-                desc = L["dalaran, garrison, or an item or toy ID. Empty = nothing."] },
+                desc = L["dalaran, garrison, arcantina, or an item or toy ID. Empty = nothing."] },
+            rightClick = S.String{ default = "arcantina", label = L["Right-click uses"], order = 3,
+                desc = L["dalaran, garrison, arcantina, or an item or toy ID. Empty = nothing."] },
             portals = S.Bool{ default = true, label = L["Mythic+ portals button"], order = 4 },
             extraItems = S.String{ default = "", label = L["Extra buttons (item or toy IDs)"], order = 5 },
         } },
@@ -124,7 +126,7 @@ end
 local FIXED = {}
 for _, t in ipairs(ns.Data.TeleportToys) do FIXED[t.key] = t.item end
 
--- "dalaran" / "garrison" / "12345" -> item ID, or nil (named ones only when owned).
+-- "dalaran" / "garrison" / "arcantina" / "12345" -> item ID, or nil (named ones only when owned).
 local function ResolveItem(word)
     word = tostring(word or ""):lower():match("^%s*(.-)%s*$")
     if word == "" then return nil end
@@ -206,16 +208,6 @@ local function Duration(sec)
     if d > 0 then return ("%dd %dh"):format(d, h) end
     if h > 0 then return ("%dh %dm"):format(h, m) end
     return ("%dm"):format(m)
-end
-
--- Labels white, values in OrionUI blue (Stig, 2026-09-30). The exact accent was too dark for small
--- digits on the dark outline (Stig, 2026-10-01), so the same blue is brightened to full strength
--- (same hue and saturation, not mixed with white, so it stays the OrionUI blue).
-local function BlueHex()
-    local r, g, b = ns.Theme:Accent()
-    local scale = 1 / math.max(r, g, b, 0.01)
-    local function Hex(v) return math.floor(math.min(1, v * scale) * 255 + 0.5) end
-    return ("|cff%02x%02x%02x"):format(Hex(r), Hex(g), Hex(b))
 end
 
 -- FPS / MS values coloured by how good they are (Stig, 2026-10-02): green, yellow, red.
@@ -741,14 +733,16 @@ local function Layout()
     clock.text:SetShadowOffset(1, -1)
     clock.text:SetShadowColor(0, 0, 0, 1)
     clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
-    -- Zzz: small, in the same bright OrionUI blue as the FPS / MS values. The tile grows by its
-    -- width on both sides so the time stays centred and never runs into it.
+    -- Zzz: the tile grows by its width on both sides so the time stays centred and never runs into it.
     -- Letters step up and to the right, each a little bigger (z z Z).
     local zSize, zW = math.max(8, math.floor(size * 0.3)), 0
-    local blue = BlueHex()
+    -- Pale ice blue with a drop shadow: the full-strength blue was hard to read (Stig, 2026-10-02).
     for i, fs in ipairs(clock.zzz.letters) do
-        fs:SetFont(font, zSize - 3 + i, "OUTLINE")
-        fs:SetText(blue .. fs.char .. "|r")
+        fs:SetFont(font, zSize - 2 + i, "OUTLINE")
+        fs:SetTextColor(0.78, 0.9, 1)
+        fs:SetShadowOffset(1, -1)
+        fs:SetShadowColor(0, 0, 0, 1)
+        fs:SetText(fs.char)
         zW = zW + math.ceil(fs:GetStringWidth())
     end
     local letters = clock.zzz.letters
