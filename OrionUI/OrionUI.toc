@@ -4,6 +4,7 @@
 ## Author: Stig
 ## Version: @project-version@
 ## Category: User Interface
+## IconTexture: Interface\AddOns\OrionUI\Media\Textures\OrionIcon
 ## SavedVariables: OrionUIDB, OrionUIRaidControlDB
 ## SavedVariablesPerCharacter: OrionUICharDB
 ## OptionalDeps: EllesmereUI, BigWigs, DBM-Core

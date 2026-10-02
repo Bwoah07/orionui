@@ -4,6 +4,7 @@
 ## Author: Stig
 ## Version: @project-version@
 ## Category: Development Tools
+## IconTexture: Interface\AddOns\OrionUI\Media\Textures\OrionIcon
 ## SavedVariables: OrionUIDevDB
 ## OptionalDeps: BigWigs, DBM-Core, EllesmereUI
 
