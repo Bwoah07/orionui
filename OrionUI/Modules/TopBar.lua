@@ -62,7 +62,7 @@ local M = ns.Modules:New("TopBar", {
         social = S.Table{ label = L["Friends and guild"], order = 20, fields = {
             friends = S.Bool{ default = true, label = L["Friends"], order = 1 },
             guild = S.Bool{ default = true, label = L["Guild"], order = 2 },
-            crest = S.Bool{ default = true, label = L["Show your guild's crest on the guild button"], order = 2.5 },
+            crest = S.Bool{ default = true, label = L["Guild button in your guild's colours"], order = 2.5 },
             maxLines = S.Number{ default = 25, min = 5, max = 60, step = 1, label = L["Names in the tooltip"], order = 3 },
         } },
         travel = S.Table{ label = L["Hearthstones and portals"], order = 30, fields = {
@@ -207,6 +207,14 @@ local function BlueHex()
     return ("|cff%02x%02x%02x"):format(Hex(r), Hex(g), Hex(b))
 end
 
+-- FPS / MS values coloured by how good they are (Stig, 2026-10-02): green, yellow, red.
+-- FPS: 60+ / 30-59 / under 30. MS: under 100 / 100-199 / 200+.
+local function Grade(good, okay)
+    if good then return "|cff5ed45e" end
+    if okay then return "|cffffd23f" end
+    return "|cffff4d4d"
+end
+
 local function UpdateTexts()
     local db = M.db
     if tiles.clock and db.clock.show then tiles.clock.text:SetText(ClockString()) end
@@ -214,8 +222,8 @@ local function UpdateTexts()
         local fps = math.floor(GetFramerate() + 0.5)
         local _, _, home, world = GetNetStats()
         local ms = math.max(home or 0, world or 0)
-        local blue = BlueHex()
-        statsText:SetText(("|cffffffffFPS|r %s%d|r   |cffffffffMS|r %s%d|r"):format(blue, fps, blue, ms))
+        statsText:SetText(("|cffffffffFPS|r %s%d|r   |cffffffffMS|r %s%d|r"):format(
+            Grade(fps >= 60, fps >= 30), fps, Grade(ms < 100, ms < 200), ms))
         stats:SetWidth(math.ceil(statsText:GetStringWidth()) + 12)
     end
 end
@@ -315,28 +323,24 @@ local function SocialTooltip(self, title, list, hint, extraLine)
     GameTooltip:Show()
 end
 
--- Guild crest (Stig, 2026-10-02): C_GuildInfo.GetGuildTabardInfo gives the tabard's three colours
--- and a standalone emblem file, the same data Blizzard's SetGuildTabardTextures uses (GuildUtil.lua).
--- Drawn flat to match the bar: background colour fill, a 1px ring in the border colour, emblem on
--- top. Not in a guild, no design yet, or turned off: our own guild icon as before.
+-- Guild shield (Stig, 2026-10-02): the real emblem was unreadable at tile size, so the guild
+-- button is our own shield painted in the guild's tabard colours from C_GuildInfo.GetGuildTabardInfo
+-- (background colour fill, border colour rim). Not in a guild, no tabard yet, or turned off: our
+-- own guild icon as before.
 local function UpdateCrest()
     local t = tiles.guild
     if not t then return end
     local info = M.db.social.crest and IsInGuild() and C_GuildInfo and C_GuildInfo.GetGuildTabardInfo
         and C_GuildInfo.GetGuildTabardInfo("player")
     if info and info.emblemFileID then
-        t.crestBg:SetColorTexture(info.backgroundColor:GetRGB())
-        local r, g, b = info.borderColor:GetRGB()
-        ns.Theme:SetBorderColor(t.crestRing, r, g, b, 1)
-        t.icon:SetTexture(info.emblemFileID)
-        t.icon:SetVertexColor(info.emblemColor:GetRGB())
-        t.crestBg:Show()
-        t.crestRing:Show()
+        t.icon:SetTexture(ICONS .. "IconShield")
+        t.icon:SetVertexColor(info.backgroundColor:GetRGB())
+        t.shieldEdge:SetVertexColor(info.borderColor:GetRGB())
+        t.shieldEdge:Show()
     else
         t.icon:SetTexture(ICONS .. "IconGuild")
         t.icon:SetVertexColor(1, 1, 1)
-        t.crestBg:Hide()
-        t.crestRing:Hide()
+        t.shieldEdge:Hide()
     end
 end
 
@@ -504,10 +508,35 @@ local function Create()
     clock.icon:Hide()
     clock.text = clock.edge:CreateFontString(nil, "OVERLAY")
     clock.text:SetPoint("CENTER", 0, 0)
-    -- Resting (inn or city): a small Zzz in the clock tile's top-right corner (Stig, 2026-10-02).
-    clock.zzz = clock.edge:CreateFontString(nil, "OVERLAY")
-    clock.zzz:SetPoint("TOPRIGHT", -3, -2)
-    clock.zzz:Hide()
+    -- Resting (inn or city): a small Zzz in the clock tile's top-right corner (Stig, 2026-10-02),
+    -- animated: z, z, Z fade in one after another while drifting up, then fade out together
+-- (every letter's loop is 2.45 s long, so they stay in step).
+    -- Engine animation groups, so no OnUpdate; they only play while the Zzz is shown.
+    local zzz = CreateFrame("Frame", nil, clock.edge)
+    zzz:SetPoint("TOPRIGHT", -3, -2)
+    zzz:SetSize(1, 1)
+    zzz.letters, zzz.anims = {}, {}
+    for i, ch in ipairs({ "z", "z", "Z" }) do
+        local fs = zzz:CreateFontString(nil, "OVERLAY")
+        fs:SetAlpha(0)
+        fs.char = ch
+        local ag = fs:CreateAnimationGroup()
+        ag:SetLooping("REPEAT")
+        local fadeIn = ag:CreateAnimation("Alpha")
+        fadeIn:SetFromAlpha(0) fadeIn:SetToAlpha(1)
+        fadeIn:SetStartDelay((i - 1) * 0.45) fadeIn:SetDuration(0.45) fadeIn:SetOrder(1)
+        local rise = ag:CreateAnimation("Translation")
+        rise:SetOffset(0, 2)
+        rise:SetStartDelay((i - 1) * 0.45) rise:SetDuration(0.45) rise:SetOrder(1)
+        local fadeOut = ag:CreateAnimation("Alpha")
+        fadeOut:SetFromAlpha(1) fadeOut:SetToAlpha(0)
+        fadeOut:SetStartDelay((3 - i) * 0.45 + 0.6) fadeOut:SetDuration(0.5) fadeOut:SetOrder(2)
+        zzz.letters[i], zzz.anims[i] = fs, ag
+    end
+    zzz:SetScript("OnShow", function(self) for _, ag in ipairs(self.anims) do ag:Restart() end end)
+    zzz:SetScript("OnHide", function(self) for _, ag in ipairs(self.anims) do ag:Stop() end end)
+    zzz:Hide()
+    clock.zzz = zzz
     clock:SetScript("OnEnter", ClockTooltip)
     clock:SetScript("OnClick", ClockClick)
 
@@ -520,17 +549,11 @@ local function Create()
 
     local guild = PlainTile("guild")
     guild.icon:SetTexture(ICONS .. "IconGuild")
-    -- Crest layers (UpdateCrest): colour fill and ring inside the tile's own black border.
-    guild.crestBg = guild:CreateTexture(nil, "BACKGROUND", nil, 1)
-    guild.crestBg:SetPoint("TOPLEFT", 1, -1)
-    guild.crestBg:SetPoint("BOTTOMRIGHT", -1, 1)
-    guild.crestRing = CreateFrame("Frame", nil, guild)
-    guild.crestRing:SetPoint("TOPLEFT", 1, -1)
-    guild.crestRing:SetPoint("BOTTOMRIGHT", -1, 1)
-    guild.crestRing:SetFrameLevel(guild:GetFrameLevel() + 1)
-    ns.Theme:Skin(guild.crestRing, { 0, 0, 0, 0 }, { 0, 0, 0, 0 })
-    guild.crestBg:Hide()
-    guild.crestRing:Hide()
+    -- Shield rim (UpdateCrest), drawn over the shield fill that the icon texture holds.
+    guild.shieldEdge = guild:CreateTexture(nil, "ARTWORK", nil, 1)
+    guild.shieldEdge:SetAllPoints(guild.icon)
+    guild.shieldEdge:SetTexture(ICONS .. "IconShieldEdge")
+    guild.shieldEdge:Hide()
     guild:SetScript("OnEnter", function(self)
         if not IsInGuild() then
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
@@ -677,9 +700,22 @@ local function Layout()
     clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
     -- Zzz: small, in the same bright OrionUI blue as the FPS / MS values. The tile grows by its
     -- width on both sides so the time stays centred and never runs into it.
-    clock.zzz:SetFont(font, math.max(8, math.floor(size * 0.3)), "OUTLINE")
-    clock.zzz:SetText(BlueHex() .. "Zzz|r")
-    local zzzW = db.clock.resting and (math.ceil(clock.zzz:GetStringWidth()) + 2) * 2 or 0
+    -- Letters step up and to the right, each a little bigger (z z Z).
+    local zSize, zW = math.max(8, math.floor(size * 0.3)), 0
+    local blue = BlueHex()
+    for i, fs in ipairs(clock.zzz.letters) do
+        fs:SetFont(font, zSize - 3 + i, "OUTLINE")
+        fs:SetText(blue .. fs.char .. "|r")
+        zW = zW + math.ceil(fs:GetStringWidth())
+    end
+    local letters = clock.zzz.letters
+    letters[3]:ClearAllPoints()
+    letters[3]:SetPoint("TOPRIGHT", clock.zzz, "TOPRIGHT", 0, 0)
+    letters[2]:ClearAllPoints()
+    letters[2]:SetPoint("TOPRIGHT", letters[3], "TOPLEFT", 0, -3)
+    letters[1]:ClearAllPoints()
+    letters[1]:SetPoint("TOPRIGHT", letters[2], "TOPLEFT", 0, -3)
+    local zzzW = db.clock.resting and (zW + 2) * 2 or 0
     local clockW = db.clock.show and math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24 + zzzW) or 1
     local nExtra = 0
     for _ in tostring(db.travel.extraItems or ""):gmatch("%d+") do nExtra = nExtra + 1 end

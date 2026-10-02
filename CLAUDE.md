@@ -794,9 +794,10 @@ important-cast colour + glow from `C_Spell.IsSpellImportant`, cast target name) 
 with reset timers, hearthstone with left = random pool / middle / right = configurable, M+ portal flyout found by matching
 `C_ChallengeMode.GetMapTable` names to spellbook flyout spell descriptions, extra item/toy buttons; FPS | MS under it;
 in combat a secure state driver hides the tiles so only FPS | MS stays; our own icons in `Media/Textures/Icon*.tga`).
-Both untested in game. Since 2026-10-02 the guild tile shows the guild's own crest (`C_GuildInfo.GetGuildTabardInfo`:
-background fill, 1px ring in the border colour, `emblemFileID` tinted) and the clock gets a small Zzz while resting
-(`IsResting`, `PLAYER_UPDATE_RESTING`); both have an off switch. [VERIFY] the emblem file's shape at tile size.
+Both untested in game. Since 2026-10-02 the guild tile is our own shield (`Media/Textures/IconShield*.tga`, drawn by
+`tools/make-shield.py`) in the guild's tabard colours from `C_GuildInfo.GetGuildTabardInfo` (the real emblem was
+unreadable at tile size, Stig), the clock gets an animated Zzz while resting (`IsResting`, `PLAYER_UPDATE_RESTING`),
+and FPS / MS values are green / yellow / red (FPS 60+ / 30+, MS under 100 / 200).
 
 **Built (2026-10-01):** `Modules/Skyriding.lua` (Interface → Skyriding): vigor (Skyward Ascent 372610 charges) and Second
 Wind (425782 charges) as segmented bars, the recharging segment drawn see-through, plus a speed bar from
