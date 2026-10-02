@@ -126,7 +126,7 @@ local function BackupSpecs()
 end
 
 ns.Options:RegisterPage("profiles", {
-    category = "general", label = L["Profiles"], order = 1,
+    category = "top", label = L["Profiles"], order = 1, -- its own row above the search box
     build = function(_, addRows)
         local y = addRows({ { type = "Title", label = L["Profiles"],
             desc = L["Each character picks its own profiles. Share a setup by exporting a string and importing it elsewhere."] } }, 0)

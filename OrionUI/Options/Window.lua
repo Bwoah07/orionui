@@ -1,5 +1,6 @@
--- The options window (CLAUDE.md §9.1). The sidebar is laid out like EllesmereUI's: accent-coloured
--- group headings with rows under them (Stig, 2026-10-02). Under "OrionUI" each row is a big part
+-- The options window (CLAUDE.md §9.1). The sidebar is laid out like EllesmereUI's (Stig, 2026-10-02):
+-- tool rows on top (Unlock Mode, Raid Split, Profiles), then the search box, then the settings as
+-- accent-coloured group headings with rows under them. Under "OrionUI" each row is a big part
 -- (General, Interface, Reminders, Class) whose pages show as tabs along the top; under
 -- "Raid Control" every raid tool is its own row. Pages are built from module schemas or are
 -- hand-written editors, laid out as a title plus cards of "label | control" rows. A search box
@@ -22,6 +23,19 @@ local GROUPS = {
         { key = "raid", perPage = true },
     } },
 }
+-- Rows above the search box: tools that open something, or a page that isn't part of a group.
+-- available() hides a row when its tool is missing.
+local ACTIONS = {
+    { label = L["Unlock Mode"], func = function() ns.EditMode:Toggle(true) end },
+    { label = L["Raid Split"], available = function() return ns.RC ~= nil end,
+      func = function()
+          if InCombatLockdown() then ns.Print(L.COMBAT_REFUSED) return end
+          OrionUIOptions:Hide() -- the planner opens where the options window sits
+          ns.Slash:Run("split")
+      end },
+    { label = L["Profiles"], page = "profiles" },
+}
+
 local PER_PAGE = {}
 for _, group in ipairs(GROUPS) do
     for _, cat in ipairs(group.categories) do PER_PAGE[cat.key] = cat.perPage end
@@ -331,6 +345,9 @@ function Options:RefreshSidebar()
         btn:Show()
         y = y + ROW_STEP
     end
+    for _, a in ipairs(sb.actions) do
+        StyleRow(a, a.action.page ~= nil and a.action.page == current and not searching, r, g, b)
+    end
     for _, group in ipairs(GROUPS) do
         local any = false
         for _, cat in ipairs(group.categories) do
@@ -472,26 +489,6 @@ function Options:Create()
     close:SetPoint("RIGHT", -12, 1)
     close:SetScript("OnClick", function() frame:Hide() end)
 
-    local searchBox = CreateFrame("EditBox", nil, titleBar)
-    searchBox:SetSize(240, 26)
-    searchBox:SetPoint("RIGHT", close, "LEFT", -12, -1)
-    searchBox:SetAutoFocus(false)
-    searchBox:SetFont(T:Font(), 12, "")
-    searchBox:SetTextInsets(10, 10, 0, 0)
-    T:Skin(searchBox, T.colors.sidebar)
-    searchBox.placeholder = T:Text(searchBox, 12, T.colors.faint)
-    searchBox.placeholder:SetPoint("LEFT", 10, 0)
-    searchBox.placeholder:SetText(L["Search settings"])
-    searchBox:SetScript("OnTextChanged", function(self)
-        self.placeholder:SetShown(self:GetText() == "")
-        if self.timer then self.timer:Cancel() end
-        self.timer = C_Timer.NewTimer(0.2, function() Options:Show(current) end)
-    end)
-    searchBox:SetScript("OnEditFocusGained", function(self) T:SetBorderColor(self, T:Accent()) end)
-    searchBox:SetScript("OnEditFocusLost", function(self) T:SetBorderColor(self, 0, 0, 0, 1) end)
-    searchBox:SetScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
-    frame.search = searchBox
-
     -- Sidebar
     local sidebar = CreateFrame("Frame", nil, frame)
     sidebar:SetPoint("TOPLEFT", 1, -(TITLEBAR + 1))
@@ -505,10 +502,53 @@ function Options:Create()
     sline:SetWidth(1)
     sline:SetPoint("TOPRIGHT")
     sline:SetPoint("BOTTOMRIGHT")
-    sidebar.buttons, sidebar.headers = {}, {}
-    -- Scrolls when there are more pages than fit.
+    sidebar.buttons, sidebar.headers, sidebar.actions = {}, {}, {}
+
+    -- Tool rows, fixed at the top like EUI's Unlock Mode / Global Settings.
+    local y = 10
+    for _, act in ipairs(ACTIONS) do
+        if not act.available or act.available() then
+            local btn = SidebarButton(sidebar)
+            btn:SetPoint("TOPLEFT", 8, -y)
+            btn.label:SetText(act.label)
+            btn:SetScript("OnClick", function()
+                if act.page then
+                    frame.search:SetText("")
+                    Options:Show(act.page)
+                else
+                    act.func()
+                end
+            end)
+            sidebar.actions[#sidebar.actions + 1] = btn
+            btn.action = act
+            y = y + ROW_STEP
+        end
+    end
+
+    local searchBox = CreateFrame("EditBox", nil, sidebar)
+    searchBox:SetHeight(26)
+    searchBox:SetPoint("TOPLEFT", 12, -(y + 8))
+    searchBox:SetPoint("TOPRIGHT", -12, -(y + 8))
+    searchBox:SetAutoFocus(false)
+    searchBox:SetFont(T:Font(), 12, "")
+    searchBox:SetTextInsets(10, 10, 0, 0)
+    T:Skin(searchBox, T.colors.bg)
+    searchBox.placeholder = T:Text(searchBox, 12, T.colors.faint)
+    searchBox.placeholder:SetPoint("LEFT", 10, 0)
+    searchBox.placeholder:SetText(L["Search settings"])
+    searchBox:SetScript("OnTextChanged", function(self)
+        self.placeholder:SetShown(self:GetText() == "")
+        if self.timer then self.timer:Cancel() end
+        self.timer = C_Timer.NewTimer(0.2, function() Options:Show(current) end)
+    end)
+    searchBox:SetScript("OnEditFocusGained", function(self) T:SetBorderColor(self, T:Accent()) end)
+    searchBox:SetScript("OnEditFocusLost", function(self) T:SetBorderColor(self, 0, 0, 0, 1) end)
+    searchBox:SetScript("OnEscapePressed", function(self) self:SetText("") self:ClearFocus() end)
+    frame.search = searchBox
+
+    -- The settings groups below scroll when there are more rows than fit.
     sidebar.scroll = T:Scroll(sidebar)
-    sidebar.scroll:SetPoint("TOPLEFT", 0, 0)
+    sidebar.scroll:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", -12, -6)
     sidebar.scroll:SetPoint("BOTTOMRIGHT", -8, 0)
     sidebar.list = CreateFrame("Frame", nil, sidebar.scroll)
     sidebar.list:SetSize(SIDEBAR - 8, 1)
