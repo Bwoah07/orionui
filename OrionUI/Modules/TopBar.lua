@@ -57,10 +57,12 @@ local M = ns.Modules:New("TopBar", {
             clock24 = S.Bool{ default = true, label = L["24-hour clock"], order = 2 },
             realmTime = S.Bool{ default = false, label = L["Use realm time"], order = 3 },
             stats = S.Bool{ default = true, label = L["Show FPS and MS under it"], order = 4 },
+            resting = S.Bool{ default = true, label = L["Zzz on the clock while resting (inn or city)"], order = 5 },
         } },
         social = S.Table{ label = L["Friends and guild"], order = 20, fields = {
             friends = S.Bool{ default = true, label = L["Friends"], order = 1 },
             guild = S.Bool{ default = true, label = L["Guild"], order = 2 },
+            crest = S.Bool{ default = true, label = L["Show your guild's crest on the guild button"], order = 2.5 },
             maxLines = S.Number{ default = 25, min = 5, max = 60, step = 1, label = L["Names in the tooltip"], order = 3 },
         } },
         travel = S.Table{ label = L["Hearthstones and portals"], order = 30, fields = {
@@ -218,6 +220,11 @@ local function UpdateTexts()
     end
 end
 
+local function UpdateResting()
+    local zzz = tiles.clock and tiles.clock.zzz
+    if zzz then zzz:SetShown(M.db.clock.show and M.db.clock.resting and IsResting() or false) end
+end
+
 local function ClockTooltip(self)
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
     GameTooltip:AddLine(date("%A %d %B"), 1, 1, 1)
@@ -308,9 +315,35 @@ local function SocialTooltip(self, title, list, hint, extraLine)
     GameTooltip:Show()
 end
 
+-- Guild crest (Stig, 2026-10-02): C_GuildInfo.GetGuildTabardInfo gives the tabard's three colours
+-- and a standalone emblem file, the same data Blizzard's SetGuildTabardTextures uses (GuildUtil.lua).
+-- Drawn flat to match the bar: background colour fill, a 1px ring in the border colour, emblem on
+-- top. Not in a guild, no design yet, or turned off: our own guild icon as before.
+local function UpdateCrest()
+    local t = tiles.guild
+    if not t then return end
+    local info = M.db.social.crest and IsInGuild() and C_GuildInfo and C_GuildInfo.GetGuildTabardInfo
+        and C_GuildInfo.GetGuildTabardInfo("player")
+    if info and info.emblemFileID then
+        t.crestBg:SetColorTexture(info.backgroundColor:GetRGB())
+        local r, g, b = info.borderColor:GetRGB()
+        ns.Theme:SetBorderColor(t.crestRing, r, g, b, 1)
+        t.icon:SetTexture(info.emblemFileID)
+        t.icon:SetVertexColor(info.emblemColor:GetRGB())
+        t.crestBg:Show()
+        t.crestRing:Show()
+    else
+        t.icon:SetTexture(ICONS .. "IconGuild")
+        t.icon:SetVertexColor(1, 1, 1)
+        t.crestBg:Hide()
+        t.crestRing:Hide()
+    end
+end
+
 local function UpdateSocial()
     if tiles.friends then tiles.friends.count:SetText(#OnlineFriends()) end
     if tiles.guild then tiles.guild.count:SetText(IsInGuild() and #OnlineGuild() or "") end
+    UpdateCrest()
 end
 
 ---------------------------------------------------------------------------
@@ -471,6 +504,10 @@ local function Create()
     clock.icon:Hide()
     clock.text = clock.edge:CreateFontString(nil, "OVERLAY")
     clock.text:SetPoint("CENTER", 0, 0)
+    -- Resting (inn or city): a small Zzz in the clock tile's top-right corner (Stig, 2026-10-02).
+    clock.zzz = clock.edge:CreateFontString(nil, "OVERLAY")
+    clock.zzz:SetPoint("TOPRIGHT", -3, -2)
+    clock.zzz:Hide()
     clock:SetScript("OnEnter", ClockTooltip)
     clock:SetScript("OnClick", ClockClick)
 
@@ -483,6 +520,17 @@ local function Create()
 
     local guild = PlainTile("guild")
     guild.icon:SetTexture(ICONS .. "IconGuild")
+    -- Crest layers (UpdateCrest): colour fill and ring inside the tile's own black border.
+    guild.crestBg = guild:CreateTexture(nil, "BACKGROUND", nil, 1)
+    guild.crestBg:SetPoint("TOPLEFT", 1, -1)
+    guild.crestBg:SetPoint("BOTTOMRIGHT", -1, 1)
+    guild.crestRing = CreateFrame("Frame", nil, guild)
+    guild.crestRing:SetPoint("TOPLEFT", 1, -1)
+    guild.crestRing:SetPoint("BOTTOMRIGHT", -1, 1)
+    guild.crestRing:SetFrameLevel(guild:GetFrameLevel() + 1)
+    ns.Theme:Skin(guild.crestRing, { 0, 0, 0, 0 }, { 0, 0, 0, 0 })
+    guild.crestBg:Hide()
+    guild.crestRing:Hide()
     guild:SetScript("OnEnter", function(self)
         if not IsInGuild() then
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
@@ -627,7 +675,12 @@ local function Layout()
     clock.text:SetShadowOffset(1, -1)
     clock.text:SetShadowColor(0, 0, 0, 1)
     clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
-    local clockW = db.clock.show and math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24) or 1
+    -- Zzz: small, in the same bright OrionUI blue as the FPS / MS values. The tile grows by its
+    -- width on both sides so the time stays centred and never runs into it.
+    clock.zzz:SetFont(font, math.max(8, math.floor(size * 0.3)), "OUTLINE")
+    clock.zzz:SetText(BlueHex() .. "Zzz|r")
+    local zzzW = db.clock.resting and (math.ceil(clock.zzz:GetStringWidth()) + 2) * 2 or 0
+    local clockW = db.clock.show and math.max(size * 2, math.ceil(clock.text:GetStringWidth()) + 24 + zzzW) or 1
     local nExtra = 0
     for _ in tostring(db.travel.extraItems or ""):gmatch("%d+") do nExtra = nExtra + 1 end
     local leftW, rightW = #left * step, (#right + nExtra) * step
@@ -682,6 +735,7 @@ local function Layout()
     if flyout then flyout:Hide() end
     UpdateSocial()
     UpdateTexts()
+    UpdateResting()
 end
 
 function M:Refresh()
@@ -702,10 +756,11 @@ function M:OnEnable()
     ns.Events:On("TOYS_UPDATED", self, function() self:Refresh() end)
     ns.Events:On("BAG_UPDATE_DELAYED", self, function() self:Refresh() end)
     for _, ev in ipairs({ "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_ACCOUNT_ONLINE",
-        "BN_FRIEND_ACCOUNT_OFFLINE", "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE" }) do
+        "BN_FRIEND_ACCOUNT_OFFLINE", "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE", "GUILDTABARD_UPDATE" }) do
         ns.Events:On(ev, self, function() ns.Events:Coalesce("topbar-social", UpdateSocial) end)
     end
     ns.Events:On("OUI_COMBAT_START", self, function() if flyout then flyout:Hide() end end)
+    ns.Events:On("PLAYER_UPDATE_RESTING", self, UpdateResting)
     local function AskRoster() if IsInGuild() and C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end end
     AskRoster()
     self:NewTicker(60, AskRoster)
