@@ -90,6 +90,9 @@ local M = ns.Modules:New("BloodDK", {
                 desc = L["Uses Ossuary (up at 5+ stacks) because the game hides the number in combat."] },
             expiryWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Warn before Bone Shield runs out"], order = 5 },
             glowAt = S.Number{ section = L["Bone Shield warnings"], default = 8, min = 2, max = 20, step = 1, label = L["Highlight when this many seconds are left"], order = 6 },
+            alertStyle = S.Enum{ section = L["Bone Shield warnings"], default = "voice", values = { "voice", "sound" },
+                valueLabels = { voice = L["Voice"], sound = L["Raid warning sound"] }, label = L["Warning sound"], order = 4.5,
+                desc = L["Voice uses the game's Text to Speech voice (pick it in the game's Text to Speech settings)."] },
             soundAt = S.Number{ section = L["Bone Shield warnings"], default = 5, min = 0, max = 15, step = 1, label = L["Sound when this many seconds are left (0 = off)"], order = 7 },
             downWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Show \"Bone Shield down\" in combat"], order = 8 },
             soundOnDrop = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Sound when Bone Shield drops"], order = 9 },
@@ -143,10 +146,15 @@ local state = {
 
 local function Now() return GetTime() end
 
-local function PlayWarning()
+-- Voice (default, Stig 2026-10-02: nicer than the raid warning horn) or the raid warning sound.
+local function PlayWarning(text)
     if Now() - state.lastSound < 2 then return end -- two warnings in the same moment: play once
     state.lastSound = Now()
-    PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+    if M.db.boneShield.alertStyle == "voice" and ns.Speak then
+        ns.Speak(text)
+    else
+        PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
+    end
 end
 
 -- Reads everything we are allowed to read right now.
@@ -292,6 +300,13 @@ function M:Update()
     local db = self.db.boneShield
     local active, stacks, low, child = Read()
 
+    -- Voice mode says drop/gain itself (the engine's aura sounds can only play a sound file).
+    -- Only on a known change, so "can't see it" never counts as "dropped".
+    if db.alertStyle == "voice" and state.wasActive ~= nil and active ~= nil and active ~= state.wasActive then
+        if active == false and db.soundOnDrop and InCombatLockdown() then PlayWarning(L["Bone Shield down"]) end
+        if active == true and db.soundOnGain then PlayWarning(L["Bone Shield up"]) end
+    end
+
     if active and not state.wasActive and not state.expiresAt then
         state.expiresAt = Now() + state.duration -- came up without a cast we saw
     elseif active == false then
@@ -303,11 +318,11 @@ function M:Update()
     if remaining and remaining < -1 then remaining = nil end -- clock overran; don't invent anything
 
     -- Sounds on crossings only, never repeatedly.
-    if db.lowWarning and low == true and not state.wasLow then PlayWarning() end
+    if db.lowWarning and low == true and not state.wasLow then PlayWarning(L["Bone Shield low"]) end
     state.wasLow = low == true
     if db.expiryWarning and remaining and db.soundAt > 0 and remaining <= db.soundAt and not state.expirySounded then
         state.expirySounded = true
-        PlayWarning()
+        PlayWarning(L["Bone Shield expiring"])
     end
 
     Render(active, stacks, low, child, remaining)
@@ -325,6 +340,7 @@ local function SetSounds()
     for _, id in ipairs(soundIDs) do C_UnitAuras.RemoveAuraSound(id) end
     wipe(soundIDs)
     local db, trig = M.db.boneShield, Enum.UnitAuraSoundTrigger
+    if db.alertStyle == "voice" then return end -- spoken from M:Update instead
     local function Add(trigger)
         local id = C_UnitAuras.AddAuraSound(trigger, { unitToken = "player", spellID = BONE_SHIELD, soundFileID = SOUND_FILE, outputChannel = "Master" })
         if id then soundIDs[#soundIDs + 1] = id end

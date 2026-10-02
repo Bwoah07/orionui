@@ -11,12 +11,21 @@ ns.ReminderOutput = Output
 local MAX = 3
 local anchor, ticker
 
+-- Text to speech with the voice picked in the game's Text to Speech settings (first voice
+-- as fallback). Shared: ns.Speak is also used by the Blood DK Bone Shield warnings.
 local function Speak(text)
     if not (C_VoiceChat and C_VoiceChat.GetTtsVoices and C_VoiceChat.SpeakText) then return end
-    local voices = C_VoiceChat.GetTtsVoices()
-    local voice = voices and voices[1]
-    if voice then C_VoiceChat.SpeakText(voice.voiceID, text, 0, 100, false) end
+    local voiceID
+    if C_TTSSettings and C_TTSSettings.GetVoiceOptionID and Enum.TtsVoiceType then
+        voiceID = C_TTSSettings.GetVoiceOptionID(Enum.TtsVoiceType.Standard)
+    end
+    if voiceID == nil then
+        local voices = C_VoiceChat.GetTtsVoices()
+        voiceID = voices and voices[1] and voices[1].voiceID
+    end
+    if voiceID ~= nil then C_VoiceChat.SpeakText(voiceID, text, 0, 100, false) end
 end
+ns.Speak = Speak
 
 local function NewRow(i)
     local T = ns.Theme
