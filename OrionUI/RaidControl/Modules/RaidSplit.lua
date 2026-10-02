@@ -810,7 +810,8 @@ function RaidSplit:OnPlayerRegenEnabled()
 end
 
 function RaidSplit:Toggle()
-    if self:_IsMainFrameUsable() and self.Frame:IsShown() then
+    -- IsVisible, not IsShown: the page stays "shown" inside the workspace host after the host closes.
+    if self:_IsMainFrameUsable() and self.Frame:IsVisible() then
         self.Frame:Hide()
         return
     end
@@ -838,6 +839,12 @@ function RaidSplit:Open()
         self:_ResetBrokenMainFrame()
         RC:Print("RaidSplit failed to show: " .. tostring(err))
         return
+    end
+    -- OrionUI: the frame lives inside the workspace host. If the page was still flagged shown
+    -- from last time, Show() does nothing and the host stays closed, so open the host too.
+    local workspace = RC:GetModule("Workspace", true)
+    if self.Frame.rcWorkspaceHosted and workspace and workspace.ShowPage then
+        workspace:ShowPage("split")
     end
     pcall(function()
         self:SyncRoster()
