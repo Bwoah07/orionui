@@ -1,5 +1,5 @@
 ## Interface: 120100, 120105
-## Title: OrionUI |cff9d7bffDev|r
+## Title: Orion|cff2673d9UI|r |cff9d7bffDev|r
 ## Notes: Developer probes for OrionUI. Read-only: logs what the 12.x API lets addons see. Not for release.
 ## Author: Stig
 ## Version: @project-version@

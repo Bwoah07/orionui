@@ -1,5 +1,5 @@
 ## Interface: 120100, 120105
-## Title: OrionUI
+## Title: Orion|cff2673d9UI|r
 ## Notes: Free, all-included UI pack core for EllesmereUI.
 ## Author: Stig
 ## Version: @project-version@
