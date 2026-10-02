@@ -50,7 +50,13 @@ local M = ns.Modules:New("TopBar", {
         height = S.Number{ section = L["Look"], default = 30, min = 20, max = 50, step = 1, label = L["Tile size"], order = 1 },
         clockSize = S.Number{ section = L["Look"], default = 22, min = 12, max = 40, step = 1, label = L["Clock size"], order = 2 },
         statsSize = S.Number{ section = L["Look"], default = 13, min = 8, max = 20, step = 1, label = L["FPS / MS text size"], order = 3 },
-        tileAlpha = S.Number{ section = L["Look"], default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background"], order = 4 },
+        tileAlpha = S.Number{ section = L["Look"], default = 0.8, min = 0, max = 1, step = 0.05, label = L["Tile background (0 = transparent)"], order = 4 },
+        borders = S.Bool{ section = L["Look"], default = true, label = L["Tile borders"], order = 4.2,
+            desc = L["Off: no black edge around the tiles. They still light up blue on mouseover."] },
+        clockFont = S.Enum{ section = L["Look"], default = "bold", values = { "ui", "bold", "orion2", "orion3" }, label = L["Clock font"], order = 4.4,
+            valueLabels = { ui = L["UI font"], bold = L["Expressway Bold"], orion2 = L["Orion 2 Bold (Inter)"], orion3 = L["Orion 3 Bold (Rajdhani)"] } },
+        clockColor = S.Enum{ section = L["Look"], default = "white", values = { "white", "accent", "class" }, label = L["Clock colour"], order = 4.6,
+            valueLabels = { white = L["White"], accent = L["OrionUI blue"], class = L["Class colour"] } },
         hideInCombat = S.Bool{ section = L["Look"], default = true, label = L["In combat show only FPS and MS"], order = 5 },
         clock = S.Table{ label = L["Clock"], order = 10, fields = {
             show = S.Bool{ default = true, label = L["Show the clock"], order = 1 },
@@ -132,6 +138,11 @@ local function ItemName(id) return C_Item.GetItemNameByID(id) or (L["Item"] .. "
 -- Tiles
 ---------------------------------------------------------------------------
 
+-- Resting border: black, or invisible with borders turned off (Stig, 2026-10-02).
+local function RestBorder(t)
+    ns.Theme:SetBorderColor(t.edge, 0, 0, 0, M.db.borders and 1 or 0)
+end
+
 -- A dark square with a 1px border that lights up in OrionUI blue on hover.
 local function StyleTile(t)
     t.bg = t:CreateTexture(nil, "BACKGROUND")
@@ -146,7 +157,7 @@ local function StyleTile(t)
     t.count = t.edge:CreateFontString(nil, "OVERLAY")
     t.count:SetPoint("BOTTOMRIGHT", -2, 2)
     t:HookScript("OnEnter", function(self) ns.Theme:SetBorderColor(self.edge, ns.Theme:Accent()) end)
-    t:HookScript("OnLeave", function(self) ns.Theme:SetBorderColor(self.edge, 0, 0, 0, 1) GameTooltip_Hide() end)
+    t:HookScript("OnLeave", function(self) RestBorder(self) GameTooltip_Hide() end)
 end
 
 local function PlainTile(key)
@@ -653,6 +664,7 @@ local function LayoutExtras(x, size)
         b:SetAttribute("macrotext", "/use item:" .. id)
         b.icon:SetTexture(C_Item.GetItemIconByID(id) or 134400)
         b.bg:SetColorTexture(0.05, 0.05, 0.06, M.db.tileAlpha)
+        RestBorder(b)
         b:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -4)
             if HasToy(self.itemID) then GameTooltip:SetToyByItemID(self.itemID) else GameTooltip:SetItemByID(self.itemID) end
@@ -668,6 +680,35 @@ local function LayoutExtras(x, size)
     return x
 end
 
+-- Clock font (Stig, 2026-10-02: a fat clock). Expressway Bold comes from EllesmereUI (never bundled);
+-- without EUI it falls back to our own Orion 2 Bold.
+local CLOCK_FONTS = { orion2 = "Fonts\\Orion2-Bold.ttf", orion3 = "Fonts\\Orion3-Bold.ttf" }
+local function ClockFont()
+    local choice = M.db.clockFont
+    if choice == "ui" then return ns.Theme:Font() end
+    if choice == "bold" then
+        local files = EllesmereUI and EllesmereUI.FONT_FILES
+        if files and files["Expressway Bold"] and EllesmereUI.MEDIA_PATH then
+            return EllesmereUI.MEDIA_PATH .. "fonts\\" .. files["Expressway Bold"]
+        end
+        choice = "orion2"
+    end
+    return ns.MEDIA_PATH .. (CLOCK_FONTS[choice] or CLOCK_FONTS.orion2)
+end
+
+local function ClockColor()
+    local choice = M.db.clockColor
+    if choice == "accent" then
+        local r, g, b = ns.Theme:Accent()
+        local scale = 1 / math.max(r, g, b, 0.01) -- brightened like the Zzz, so it reads on dark
+        return math.min(1, r * scale), math.min(1, g * scale), math.min(1, b * scale)
+    elseif choice == "class" then
+        local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[select(2, UnitClass("player"))]
+        if c then return c.r, c.g, c.b end
+    end
+    return 1, 1, 1
+end
+
 -- Whole layout. Out of combat only (secure buttons, state driver).
 local function Layout()
     local db = M.db
@@ -675,6 +716,7 @@ local function Layout()
     local font = ns.Theme:Font()
     for _, t in pairs(tiles) do
         t.bg:SetColorTexture(0.05, 0.05, 0.06, db.tileAlpha)
+        RestBorder(t)
         t.count:SetFont(font, math.max(10, math.floor(size * 0.44)), "OUTLINE")
         t.count:SetShadowOffset(1, -1)
         t.count:SetShadowColor(0, 0, 0, 1)
@@ -694,7 +736,8 @@ local function Layout()
     -- (Stig, 2026-09-30: no gaps). The clock stays centred on the bar.
     local step = size - 1
     local clock = tiles.clock
-    clock.text:SetFont(font, db.clockSize, "OUTLINE")
+    clock.text:SetFont(ClockFont(), db.clockSize, "OUTLINE")
+    clock.text:SetTextColor(ClockColor())
     clock.text:SetShadowOffset(1, -1)
     clock.text:SetShadowColor(0, 0, 0, 1)
     clock.text:SetText(db.clock.clock24 and "00:00" or "12:00 PM")
