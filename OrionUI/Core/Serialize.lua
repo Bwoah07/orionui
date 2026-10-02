@@ -1,10 +1,11 @@
 -- Wire format for profile strings (CLAUDE.md §10.3):
 --   "!OUI:<kind>:<version>!" .. printable(deflate9(LibSerialize(payload)))
--- kind: L = layout profile, R = reminders profile, C = single custom reminder/preset.
+-- kind: L = layout profile, R = reminders profile, C = single custom reminder/preset,
+--       S = one Raid Split group layout.
 -- The version is the WIRE format version; decoders dispatch on it.
 local _, ns = ...
 
-local Serialize = { WIRE_VERSION = 1, KINDS = { L = "layout", R = "reminders", C = "custom" } }
+local Serialize = { WIRE_VERSION = 1, KINDS = { L = "layout", R = "reminders", C = "custom", S = "raidsplit" } }
 ns.Serialize = Serialize
 
 local MAX_INPUT = 2 * 1024 * 1024         -- pasted string

@@ -24,7 +24,7 @@ local GUILD_PANEL_W = 252
 local GROUP_WIDTH  = 156
 local SLOT_HEIGHT  = 40
 local SLOT_HEIGHT_MIN = 30
-local SLOT_HEIGHT_MAX = 44
+local SLOT_HEIGHT_MAX = 52 -- OrionUI: was 44, which left empty space at the bottom of every group
 local GROUP_MIN_WIDTH = 110
 local GROUP_HEADER_HEIGHT = 30
 local GROUP_SLOT_INSET = 6
@@ -975,7 +975,9 @@ function RaidSplit:GetLayoutMetrics()
         docked = docked,
         pad = pad,
         gap = gap,
-        headerHeight = headerShown and GetRaidSplitHeaderHeight() or 0,
+        -- OrionUI: hosted, our header is hidden but the host's 52 px title bar sits over the top
+        -- of the page, so the toolbar has to start below it (it was hidden under it).
+        headerHeight = (headerShown or (frame and frame.rcWorkspaceHosted and not docked)) and GetRaidSplitHeaderHeight() or 0,
         actionHeight = GetRaidSplitActionBarHeight(),
         sideWidth = SIDE_PANEL_W,
         buffWidth = docked and DOCK_BUFF_PANEL_WIDTH or BUFF_PANEL_W,
@@ -5770,6 +5772,62 @@ function RaidSplit:DuplicateLayout(name)
     return true
 end
 
+-- OrionUI: share a layout as a !OUI:S:1! string (Stig, 2026-10-02). Without a selected
+-- layout the current draft is exported.
+function RaidSplit:ExportLayoutString(name)
+    local layout = name and self:GetSavedLayout(name)
+    if not layout then
+        if not self.DraftRoster or #self.DraftRoster == 0 then
+            self:Print("Nothing to export yet. Save a layout or sync the roster first.")
+            return nil
+        end
+        layout = self:BuildLayoutSnapshot(self:GetSuggestedLayoutName())
+    end
+    local str, err = ns.Serialize:Encode("S", { layout = CopyPlainValue(layout) })
+    if not str then self:Print("Export failed: " .. tostring(err)) end
+    return str, layout.name
+end
+
+-- -> ok, message. Imported layouts are saved under a free name; nothing existing is overwritten.
+function RaidSplit:ImportLayoutString(str)
+    local ok, kind, payload = ns.Serialize:Decode(str)
+    if not ok then return false, kind end
+    if kind ~= "S" then return false, "This is not a Raid Split layout string." end
+    local layout = type(payload) == "table" and payload.layout
+    if type(layout) ~= "table" or type(layout.roster) ~= "table" then
+        return false, "The layout in this string is damaged."
+    end
+    local roster = {}
+    for _, entry in ipairs(layout.roster) do
+        if type(entry) == "table" and type(entry.name) == "string" and entry.name ~= "" then
+            entry.group = ClampGroupIndex(tonumber(entry.group) or 1)
+            entry.shortName = GetShortName(entry.name)
+            roster[#roster + 1] = entry
+        end
+        if #roster >= 40 then break end
+    end
+    if #roster == 0 then return false, "The layout in this string has no players." end
+    layout.roster = roster
+
+    local layouts = self:GetLayoutStores()
+    local base = TrimText(type(layout.name) == "string" and layout.name or "")
+    if base == "" then base = "Imported" end
+    local name, index = base, 2
+    while layouts[name] do
+        name = base .. " " .. index
+        index = index + 1
+    end
+    layout.name = name
+    layout.updatedAt = time and time() or layout.updatedAt
+    layout.timestamp = layout.timestamp or layout.updatedAt
+    layouts[name] = layout
+    self._selectedLayoutName = name
+    if self._layoutManagerPopup and self._layoutManagerPopup:IsShown() then
+        self:_RefreshProfilePopup(true)
+    end
+    return true, "Imported as '" .. name .. "' (" .. #roster .. " players). Pick it in the list and press Load Selected."
+end
+
 function RaidSplit:AssignLayoutBoss(name, bossName)
     name = TrimText(name)
     local layouts, bossIndex = self:GetLayoutStores()
@@ -6159,6 +6217,22 @@ function RaidSplit:CreateLayoutManagerPopup(mainFrame)
     popup.deleteBtn = MakeBtn(right, 68, 22, "Delete")
     popup.deleteBtn:SetPoint("LEFT", popup.assignBtn, "RIGHT", 6, 0)
 
+    popup.exportBtn = MakeBtn(right, 76, 22, "Export")
+    popup.exportBtn:SetPoint("BOTTOMLEFT", right, "BOTTOMLEFT", 12, 10)
+    popup.importBtn = MakeBtn(right, 76, 22, "Import")
+    popup.importBtn:SetPoint("LEFT", popup.exportBtn, "RIGHT", 6, 0)
+    AddButtonTooltip(popup.exportBtn, "Export", "Copy the selected layout as a string to share.")
+    AddButtonTooltip(popup.importBtn, "Import", "Paste a Raid Split layout string. It is added as a new layout.")
+    popup.exportBtn:SetScript("OnClick", function()
+        local str, name = self:ExportLayoutString(self._selectedLayoutName)
+        if str then ns.CopyBox:Show("Raid Split layout: " .. tostring(name), str) end
+    end)
+    popup.importBtn:SetScript("OnClick", function()
+        ns.CopyBox:Prompt("Import Raid Split layout", "Paste a Raid Split layout string.", "Import", function(text)
+            return self:ImportLayoutString(text)
+        end)
+    end)
+
     popup.saveBtn:SetScript("OnClick", function()
         local name = TrimText(popup.nameEdit:GetText())
         if name == "" then name = self:GetSuggestedLayoutName() end
@@ -6194,7 +6268,7 @@ function RaidSplit:CreateLayoutManagerPopup(mainFrame)
         end
         for _, button in ipairs({
             self.close, self.prevBtn, self.nextBtn, self.saveBtn, self.loadBtn, self.smartBtn,
-            self.renameBtn, self.duplicateBtn, self.assignBtn, self.deleteBtn,
+            self.renameBtn, self.duplicateBtn, self.assignBtn, self.deleteBtn, self.exportBtn, self.importBtn,
         }) do
             if button and button.RefreshTheme then button:RefreshTheme() end
         end

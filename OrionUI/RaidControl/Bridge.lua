@@ -10,8 +10,13 @@ if not RC then return end -- standalone RaidControl is enabled
 local Settings = RC:NewModule("Settings")
 
 -- Returns false so RaidControl's workspace doesn't show an empty settings page.
+-- The workspace window sits above OrionUI's options (DIALOG vs HIGH strata), so it closes
+-- first; from Raid Split the Raid split settings page opens.
 function Settings:Open()
-    if ns.Options then ns.Options:Open("RC_Launcher") end
+    local workspace = RC:GetModule("Workspace", true)
+    local fromSplit = workspace and workspace.activeKey == "split"
+    if workspace and workspace.host and workspace.host:IsShown() then workspace.host:Hide() end
+    if ns.Options then ns.Options:Open(fromSplit and "RC_RaidSplit" or "RC_Launcher") end
     return false
 end
 function Settings:Toggle() return self:Open() end
