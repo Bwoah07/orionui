@@ -1,6 +1,7 @@
--- The options window (CLAUDE.md §9.1). The sidebar lists the big parts of OrionUI (General,
--- Interface, Reminders, Class, Raid Control); clicking one shows its pages as tabs along the top
--- (Stig, 2026-09-30: easier than one long list). Pages are built from module schemas or are
+-- The options window (CLAUDE.md §9.1). The sidebar is laid out like EllesmereUI's: accent-coloured
+-- group headings with rows under them (Stig, 2026-10-02). Under "OrionUI" each row is a big part
+-- (General, Interface, Reminders, Class) whose pages show as tabs along the top; under
+-- "Raid Control" every raid tool is its own row. Pages are built from module schemas or are
 -- hand-written editors, laid out as a title plus cards of "label | control" rows. A search box
 -- works across all option labels. Created lazily on first open.
 local _, ns = ...
@@ -9,16 +10,26 @@ local L = ns.L
 local Options = { pages = {} }
 ns.Options = Options
 
-local CATEGORIES = {
-    { key = "general",   label = L["General"] },
-    { key = "qol",       label = L["Interface"] },
-    { key = "reminders", label = L["Reminders"] },
-    { key = "tank",      label = L["Class"] },
-    { key = "raid",      label = L["Raid Control"] },
+-- perPage: every page of the category gets its own sidebar row instead of a tab.
+local GROUPS = {
+    { label = ns.NAME, categories = {
+        { key = "general",   label = L["General"] },
+        { key = "qol",       label = L["Interface"] },
+        { key = "reminders", label = L["Reminders"] },
+        { key = "tank",      label = L["Class"] },
+    } },
+    { label = L["Raid Control"], categories = {
+        { key = "raid", perPage = true },
+    } },
 }
+local PER_PAGE = {}
+for _, group in ipairs(GROUPS) do
+    for _, cat in ipairs(group.categories) do PER_PAGE[cat.key] = cat.perPage end
+end
 local WIDTH, HEIGHT, SIDEBAR, TITLEBAR = 1000, 640, 180, 52
 local PAD, CARD_GAP = 16, 20
 local TAB_H, TAB_GAP = 30, 4
+local ROW_H, ROW_STEP, GROUP_H, GROUP_GAP = 32, 34, 26, 14
 
 local frame, current
 local lastInCategory = {} -- category key -> last page shown there (the sidebar reopens it)
@@ -260,7 +271,7 @@ end
 local function SidebarButton(bar)
     local T = ns.Theme
     local btn = CreateFrame("Button", nil, bar)
-    btn:SetSize(SIDEBAR - 16, 34)
+    btn:SetSize(SIDEBAR - 16, ROW_H)
     btn.bg = btn:CreateTexture(nil, "BACKGROUND")
     btn.bg:SetAllPoints()
     btn.mark = btn:CreateTexture(nil, "ARTWORK")
@@ -269,6 +280,9 @@ local function SidebarButton(bar)
     btn.mark:SetWidth(2)
     btn.label = T:Text(btn, 14)
     btn.label:SetPoint("LEFT", 14, 0)
+    btn.label:SetPoint("RIGHT", -6, 0)
+    btn.label:SetJustifyH("LEFT")
+    btn.label:SetWordWrap(false)
     btn:SetScript("OnEnter", function(self) if not self.selected then self.bg:SetColorTexture(1, 1, 1, 0.04) end end)
     btn:SetScript("OnLeave", function(self) if not self.selected then self.bg:SetColorTexture(0, 0, 0, 0) end end)
     return btn
@@ -280,43 +294,78 @@ local function CategoryOf(id, byCat)
     end
 end
 
+local function StyleRow(btn, selected, r, g, b)
+    local T = ns.Theme
+    btn.selected = selected
+    btn.mark:SetColorTexture(r, g, b, 1)
+    btn.mark:SetShown(selected)
+    if selected then
+        btn.bg:SetColorTexture(r, g, b, 0.12)
+        btn.label:SetTextColor(unpack(T.colors.text))
+    else
+        btn.bg:SetColorTexture(0, 0, 0, 0)
+        btn.label:SetTextColor(unpack(T.colors.muted))
+    end
+end
+
 function Options:RefreshSidebar()
-    local T, bar = ns.Theme, frame.sidebar.list
-    for _, b in ipairs(frame.sidebar.buttons) do b:Hide() end
-    local byCat, y, nb = Entries(), 14, 0
-    local buttons = frame.sidebar.buttons
+    local T, bar, sb = ns.Theme, frame.sidebar.list, frame.sidebar
+    for _, b in ipairs(sb.buttons) do b:Hide() end
+    for _, h in ipairs(sb.headers) do h:Hide() end
+    local byCat, y, nb, nh = Entries(), 10, 0, 0
     local r, g, b = T:Accent()
     local searching = frame.search:GetText() ~= ""
     local currentCat = CategoryOf(current, byCat)
-    for _, cat in ipairs(CATEGORIES) do
-        local list = byCat[cat.key]
-        if list and #list > 0 then
-            nb = nb + 1
-            local btn = buttons[nb] or SidebarButton(bar)
-            buttons[nb] = btn
-            btn:ClearAllPoints()
-            btn:SetPoint("TOPLEFT", 8, -y)
-            btn.label:SetText(cat.label)
-            btn.selected = cat.key == currentCat and not searching
-            btn.mark:SetColorTexture(r, g, b, 1)
-            btn.mark:SetShown(btn.selected)
-            if btn.selected then
-                btn.bg:SetColorTexture(r, g, b, 0.12)
-                btn.label:SetTextColor(unpack(T.colors.text))
-            else
-                btn.bg:SetColorTexture(0, 0, 0, 0)
-                btn.label:SetTextColor(unpack(T.colors.muted))
+    local function Row(label, selected, onClick)
+        nb = nb + 1
+        local btn = sb.buttons[nb] or SidebarButton(bar)
+        sb.buttons[nb] = btn
+        btn:ClearAllPoints()
+        btn:SetPoint("TOPLEFT", 8, -y)
+        btn.label:SetText(label)
+        StyleRow(btn, selected and not searching, r, g, b)
+        btn:SetScript("OnClick", function()
+            frame.search:SetText("")
+            onClick()
+        end)
+        btn:Show()
+        y = y + ROW_STEP
+    end
+    for _, group in ipairs(GROUPS) do
+        local any = false
+        for _, cat in ipairs(group.categories) do
+            if byCat[cat.key] and #byCat[cat.key] > 0 then any = true end
+        end
+        if any then
+            -- Group heading in OrionUI blue, like EllesmereUI's "Core Addons".
+            if nh > 0 then y = y + GROUP_GAP end
+            nh = nh + 1
+            local h = sb.headers[nh] or T:Text(bar, 15)
+            sb.headers[nh] = h
+            h:ClearAllPoints()
+            h:SetPoint("TOPLEFT", 16, -(y + 6))
+            h:SetTextColor(r, g, b, 1)
+            h:SetText(group.label)
+            h:Show()
+            y = y + GROUP_H
+            for _, cat in ipairs(group.categories) do
+                local list = byCat[cat.key]
+                if list and #list > 0 then
+                    if cat.perPage then
+                        for _, e in ipairs(list) do
+                            Row(e.label, e.id == current, function() Options:Show(e.id) end)
+                        end
+                    else
+                        Row(cat.label, cat.key == currentCat, function()
+                            Options:Show(lastInCategory[cat.key] or list[1].id)
+                        end)
+                    end
+                end
             end
-            btn:SetScript("OnClick", function()
-                frame.search:SetText("")
-                Options:Show(lastInCategory[cat.key] or list[1].id)
-            end)
-            btn:Show()
-            y = y + 38
         end
     end
     bar:SetHeight(y + 8)
-    frame.sidebar.scroll:UpdateThumb()
+    sb.scroll:UpdateThumb()
     self:RefreshTabs(byCat, currentCat, searching)
 end
 
@@ -345,7 +394,7 @@ end
 function Options:RefreshTabs(byCat, currentCat, searching)
     local T, strip = ns.Theme, frame.tabs
     for _, t in ipairs(strip.buttons) do t:Hide() end
-    local list = not searching and currentCat and byCat[currentCat] or {}
+    local list = not searching and currentCat and not PER_PAGE[currentCat] and byCat[currentCat] or {}
     local r, g, b = T:Accent()
     local x, rowY, width = 0, 0, frame.contentWidth
     for i, e in ipairs(#list > 1 and list or {}) do
@@ -456,7 +505,7 @@ function Options:Create()
     sline:SetWidth(1)
     sline:SetPoint("TOPRIGHT")
     sline:SetPoint("BOTTOMRIGHT")
-    sidebar.buttons = {}
+    sidebar.buttons, sidebar.headers = {}, {}
     -- Scrolls when there are more pages than fit.
     sidebar.scroll = T:Scroll(sidebar)
     sidebar.scroll:SetPoint("TOPLEFT", 0, 0)

@@ -836,6 +836,9 @@ opens OrionUI's options.
 - **As built (2026-09-30, Stig):** the sidebar lists the big parts (General, Interface, Reminders, Class,
   Raid Control); the selected part shows its pages as tabs along the top of the content area. A page joins a
   part through its module `category` (general, qol, reminders, tank, raid).
+  **Since 2026-10-02 (Stig):** the sidebar copies EUI's layout: accent group headings with rows under
+  them. "OrionUI" holds General / Interface / Reminders / Class (pages as tabs); "Raid Control" gives each
+  raid tool page its own row (no tabs), and the Raid split page has an "Open Raid Split" button.
 - Pages are **auto-built from module option schemas** (`Options/Builder.lua`) so new modules get UI
   for free; hand-written pages only for complex editors (encounter ability browser, preset editor,
   custom reminder editor).

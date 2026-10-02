@@ -81,6 +81,7 @@ local PAGES = {
 
     { id = "RC_RaidSplit", label = L["Raid split"], order = 3,
       desc = L["How Smart Split builds groups. Open Raid Split from the launcher or with /oui split."],
+      action = { L["Open Raid Split"], function() ns.Slash:Run("split") end },
       sections = {
         { L["Smart split"], {
             { "smartSplitMonk", L["Spread Monks across groups"], desc = L["Mystic Touch: +5% physical damage taken."] },
@@ -317,6 +318,10 @@ local function Specs(page)
     end
     if not Defaults() then return { { type = "Description", label = L["Raid tools haven't finished loading yet."] } } end
     local out = {}
+    if page.action then
+        out[#out + 1] = { type = "Header", label = L["Window"] }
+        out[#out + 1] = { type = "Button", label = page.action[1], func = page.action[2], style = "accent" }
+    end
     for _, section in ipairs(page.sections) do
         out[#out + 1] = { type = "Header", label = section[1] }
         for _, row in ipairs(section[2]) do
