@@ -387,10 +387,14 @@ ns.Slash:Register("bone", function()
     local ok, active, stacks, low, child = pcall(Read)
     if not ok then ns.Print("Bone Shield: Read error: " .. tostring(active)) return end
     local function T(v) return v == nil and "unknown" or tostring(v) end
-    ns.Print(("Bone Shield: active=%s stacks=%s low=%s cdmFrame=%s combat=%s aurasSecret=%s shown=%s enabled=%s"):format(
+    ns.Print(("Bone Shield: active=%s stacks=%s low=%s cdmFrame=%s ossuaryFrame=%s combat=%s aurasSecret=%s shown=%s enabled=%s style=%s"):format(
         T(active), ns.Secret.Is(stacks) and "secret" or T(stacks), T(low), child and "found" or "none",
+        ns.CDMMirror:Find(OSSUARY) and "found" or "none",
         tostring(InCombatLockdown()), tostring(C_Secrets.ShouldAurasBeSecret()),
-        tostring(frame and frame:IsShown()), tostring(M.enabled)))
+        tostring(frame and frame:IsShown()), tostring(M.enabled), tostring(M.db.boneShield.alertStyle)))
+    -- Also say a test line, so "is the voice working at all" is answered on the spot.
+    state.lastSound = 0
+    PlayWarning(L["Bone Shield low"])
 end, "Bone Shield diagnostics")
 
 function M:Refresh()
