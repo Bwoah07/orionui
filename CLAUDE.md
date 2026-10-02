@@ -762,7 +762,7 @@ Features Stig explicitly liked:
 
 **As built (2026-09-30), `Classes/DeathKnight/Blood.lua`:** Bone Shield icon styled like an EUI CDM icon (stacks on top,
 time left in the centre (2026-10-01), text drawn above the border; in combat the time is copied from the CDM icon's own countdown text, `CDMMirror:CopyCountdown`). Out of combat it reads the
-aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`), knows
+aura; in combat it mirrors the Cooldown Manager's stack text (`Classes/Framework/CDMMirror.lua`; the CDM icons stay tracked but are made invisible with `CDMMirror:Conceal`, setting "Hide … in the Cooldown Manager", 2026-10-02), knows
 up/down, and the engine plays drop/gain sounds via `AddAuraSound`. In-combat stack thresholds and a
 stack-driven Boiling Point bar are **not possible** under 12.x rules (verification log, 2026-09-30); the
 Boiling Point can't be tracked by the CDM at all; ours follows the Blood Boil highlight and our

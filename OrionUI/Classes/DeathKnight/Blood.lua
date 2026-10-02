@@ -28,7 +28,7 @@ local UPDATE_EVERY = 0.1
 
 local M = ns.Modules:New("BloodDK", {
     category = "tank", label = L["Blood Death Knight"],
-    desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its Tracked Bars (EllesmereUI doesn't show them unless you add them there)."],
+    desc = L["Bone Shield counter with warnings, and the Boiling Point proc. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs (OrionUI hides those icons for you)."],
     profileKey = "layout",
     loadWhen = { class = "DEATHKNIGHT", specID = 250 },
     schemaVersion = 8,
@@ -84,6 +84,8 @@ local M = ns.Modules:New("BloodDK", {
             fontSize = S.Number{ default = 16, min = 8, max = 40, step = 1, label = L["Stack count size"], order = 3 },
             showTime = S.Bool{ default = true, label = L["Show time left in the centre"], order = 3.5,
                 desc = L["In combat the time is copied from your Cooldown Manager's Bone Shield icon."] },
+            hideInCDM = S.Bool{ default = true, label = L["Hide Bone Shield and Ossuary in the Cooldown Manager"], order = 3.6,
+                desc = L["Keep both in your Cooldown Manager's tracked buffs: in combat the stack count can only be read from there. This makes those icons invisible so Bone Shield doesn't show twice. Put them at the end of the row so the empty spot doesn't show."] },
             lowWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Blink and play a sound below 5 stacks"], order = 4,
                 desc = L["Uses Ossuary (up at 5+ stacks) because the game hides the number in combat."] },
             expiryWarning = S.Bool{ section = L["Bone Shield warnings"], default = true, label = L["Warn before Bone Shield runs out"], order = 5 },
@@ -150,9 +152,15 @@ end
 -- Reads everything we are allowed to read right now.
 -- -> active (tri), stacks (number|nil), low (tri), child (CDM frame|nil)
 local BONE_SHIELD_SET = { [BONE_SHIELD] = true }
+local function Conceal(key, child)
+    if M.db.boneShield.hideInCDM and M.db.boneShield.show then ns.CDMMirror:Conceal(key, child) else ns.CDMMirror:Reveal(key) end
+end
+
 local function Read()
     if not C_Secrets.ShouldAurasBeSecret() then
-        ns.CDMMirror:Find(BONE_SHIELD_SET) -- out of combat: remember the CDM frame for later
+        -- Out of combat: remember the CDM frames for later (and hide them if asked).
+        Conceal("BoneShield", ns.CDMMirror:Find(BONE_SHIELD_SET))
+        Conceal("Ossuary", ns.CDMMirror:Find(OSSUARY))
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(BONE_SHIELD)
         if type(aura) == "nil" then return false, nil, nil end
         if ns.Secret.CanRead(aura) then
@@ -164,13 +172,14 @@ local function Read()
         end
     end
     local child = ns.CDMMirror:Find(BONE_SHIELD_SET)
+    Conceal("BoneShield", child)
     -- No CDM frame to mirror: fail open. In combat keep showing it on our cast clock.
     if not child then return (state.wasActive or InCombatLockdown()) and true or nil, nil, nil end
     local active = ns.CDMMirror:IsActive(child)
     local low
     if active then
         local oss = ns.CDMMirror:Find(OSSUARY)
-        if oss then low = not ns.CDMMirror:IsActive(oss) end
+        if oss then low = not ns.CDMMirror:IsActive(oss) Conceal("Ossuary", oss) end
     end
     return active, nil, low, child
 end
@@ -352,6 +361,8 @@ function M:OnDisable()
     for _, id in ipairs(soundIDs) do C_UnitAuras.RemoveAuraSound(id) end
     wipe(soundIDs)
     if frame then SetBlink(false) frame:Hide() end
+    ns.CDMMirror:Reveal("BoneShield")
+    ns.CDMMirror:Reveal("Ossuary")
     if ns.BoilingPoint then ns.BoilingPoint:Disable() end
 end
 

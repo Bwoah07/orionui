@@ -106,6 +106,45 @@ function Mirror:CopyCountdown(child, target)
     return true
 end
 
+-- Conceal: keep a CDM frame alive (so we can still copy its text) but invisible, for
+-- buffs we draw ourselves (Stig, 2026-10-02: Bone Shield once, not twice). Removing the buff
+-- from the Cooldown Manager would remove the frame and with it the in-combat stack count.
+-- Alpha only: the frame is not protected, and GetText still works at alpha 0. EllesmereUI
+-- sets alpha on its icons, so a hook puts it back to 0; the value can be secret (engine
+-- fades), so it is never compared.
+local concealed = {} -- key -> child
+local hooked = setmetatable({}, { __mode = "k" })
+
+local function Hook(child)
+    if hooked[child] then return end
+    hooked[child] = true
+    hooksecurefunc(child, "SetAlpha", function(self, a)
+        if not self.__ouiConcealed then return end
+        if ns.Secret.Is(a) or a ~= 0 then self:SetAlpha(0) end
+    end)
+end
+
+function Mirror:Conceal(key, child)
+    local old = concealed[key]
+    if old and old ~= child then self:Reveal(key) end
+    if not child then return end
+    concealed[key] = child
+    if not child.__ouiConcealed then
+        Hook(child)
+        child.__ouiConcealed = true
+        child:SetAlpha(0)
+    end
+end
+
+function Mirror:Reveal(key)
+    local child = concealed[key]
+    concealed[key] = nil
+    if child and child.__ouiConcealed then
+        child.__ouiConcealed = nil
+        child:SetAlpha(1)
+    end
+end
+
 function Mirror:Forget() wipe(infoCache) end
 
 ns.Events:On("COOLDOWN_VIEWER_DATA_LOADED", Mirror, function() Mirror:Forget() end)
