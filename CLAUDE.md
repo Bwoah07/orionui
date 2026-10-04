@@ -806,6 +806,15 @@ Wind (425782 charges) as segmented bars, the recharging segment drawn see-throug
 dividers. Blizzard's vigor display is faded with `UIWidgetPowerBarContainerFrame:SetAlpha(0)` only while the player can
 glide [VERIFY that this is where 12.x draws vigor]. By default it takes the essential cooldowns row's width and sits right under EUI's power bar (ERB_PrimaryBar; centred on the hidden row if there is none), since EUI hides that row while skyriding (Stig, 2026-10-01); the mover only applies with that off. Fake bars in edit mode and on Preview. Untested in game.
 
+**Built (2026-10-04), Stig asked for a "banger" loot window:** `Modules/Loot.lua` (Interface → Loot) replaces Blizzard's
+loot window and group loot roll frames with ours (quality-coloured names and icon borders, travelling glow + quality wash
+from epic by default, item level and slot under the name, Loot all button, open at saved spot or at the cursor). Blizzard's
+`LootFrame` gets LOOT_OPENED / LOOT_CLOSED unregistered while on. In 12.x START_LOOT_ROLL is routed by Blizzard_Game's
+EventRouting to `GroupLootContainer_AddRoll`, so Blizzard's roll frames still run; we only make GroupLootFrame1..4
+invisible and click-through (never touch GroupLootContainer: managed layout, taints) and draw our own from the same events.
+EUI's BlizzardSkin only reskins those frames, so nothing clashes. Bind/roll confirmation popups stay Blizzard's.
+Two movers (Loot window, Loot rolls); fakes in edit mode and on `/oui loot`. Untested in game.
+
 ### 8.6 RaidControll
 
 Stig's own existing addon. **Decided (2026-09-30):** its features (raid organization, splitting the raid
