@@ -814,10 +814,12 @@ EventRouting to `GroupLootContainer_AddRoll`, so Blizzard's roll frames still ru
 invisible and click-through (never touch GroupLootContainer: managed layout, taints) and draw our own from the same events.
 EUI's BlizzardSkin only reskins those frames, so nothing clashes. Bind/roll confirmation popups stay Blizzard's.
 Two movers (Loot window, Loot rolls); fakes in edit mode and on `/oui loot`. Untested in game.
-Stig confirmed the window works in game (2026-10-04). Same day: `Modules/LootHistory.lua` (Interface → Loot history), a fading
-feed ("+ [Item] x2", "+ 24g 61s", mover "Loot feed") and a list window (`/oui loothistory`, last 300 kept in
-`OrionUICharDB.lootHistory`). Entries come from cached loot slots + LOOT_SLOT_CLEARED, PLAYER_MONEY gains while loot is
-open, SHOW_LOOT_TOAST and LOOT_ITEM_ROLL_WON (deduped by link); no chat parsing (chat can be secret). Untested in game.
+Stig confirmed the window works in game (2026-10-04). Same day: `Modules/LootHistory.lua` (Interface → Loot history): small
+lines that pop up and fade ("Looted [Sword]", "Looted [Cloth] x4", "Looted 10g"), mover "Loot history", preview
+`/oui lootfeed`. Stig wants only the lines, no list window. Items/currencies come from CHAT_MSG_LOOT / CHAT_MSG_CURRENCY
+matched against Blizzard's "You receive loot/item/currency" strings (secret text is skipped); money from PLAYER_MONEY gains
+while loot is open (from LOOT_READY), just after it closes, or next to CHAT_MSG_MONEY. The first version cached loot slots
+on LOOT_OPENED and showed nothing for Stig: EUI's Quick Loot loots on LOOT_READY, before LOOT_OPENED. Untested in game.
 
 ### 8.6 RaidControll
 
