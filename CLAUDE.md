@@ -815,7 +815,7 @@ invisible and click-through (never touch GroupLootContainer: managed layout, tai
 EUI's BlizzardSkin only reskins those frames, so nothing clashes. Bind/roll confirmation popups stay Blizzard's.
 Two movers (Loot window, Loot rolls); fakes in edit mode and on `/oui loot`. Untested in game.
 Stig confirmed the window works in game (2026-10-04). Same day: `Modules/LootHistory.lua` (Interface → Loot history): small
-two-line cards that pop up and fade (name on top, "ilvl 678 · Chest" / "Trade Goods" under it; same width for all, epic+ taller with glow and sound; auction value of the stack on the right and every price in the item tooltip on mouseover, from TSM_API (dbmarket / dbregionmarketavg) or Auctionator.API.v1, vendor as fallback [VERIFY]; Stig picked these), mover "Loot history", preview
+two-line cards that pop up and fade (name on top, "ilvl 678 · Chest" / "Trade Goods" under it; same width for all, epic+ taller with glow and sound; auction value of the stack on the right and every price in the item tooltip on mouseover, from TSM_API (dbmarket / dbregionmarketavg) or Auctionator.API.v1, vendor as fallback [VERIFY]; a ping (AH ding by default) and gold glow when the stack is worth valuableGold+ on the AH, default 500g; Stig picked these), mover "Loot history", preview
 `/oui lootfeed`. Stig wants only the lines, no list window. Items/currencies come from CHAT_MSG_LOOT / CHAT_MSG_CURRENCY
 matched against Blizzard's "You receive loot/item/currency" strings (secret text is skipped); money from PLAYER_MONEY gains
 while loot is open (from LOOT_READY), just after it closes, or next to CHAT_MSG_MONEY. The first version cached loot slots

@@ -57,6 +57,11 @@ local M = ns.Modules:New("LootHistory", {
             valueLabels = { auto = L["Best available (TSM, then Auctionator, then vendor)"], tsm = L["TSM realm market"],
                 tsmRegion = L["TSM region average"], auctionator = L["Auctionator"], vendor = L["Vendor price"] },
             label = L["Value from"], order = 21 },
+        valuableGold = S.Number{ section = L["Prices"], default = 500, min = 0, max = 100000, step = 50, label = L["Ping for loot worth at least (gold, 0 = off)"], order = 23,
+            desc = L["Auction value of the stack (TSM or Auctionator, not vendor price), so bind-on-equip gear, rare mats and pets. The card also gets a gold glow."] },
+        valuableSound = S.Enum{ section = L["Prices"], default = "auction", values = { "auction", "coins", "epic" },
+            valueLabels = { auction = L["Auction house ding"], coins = L["Coins"], epic = L["Epic loot fanfare"] },
+            label = L["Ping sound"], order = 24 },
         tooltip = S.Bool{ section = L["Prices"], default = true, label = L["Item tooltip with all prices on mouseover"], order = 22,
             desc = L["Hovering a card also keeps it on screen. Cards take the mouse while this is on."] },
     } },
@@ -392,12 +397,34 @@ local function PaintText(line)
     line.sub:SetText(e.sub or "")
     if e.unit and M.db.showValue then
         line.value:SetText(ShortMoney(e.unit * e.count, subSize))
-        if e.vendor then line.value:SetTextColor(0.55, 0.55, 0.6) else line.value:SetTextColor(1, 1, 1) end
+        if e.vendor then
+            line.value:SetTextColor(0.55, 0.55, 0.6)
+        elseif e.pinged then
+            line.value:SetTextColor(1, 0.82, 0.3)
+        else
+            line.value:SetTextColor(1, 1, 1)
+        end
         line.value:Show()
     else
         line.value:Hide()
     end
     Fit(line)
+end
+
+-- Sound kits checked in wow-ui-source SoundKitConstants.lua (2026-10-04).
+local VALUABLE_SOUNDS = { auction = "AUCTION_WINDOW_OPEN", coins = "LOOT_WINDOW_COIN_SOUND", epic = "UI_EPICLOOT_TOAST" }
+
+-- Loot worth the set amount on the auction house (vendor prices don't count): a ping and a gold
+-- glow, once per card, also when a stack grows past it (Stig, 2026-10-04).
+local function CheckValuable(line, sticky)
+    local e, db = line.entry, M.db
+    if e.pinged or not e.unit or e.vendor or db.valuableGold <= 0 then return end
+    if e.unit * e.count < db.valuableGold * 10000 then return end
+    e.pinged = true
+    line.glow:Start(1, 0.82, 0.3, 1)
+    line.value:SetTextColor(1, 0.82, 0.3)
+    local id = SOUNDKIT and SOUNDKIT[VALUABLE_SOUNDS[db.valuableSound] or "AUCTION_WINDOW_OPEN"]
+    if id and not sticky then PlaySound(id) end
 end
 
 local function EpicSound(quality)
@@ -419,6 +446,7 @@ function M:Show(e, sticky)
         end
         PaintText(line)
         line.bump:Play()
+        CheckValuable(line, sticky)
         StartTimer(line, sticky)
         return
     end
@@ -445,6 +473,7 @@ function M:Show(e, sticky)
     line.fadeIn:Play()
     StartTimer(line, sticky)
     if big and not sticky then EpicSound(e.quality) end
+    CheckValuable(line, sticky)
 end
 
 -- "[Name]" -> "Name": the brackets read as clutter on a card (Stig, 2026-10-04). It stays a link.
