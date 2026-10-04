@@ -20,7 +20,6 @@ local Theme = ns.Theme
 local GetTime = GetTime
 local floor = math.floor
 
-local LINE_H = 20
 local MONEY_WINDOW = 1.5 -- seconds a money gain and a loot event may be apart
 
 local MIN_QUALITY = { poor = 0, common = 1, uncommon = 2, rare = 3, epic = 4 }
@@ -116,38 +115,57 @@ local function Match(text, patterns)
 end
 
 ---------------------------------------------------------------------------
--- Lines
+-- Lines: a small dark card per loot. Quality strip and wash on the left, icon with a quality
+-- border (travelling glow from epic), "Looted" in grey, the name in its quality colour without
+-- brackets, the count on the right. The same item (or more gold) while its line is up adds to
+-- that line instead of stacking a new one. Cards size to their text.
 ---------------------------------------------------------------------------
+
+local function LineHeight() return M.db.fontSize + 14 end
 
 local function NewLine()
     local line = CreateFrame("Frame", nil, anchor)
-    line.bg = line:CreateTexture(nil, "BACKGROUND")
-    line.bg:SetAllPoints()
-    line.bg:SetColorTexture(1, 1, 1, 1)
-    line.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.7), CreateColor(0, 0, 0, 0))
+    Theme:Skin(line, { 0.067, 0.067, 0.082, 0.9 }, Theme.colors.border)
+    line.wash = line:CreateTexture(nil, "BACKGROUND", nil, 1)
+    line.wash:SetPoint("TOPLEFT", 1, -1)
+    line.wash:SetPoint("BOTTOMRIGHT", -1, 1)
+    line.wash:SetColorTexture(1, 1, 1, 1)
     line.strip = line:CreateTexture(nil, "BORDER")
-    line.strip:SetPoint("TOPLEFT")
-    line.strip:SetPoint("BOTTOMLEFT")
+    line.strip:SetPoint("TOPLEFT", 1, -1)
+    line.strip:SetPoint("BOTTOMLEFT", 1, 1)
     line.strip:SetWidth(2)
     line.iconBox = CreateFrame("Frame", nil, line)
-    line.iconBox:SetSize(LINE_H - 2, LINE_H - 2)
-    line.iconBox:SetPoint("LEFT", 5, 0)
+    line.iconBox:SetPoint("LEFT", 6, 0)
     Theme:Skin(line.iconBox, { 0, 0, 0, 1 }, Theme.colors.border)
     line.icon = line.iconBox:CreateTexture(nil, "ARTWORK")
     line.icon:SetPoint("TOPLEFT", 1, -1)
     line.icon:SetPoint("BOTTOMRIGHT", -1, 1)
     line.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    line.text = line:CreateFontString(nil, "OVERLAY")
-    line.text:SetPoint("LEFT", line.iconBox, "RIGHT", 6, 0)
-    line.text:SetPoint("RIGHT", -4, 0)
-    line.text:SetJustifyH("LEFT")
+    line.glow = ns.PixelGlow:New(line.iconBox, { lines = 5, thickness = 1, period = 3.5, pad = 1 })
+    line.label = Theme:Text(line, 11, Theme.colors.muted)
+    line.label:SetPoint("LEFT", line.iconBox, "RIGHT", 7, 0)
+    line.label:SetWordWrap(false)
+    line.text = Theme:Text(line, 12)
+    line.text:SetPoint("LEFT", line.label, "RIGHT", 4, 0)
     line.text:SetWordWrap(false)
+    line.count = Theme:Text(line, 12)
+    line.count:SetPoint("RIGHT", -8, 0)
+    line.count:SetJustifyH("RIGHT")
+    -- In: slide 12px from the left while fading in. Out: fade.
     line.fadeIn = line:CreateAnimationGroup()
+    local t0 = line.fadeIn:CreateAnimation("Translation")
+    t0:SetOffset(-12, 0); t0:SetDuration(0); t0:SetOrder(1)
+    local t1 = line.fadeIn:CreateAnimation("Translation")
+    t1:SetOffset(12, 0); t1:SetDuration(0.2); t1:SetOrder(2); t1:SetSmoothing("OUT")
     local a = line.fadeIn:CreateAnimation("Alpha")
-    a:SetFromAlpha(0); a:SetToAlpha(1); a:SetDuration(0.15)
+    a:SetFromAlpha(0); a:SetToAlpha(1); a:SetDuration(0.18); a:SetOrder(2)
+    -- Bump: the count pops when more of the same is looted.
+    line.bump = line.count:CreateAnimationGroup()
+    local s = line.bump:CreateAnimation("Scale")
+    s:SetScaleFrom(1.4, 1.4); s:SetScaleTo(1, 1); s:SetDuration(0.2); s:SetSmoothing("OUT")
     line.fadeOut = line:CreateAnimationGroup()
     local b = line.fadeOut:CreateAnimation("Alpha")
-    b:SetFromAlpha(1); b:SetToAlpha(0); b:SetDuration(0.6)
+    b:SetFromAlpha(1); b:SetToAlpha(0); b:SetDuration(0.5)
     line.fadeOut:SetScript("OnFinished", function() M:RemoveLine(line) end)
     return line
 end
@@ -161,18 +179,34 @@ local function GetLine()
     return line
 end
 
+-- Fonts, sizes and the card's width for its current text.
+local function Fit(line)
+    local db = M.db
+    local h = LineHeight()
+    local font = Theme:Font()
+    line.label:SetFont(font, db.fontSize - 1, "")
+    line.text:SetFont(font, db.fontSize, "")
+    line.count:SetFont(font, db.fontSize, "OUTLINE")
+    line.iconBox:SetSize(h - 6, h - 6)
+    local labelW = line.label:GetUnboundedStringWidth()
+    local countW = line.count:IsShown() and (line.count:GetUnboundedStringWidth() + 10) or 0
+    local fixed = 6 + (h - 6) + 7 + labelW + 4 + 10 + countW
+    line.text:SetWidth(math.min(line.text:GetUnboundedStringWidth() + 2, math.max(40, db.feedWidth - fixed)))
+    line:SetSize(math.min(db.feedWidth, fixed + line.text:GetWidth()), h)
+end
+
 function M:Layout()
     local db = self.db
-    anchor:SetSize(db.feedWidth, LINE_H)
+    local h = LineHeight()
+    anchor:SetSize(db.feedWidth, h)
     local n = #active
     for i, line in ipairs(active) do
         line:ClearAllPoints()
-        line:SetSize(db.feedWidth, LINE_H)
         local fromNewest = n - i -- active is oldest first; the newest sits on the anchor
         if db.feedGrowUp then
-            line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", 0, fromNewest * (LINE_H + 2))
+            line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", 0, fromNewest * (h + 3))
         else
-            line:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -fromNewest * (LINE_H + 2))
+            line:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -fromNewest * (h + 3))
         end
     end
 end
@@ -180,60 +214,103 @@ end
 function M:RemoveLine(line)
     if line.timer then line.timer:Cancel(); line.timer = nil end
     line.fadeOut:Stop()
+    line.glow:Stop()
     line:Hide()
-    line.inUse = false
+    line.inUse, line.key = false, nil
     for i, l in ipairs(active) do
         if l == line then table.remove(active, i) break end
     end
     self:Layout()
 end
 
--- Shows one line. text is already coloured; r, g, b colour the icon border and side strip.
-function M:Show(icon, text, r, g, b, sticky)
-    if not anchor then return end
-    local db = self.db
-    while #active >= db.feedLines do self:RemoveLine(active[1]) end
-    local line = GetLine()
-    line.inUse = true
-    line.text:SetFont(Theme:Font(), db.fontSize, "OUTLINE")
-    line.text:SetText(text)
-    line.icon:SetTexture(icon or 134400)
-    Theme:SetBorderColor(line.iconBox, r, g, b, 1)
-    line.strip:SetColorTexture(r, g, b, 1)
-    active[#active + 1] = line
-    self:Layout()
+local function StartTimer(line, sticky)
+    if line.timer then line.timer:Cancel(); line.timer = nil end
+    line.fadeOut:Stop()
     line:SetAlpha(1)
-    line:Show()
-    line.fadeIn:Play()
-    if not sticky then
-        line.timer = C_Timer.NewTimer(db.feedDuration, function()
-            line.timer = nil
-            line.fadeOut:Play()
-        end)
+    if sticky then return end
+    line.timer = C_Timer.NewTimer(M.db.feedDuration, function()
+        line.timer = nil
+        line.fadeOut:Play()
+    end)
+end
+
+local function FindLine(key)
+    for _, line in ipairs(active) do
+        if line.key == key then return line end
     end
 end
 
-local function Looted(what) return string.format(L["Looted %s"], what) end
+-- Paints the name and count of a line from its entry.
+local function PaintText(line)
+    local e = line.entry
+    if e.copper then
+        line.text:SetText(MoneyText(e.copper, M.db.fontSize))
+        line.count:Hide()
+    else
+        line.text:SetText(e.name)
+        line.count:SetText("x" .. e.count)
+        line.count:SetShown(e.count > 1)
+    end
+    Fit(line)
+end
 
-local function CountSuffix(count) return (count and count > 1) and ("|cffffffff x" .. count .. "|r") or "" end
+-- e = { key, icon, name (coloured), count, quality, r, g, b } or { key = "money", copper, ... }.
+function M:Show(e, sticky)
+    if not anchor then return end
+    local line = FindLine(e.key)
+    if line then
+        if e.copper then
+            line.entry.copper = line.entry.copper + e.copper
+        else
+            line.entry.count = line.entry.count + (e.count or 1)
+        end
+        PaintText(line)
+        line.bump:Play()
+        StartTimer(line, sticky)
+        return
+    end
+    local db = self.db
+    while #active >= db.feedLines do self:RemoveLine(active[1]) end
+    line = GetLine()
+    line.inUse, line.key = true, e.key
+    line.entry = { copper = e.copper, name = e.name, count = e.count or 1 }
+    local r, g, b = e.r, e.g, e.b
+    line.icon:SetTexture(e.icon or 134400)
+    line.label:SetText(L["Looted"])
+    Theme:SetBorderColor(line.iconBox, r, g, b, 1)
+    line.strip:SetColorTexture(r, g, b, 1)
+    line.wash:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0.18), CreateColor(r, g, b, 0))
+    line.count:SetTextColor(1, 1, 1)
+    PaintText(line)
+    if (Plain(e.quality, 0) or 0) >= 4 then line.glow:Start(r, g, b, 0.9) else line.glow:Stop() end
+    active[#active + 1] = line
+    self:Layout()
+    line:Show()
+    line.fadeIn:Play()
+    StartTimer(line, sticky)
+end
+
+-- "[Name]" -> "Name": the brackets read as clutter on a card (Stig, 2026-10-04). It stays a link.
+local function NoBrackets(link) return (link:gsub("|h%[(.-)%]|h", "|h%1|h")) end
 
 function M:ShowItem(link, count, sticky)
     local _, _, _, _, icon = C_Item.GetItemInfoInstant(link)
     local quality = C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(link)
     if (Plain(quality, 1) or 1) < (MIN_QUALITY[self.db.minQuality] or 0) then return end
     local r, g, b = QualityColor(quality)
-    self:Show(icon, Looted(link .. CountSuffix(count)), r, g, b, sticky)
+    self:Show({ key = link, icon = icon, name = NoBrackets(link), count = count, quality = quality, r = r, g = g, b = b }, sticky)
 end
 
 function M:ShowCurrency(link, count, sticky)
     local info = C_CurrencyInfo.GetCurrencyInfoFromLink(link)
-    local r, g, b = QualityColor(info and info.quality)
-    self:Show(info and info.iconFileID, Looted(link .. CountSuffix(count)), r, g, b, sticky)
+    local quality = info and info.quality
+    local r, g, b = QualityColor(quality)
+    self:Show({ key = link, icon = info and info.iconFileID, name = NoBrackets(link), count = count, quality = quality, r = r, g = g, b = b }, sticky)
 end
 
 function M:ShowMoney(copper, sticky)
     if not self.db.money then return end
-    self:Show(133784, Looted(MoneyText(copper, self.db.fontSize)), 1, 0.85, 0.35, sticky)
+    self:Show({ key = "money", icon = 133784, copper = copper, r = 1, g = 0.82, b = 0.3 }, sticky)
 end
 
 ---------------------------------------------------------------------------
@@ -292,18 +369,18 @@ function M:Preview(sticky)
     ClearLines()
     local function Fake(name, quality, icon, count)
         local r, g, b = QualityColor(quality)
-        local text = string.format("|cff%02x%02x%02x[%s]|r", floor(r * 255), floor(g * 255), floor(b * 255), name)
-        self:Show(icon, Looted(text .. CountSuffix(count)), r, g, b, sticky)
+        local text = string.format("|cff%02x%02x%02x%s|r", floor(r * 255), floor(g * 255), floor(b * 255), name)
+        self:Show({ key = name, icon = icon, name = text, count = count, quality = quality, r = r, g = g, b = b }, sticky)
     end
     Fake("Starforged Cleaver of Orion", 4, 135349)
-    Fake("Runecloth", 1, 132903, 4)
+    Fake("Stringy Wolf Meat", 1, 133970, 4)
     Fake("Valorstones", 3, 5868902, 25)
-    self:Show(133784, Looted(MoneyText(102500, self.db.fontSize)), 1, 0.85, 0.35, sticky)
+    self:ShowMoney(102500, sticky)
 end
 
 function M:Refresh()
     if not anchor then return end
-    for _, line in ipairs(active) do line.text:SetFont(Theme:Font(), self.db.fontSize, "OUTLINE") end
+    for _, line in ipairs(active) do PaintText(line) end
     self:Layout()
 end
 
@@ -311,7 +388,7 @@ function M:OnEnable()
     if not anchor then
         anchor = CreateFrame("Frame", nil, UIParent)
         anchor:SetFrameStrata("MEDIUM")
-        anchor:SetSize(self.db.feedWidth, LINE_H)
+        anchor:SetSize(self.db.feedWidth, LineHeight())
         ns.Movers:Register("LootFeed", { label = L["Loot history"], getFrame = function() return anchor end, default = { x = 420, y = -160 } })
     end
     if not ITEM_PATTERNS then BuildPatterns() end
