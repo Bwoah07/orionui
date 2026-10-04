@@ -362,11 +362,11 @@ local function ItemSub(link, classID, itemType, itemSubType, equipLoc)
 end
 
 function M:ShowItem(link, count, sticky)
-    local _, itemType, itemSubType, equipLoc, icon, classID = C_Item.GetItemInfoInstant(link)
+    local itemID, itemType, itemSubType, equipLoc, icon, classID = C_Item.GetItemInfoInstant(link)
     local quality = C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(link)
     if (Plain(quality, 1) or 1) < (MIN_QUALITY[self.db.minQuality] or 0) then return end
     local r, g, b = QualityColor(quality)
-    self:Show({ key = link, icon = icon, name = NoBrackets(link), sub = ItemSub(link, classID, itemType, itemSubType, equipLoc),
+    self:Show({ key = itemID and ("item:" .. itemID) or link, icon = icon, name = NoBrackets(link), sub = ItemSub(link, classID, itemType, itemSubType, equipLoc),
         count = count, quality = quality, r = r, g = g, b = b }, sticky)
 end
 
@@ -374,7 +374,7 @@ function M:ShowCurrency(link, count, sticky)
     local info = C_CurrencyInfo.GetCurrencyInfoFromLink(link)
     local quality = info and info.quality
     local r, g, b = QualityColor(quality)
-    self:Show({ key = link, icon = info and info.iconFileID, name = NoBrackets(link), sub = L["Currency"], currency = true,
+    self:Show({ key = link:match("currency:(%d+)") or link, icon = info and info.iconFileID, name = NoBrackets(link), sub = L["Currency"], currency = true,
         count = count, quality = quality, r = r, g = g, b = b }, sticky)
 end
 
