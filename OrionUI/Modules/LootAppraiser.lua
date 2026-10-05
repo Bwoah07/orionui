@@ -108,9 +108,9 @@ local function RowOnEnter(row)
     if #prices > 0 then
         local r, g, b = Theme:Accent()
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(string.format(L["%s value (x%d)"], ns.NAME, row.count), r, g, b)
+        GameTooltip:AddLine(string.format(L["%s value (x%d)"], ns.NAME, row.qty), r, g, b)
         for _, p in ipairs(prices) do
-            GameTooltip:AddDoubleLine(p.label, P().MoneyText(p.copper * row.count, 12) .. "  |cff8a8a99("
+            GameTooltip:AddDoubleLine(p.label, P().MoneyText(p.copper * row.qty, 12) .. "  |cff8a8a99("
                 .. P().MoneyText(p.copper, 10) .. ")|r", 0.8, 0.8, 0.85, 1, 1, 1)
         end
     end
@@ -199,7 +199,7 @@ function M:Fill()
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", win.list, "TOPLEFT", 0, -(i - 1) * ROW_H)
         row:SetPoint("RIGHT", win.list, "RIGHT", 0, 0)
-        row.link, row.count = e.link, e.count
+        row.link, row.qty = e.link, e.count
         local _, _, _, _, icon = C_Item.GetItemInfoInstant(e.link)
         row.icon:SetTexture(icon or 134400)
         Theme:SetBorderColor(row.iconBox, P().QualityColor(e.quality))
