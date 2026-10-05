@@ -823,7 +823,9 @@ while loot is open (from LOOT_READY), just after it closes, or next to CHAT_MSG_
 on LOOT_OPENED and showed nothing for Stig: EUI's Quick Loot loots on LOOT_READY, before LOOT_OPENED. Untested in game.
 `Modules/LootAppraiser.lua` (2026-10-05, Stig): `/oui appraiser` or `/oui la` opens a window with everything looted since the last
 reset (session in `OrionUICharDB.lootAppraiser`, survives reloads): gold looted, AH item value, total, gold per hour, items sorted by
-value with prices read live from `ns.LootPrices` (shared from LootHistory). Needs Loot history on. Untested in game.
+value with prices read live from `ns.LootPrices` (shared from LootHistory). Needs Loot history on. Since the same day: themes
+(OrionUI, Gold, Midnight, Emerald, Glass), background opacity, lock, "only list items worth X gold+", remembers its spot, and it
+reopens after loading screens / reloads if it was open (Stig: it closed on entering dungeons). Untested in game.
 
 ### 8.6 RaidControll
 

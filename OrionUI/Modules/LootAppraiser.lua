@@ -22,8 +22,18 @@ local M = ns.Modules:New("LootAppraiser", {
     desc = L["A window with everything you looted since the last reset and what it is worth on the auction house. Open it with /oui appraiser (or /oui la). Needs Loot history on; prices from TradeSkillMaster or Auctionator."],
     profileKey = "layout",
     schema = S.Table{ fields = {
-        scale = S.Number{ default = 1, min = 0.6, max = 1.6, step = 0.05, label = L["Window scale"], order = 1 },
-        hideJunk = S.Bool{ default = false, label = L["Leave grey items out of the list"], order = 2 },
+        -- Look
+        theme = S.Enum{ section = L["Look"], default = "orion", values = { "orion", "gold", "midnight", "emerald", "glass" },
+            valueLabels = { orion = L["OrionUI (dark, blue)"], gold = L["Gold"], midnight = L["Midnight (navy, violet)"],
+                emerald = L["Emerald"], glass = L["Glass (see-through, white)"] },
+            label = L["Theme"], order = 1 },
+        opacity = S.Number{ section = L["Look"], default = 0.95, min = 0.2, max = 1, step = 0.05, label = L["Background opacity"], order = 2 },
+        scale = S.Number{ section = L["Look"], default = 1, min = 0.6, max = 1.6, step = 0.05, label = L["Window scale"], order = 3 },
+        lock = S.Bool{ section = L["Look"], default = false, label = L["Lock the window in place"], order = 4 },
+        -- List
+        minValue = S.Number{ section = L["List"], default = 0, min = 0, max = 10000, step = 5, label = L["Only list items worth at least (gold, 0 = all)"], order = 10,
+            desc = L["Value of the whole stack. Hidden items still count in the totals."] },
+        hideJunk = S.Bool{ section = L["List"], default = false, label = L["Leave grey items out of the list"], order = 11 },
     } },
     options = function(self)
         return {
@@ -35,8 +45,33 @@ local M = ns.Modules:New("LootAppraiser", {
 
 local win, rows = nil, {}
 local ticker
+local loading, pendingClose = false, false
 
 local function P() return ns.LootPrices end
+
+-- Themes: background, stat boxes, border, accent (nil = OrionUI's accent). Opacity scales the
+-- background and the boxes.
+local THEMES = {
+    orion    = { bg = { 0.067, 0.067, 0.082 }, card = { 0.094, 0.094, 0.114 }, border = { 0, 0, 0 } },
+    gold     = { bg = { 0.07, 0.06, 0.04 }, card = { 0.11, 0.095, 0.06 }, border = { 0.28, 0.22, 0.08 }, accent = { 1, 0.78, 0.3 } },
+    midnight = { bg = { 0.04, 0.05, 0.10 }, card = { 0.07, 0.08, 0.16 }, border = { 0.13, 0.15, 0.3 }, accent = { 0.6, 0.5, 1 } },
+    emerald  = { bg = { 0.035, 0.07, 0.055 }, card = { 0.055, 0.11, 0.085 }, border = { 0.08, 0.22, 0.15 }, accent = { 0.3, 0.88, 0.58 } },
+    glass    = { bg = { 0, 0, 0 }, card = { 1, 1, 1 }, cardAlpha = 0.05, bgAlpha = 0.55, border = { 1, 1, 1, 0.1 }, accent = { 1, 1, 1 } },
+}
+
+local function ThemeData()
+    local t = THEMES[M.db.theme] or THEMES.orion
+    local ar, ag, ab
+    if t.accent then ar, ag, ab = t.accent[1], t.accent[2], t.accent[3] else ar, ag, ab = Theme:Accent() end
+    return t, ar, ag, ab
+end
+
+-- Window state per character, kept apart from the session so Reset doesn't move the window.
+local function WinState()
+    local char = ns.DB.char
+    char.lootAppraiserWindow = char.lootAppraiserWindow or {}
+    return char.lootAppraiserWindow
+end
 
 local function Session()
     local char = ns.DB.char
@@ -170,31 +205,35 @@ local function Row(i)
 end
 
 -- Prices are looked up now, so the list follows the latest TSM / Auctionator data.
+-- Returns the shown list plus totals over everything (hidden rows still count in the totals).
 local function Entries()
     local s, list = Session(), {}
+    local ah, vendorTotal, hidden = 0, 0, 0
+    local minCopper = M.db.minValue * 10000
     for _, e in pairs(s.items) do
         local quality = C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(e.link)
         quality = ns.Secret.Plain(quality, 1) or 1
-        if not (M.db.hideJunk and quality == 0) then
-            local unit, vendor = P().Card(e.link)
-            list[#list + 1] = { link = e.link, count = e.count, quality = quality, unit = unit, vendor = vendor,
-                total = (unit or 0) * e.count }
+        local unit, vendor = P().Card(e.link)
+        local total = (unit or 0) * e.count
+        if vendor then vendorTotal = vendorTotal + total else ah = ah + total end
+        if (M.db.hideJunk and quality == 0) or total < minCopper then
+            hidden = hidden + 1
+        else
+            list[#list + 1] = { link = e.link, count = e.count, quality = quality, unit = unit, vendor = vendor, total = total }
         end
     end
     table.sort(list, function(a, b)
         if a.total ~= b.total then return a.total > b.total end
         return a.count > b.count
     end)
-    return list
+    return list, ah, vendorTotal, hidden
 end
 
 function M:Fill()
     if not win then return end
     local s = Session()
-    local list = Entries()
-    local ah, vendorTotal = 0, 0
+    local list, ah, vendorTotal, hidden = Entries()
     for i, e in ipairs(list) do
-        if e.vendor then vendorTotal = vendorTotal + e.total else ah = ah + e.total end
         local row = Row(i)
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", win.list, "TOPLEFT", 0, -(i - 1) * ROW_H)
@@ -229,22 +268,53 @@ function M:Fill()
     win.stats.hour.value:SetText(seconds >= 60 and P().MoneyText(floor(perHour / 10000) * 10000, 13) or "|cff666670-|r")
     win.hint:SetText(string.format(L["Since %s · %s · prices: %s"], date("%d.%m %H:%M", s.started), Duration(seconds),
         P().SourceLabel()))
-    win.vendorNote:SetText(vendorTotal > 0 and string.format(L["Vendor value (grey, not in Item value): %s"],
-        P().MoneyText(vendorTotal, 11)) or "")
+    local notes = {}
+    if vendorTotal > 0 then
+        notes[#notes + 1] = string.format(L["Vendor value (grey, not in Item value): %s"], P().MoneyText(vendorTotal, 11))
+    end
+    if hidden > 0 then notes[#notes + 1] = string.format(L["%d hidden by filters"], hidden) end
+    win.vendorNote:SetText(table.concat(notes, "  ·  "))
+end
+
+-- Colours and opacity from the chosen theme.
+function M:ApplyTheme()
+    if not win then return end
+    local t, r, g, b = ThemeData()
+    local a = self.db.opacity
+    local bgA = (t.bgAlpha or 1) * a
+    local cardA = (t.cardAlpha or 1) * math.min(1, a + 0.05)
+    local border = t.border
+    Theme:Skin(win, { t.bg[1], t.bg[2], t.bg[3], bgA }, border)
+    for _, box in pairs(win.stats) do
+        Theme:Skin(box, { t.card[1], t.card[2], t.card[3], cardA }, border)
+    end
+    win.title:SetTextColor(r, g, b)
+    win.stats.total.value:SetTextColor(r, g, b)
+    win.line:SetColorTexture(r, g, b, 0.8)
+    win:SetMovable(not self.db.lock)
 end
 
 local function Create()
     win = CreateFrame("Frame", "OrionUILootAppraiser", UIParent) -- global name: Esc closes via UISpecialFrames
     win:SetSize(WIDTH, HEIGHT)
-    win:SetPoint("CENTER", 240, 0)
+    local pos = WinState().pos
+    if pos then
+        win:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
+    else
+        win:SetPoint("CENTER", 240, 0)
+    end
     win:SetFrameStrata("DIALOG")
     win:SetToplevel(true)
     win:EnableMouse(true)
     win:SetMovable(true)
     win:SetClampedToScreen(true)
     win:RegisterForDrag("LeftButton")
-    win:SetScript("OnDragStart", win.StartMoving)
-    win:SetScript("OnDragStop", win.StopMovingOrSizing)
+    win:SetScript("OnDragStart", function(self) if self:IsMovable() then self:StartMoving() end end)
+    win:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, relPoint, x, y = self:GetPoint()
+        WinState().pos = { point, relPoint, floor(x + 0.5), floor(y + 0.5) }
+    end)
     win:Hide()
     tinsert(UISpecialFrames, "OrionUILootAppraiser")
     Theme:Skin(win, Theme.colors.bg, Theme.colors.border)
@@ -275,11 +345,11 @@ local function Create()
     end
     win.stats.total.value:SetTextColor(r, g, b)
 
-    local line = win:CreateTexture(nil, "BORDER")
-    line:SetPoint("TOPLEFT", 14, -106)
-    line:SetPoint("TOPRIGHT", -14, -106)
-    line:SetHeight(1)
-    line:SetColorTexture(r, g, b, 0.8)
+    win.line = win:CreateTexture(nil, "BORDER")
+    win.line:SetPoint("TOPLEFT", 14, -106)
+    win.line:SetPoint("TOPRIGHT", -14, -106)
+    win.line:SetHeight(1)
+    win.line:SetColorTexture(r, g, b, 0.8)
 
     win.scroll = Theme:Scroll(win)
     win.scroll:SetPoint("TOPLEFT", 14, -112)
@@ -317,12 +387,23 @@ local function Create()
     end)
 
     win:SetScript("OnShow", function()
+        pendingClose = false
+        WinState().open = true
         if ticker then ticker:Cancel() end
         ticker = C_Timer.NewTicker(15, function() M:Fill() end) -- time and per hour move on
     end)
+    -- Zoning into an instance closed it (Stig, 2026-10-05; most likely the game closing
+    -- Escape-closable windows around the loading screen, not confirmed). A hide only counts as
+    -- "closed" if no loading screen started around it; otherwise the window opens again after it.
     win:SetScript("OnHide", function()
         if ticker then ticker:Cancel(); ticker = nil end
+        pendingClose = true
+        C_Timer.After(0.5, function()
+            if pendingClose and not loading then WinState().open = false end
+            pendingClose = false
+        end)
     end)
+    M:ApplyTheme()
 end
 
 function M:Toggle(show)
@@ -342,13 +423,23 @@ end
 function M:Refresh()
     if win then
         win:SetScale(self.db.scale)
+        self:ApplyTheme()
         if win:IsShown() then self:Fill() end
     end
+end
+
+-- Opens the window again after a loading screen or a reload if it was open before.
+local function Restore()
+    loading = false
+    if WinState().open and not (win and win:IsShown()) then M:Toggle(true) end
 end
 
 function M:OnEnable()
     ns.Events:On("OUI_LOOT_ITEM", self, OnItem)
     ns.Events:On("OUI_LOOT_MONEY", self, OnMoney)
+    ns.Events:On("LOADING_SCREEN_ENABLED", self, function() loading = true end)
+    ns.Events:On("LOADING_SCREEN_DISABLED", self, Restore)
+    ns.Events:On("PLAYER_ENTERING_WORLD", self, Restore)
 end
 
 function M:OnDisable()
