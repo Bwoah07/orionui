@@ -295,7 +295,9 @@ function M:ApplyTheme()
 end
 
 local function Create()
-    win = CreateFrame("Frame", "OrionUILootAppraiser", UIParent) -- global name: Esc closes via UISpecialFrames
+    -- No global name and not in UISpecialFrames: Escape must not close it, it stays up while you
+    -- farm (Stig, 2026-10-05). Only x and /oui la close it.
+    win = CreateFrame("Frame", nil, UIParent)
     win:SetSize(WIDTH, HEIGHT)
     local pos = WinState().pos
     if pos then
@@ -316,7 +318,6 @@ local function Create()
         WinState().pos = { point, relPoint, floor(x + 0.5), floor(y + 0.5) }
     end)
     win:Hide()
-    tinsert(UISpecialFrames, "OrionUILootAppraiser")
     Theme:Skin(win, Theme.colors.bg, Theme.colors.border)
     Theme:Shadow(win)
 

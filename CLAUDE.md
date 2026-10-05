@@ -825,7 +825,7 @@ on LOOT_OPENED and showed nothing for Stig: EUI's Quick Loot loots on LOOT_READY
 reset (session in `OrionUICharDB.lootAppraiser`, survives reloads): gold looted, AH item value, total, gold per hour, items sorted by
 value with prices read live from `ns.LootPrices` (shared from LootHistory). Needs Loot history on. Since the same day: themes
 (OrionUI, Gold, Midnight, Emerald, Glass), background opacity, lock, "only list items worth X gold+", remembers its spot, and it
-reopens after loading screens / reloads if it was open (Stig: it closed on entering dungeons). Untested in game.
+reopens after loading screens / reloads if it was open (Stig: it closed on entering dungeons). Escape does not close it (Stig: it stays up in a corner while farming). Untested in game.
 
 ### 8.6 RaidControll
 
