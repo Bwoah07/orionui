@@ -95,6 +95,7 @@ Modules\HudStack.lua
 Modules\Skyriding.lua
 Modules\Loot.lua
 Modules\LootHistory.lua
+Modules\LootAppraiser.lua
 
 # RaidControl (Stig's own addon, built in; no notes, no settings windows)
 RaidControl\Locales\enUS.lua

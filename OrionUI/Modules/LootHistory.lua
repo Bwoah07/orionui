@@ -183,6 +183,19 @@ local function CardPrice(link)
 end
 
 -- Rounded so the card stays short: whole gold from 1g, whole silver below.
+-- Shared with the loot appraiser.
+ns.LootPrices = {
+    All = function(link) return AllPrices(link) end,
+    Card = function(link) return CardPrice(link) end,
+    QualityColor = QualityColor,
+    MoneyText = MoneyText,
+}
+ns.LootPrices.SourceLabel = function()
+    local labels = { auto = L["Best available"], tsm = L["TSM realm market"], tsmRegion = L["TSM region average"],
+        auctionator = L["Auctionator"], vendor = L["Vendor price"] }
+    return labels[M.db.priceSource] or labels.auto
+end
+
 local function ShortMoney(copper, size)
     if copper >= 10000 then copper = floor(copper / 10000) * 10000
     elseif copper >= 100 then copper = floor(copper / 100) * 100 end
@@ -522,9 +535,13 @@ end
 -- Events
 ---------------------------------------------------------------------------
 
+-- OUI_LOOT_ITEM / OUI_LOOT_MONEY go out for every loot, whatever the card filters say, so the
+-- loot appraiser (Modules/LootAppraiser.lua) counts everything.
 local function OnLoot(_, _, text)
     local link, count = Match(text, ITEM_PATTERNS)
-    if link then M:ShowItem(link, count) end
+    if not link then return end
+    ns.Events:Fire("OUI_LOOT_ITEM", link, count)
+    M:ShowItem(link, count)
 end
 
 local function OnCurrency(_, _, text)
@@ -537,6 +554,11 @@ local function MoneyFromLoot(now)
     return lootOpen or now - closedAt < MONEY_WINDOW or now - moneyMsgAt < MONEY_WINDOW
 end
 
+local function LootedMoney(copper)
+    ns.Events:Fire("OUI_LOOT_MONEY", copper)
+    M:ShowMoney(copper)
+end
+
 local function OnMoney()
     local money = GetMoney()
     local delta = lastMoney and (money - lastMoney) or 0
@@ -544,7 +566,7 @@ local function OnMoney()
     if delta <= 0 then return end
     local now = GetTime()
     if MoneyFromLoot(now) then
-        M:ShowMoney(delta)
+        LootedMoney(delta)
     else
         -- The money message may come right after the gold itself.
         pendingMoney, pendingAt = delta, now
@@ -554,7 +576,7 @@ end
 local function OnMoneyMessage()
     local now = GetTime()
     moneyMsgAt = now
-    if pendingMoney > 0 and now - pendingAt < MONEY_WINDOW then M:ShowMoney(pendingMoney) end
+    if pendingMoney > 0 and now - pendingAt < MONEY_WINDOW then LootedMoney(pendingMoney) end
     pendingMoney = 0
 end
 

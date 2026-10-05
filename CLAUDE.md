@@ -424,6 +424,7 @@ Internal messages are prefixed `OUI_`. Canonical internal messages (keep this li
 | `OUI_MECHANIC_TEST` | — | BossModBridge (`/oui test reminder`) |
 | `OUI_REMINDER_SHOW` / `OUI_REMINDER_HIDE` | `Reminder` | Scheduler |
 | `OUI_EDIT_MODE` | `shown` | EditMode (RaidControl's layout mode follows it) |
+| `OUI_LOOT_ITEM` / `OUI_LOOT_MONEY` | `link, count` / `copper` | LootHistory (every loot, before card filters; LootAppraiser records them) |
 
 Handlers are called via `SafeCall`. Bursty events (e.g. `UNIT_AURA`, nameplate events) should
 be **coalesced** with a next-frame flush helper `ns.Events:Coalesce(key, fn)`.
@@ -820,6 +821,9 @@ two-line cards that pop up and fade (name on top, "ilvl 678 · Chest" / "Trade G
 matched against Blizzard's "You receive loot/item/currency" strings (secret text is skipped); money from PLAYER_MONEY gains
 while loot is open (from LOOT_READY), just after it closes, or next to CHAT_MSG_MONEY. The first version cached loot slots
 on LOOT_OPENED and showed nothing for Stig: EUI's Quick Loot loots on LOOT_READY, before LOOT_OPENED. Untested in game.
+`Modules/LootAppraiser.lua` (2026-10-05, Stig): `/oui appraiser` or `/oui la` opens a window with everything looted since the last
+reset (session in `OrionUICharDB.lootAppraiser`, survives reloads): gold looted, AH item value, total, gold per hour, items sorted by
+value with prices read live from `ns.LootPrices` (shared from LootHistory). Needs Loot history on. Untested in game.
 
 ### 8.6 RaidControll
 
