@@ -32,7 +32,7 @@ local MONEY_WINDOW = 1.5 -- seconds a money gain and a loot event may be apart
 local MIN_QUALITY = { poor = 0, common = 1, uncommon = 2, rare = 3, epic = 4 }
 
 local M = ns.Modules:New("LootHistory", {
-    category = "qol", label = L["Loot history"], order = 7,
+    category = "loot", label = L["Loot history"], order = 7,
     desc = L["Cards that pop up for what you loot and fade out, with the item's auction value and all prices on mouseover (TradeSkillMaster or Auctionator). Preview with /oui lootfeed."],
     profileKey = "layout",
     schema = S.Table{ fields = {

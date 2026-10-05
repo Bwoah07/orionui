@@ -807,7 +807,7 @@ Wind (425782 charges) as segmented bars, the recharging segment drawn see-throug
 dividers. Blizzard's vigor display is faded with `UIWidgetPowerBarContainerFrame:SetAlpha(0)` only while the player can
 glide [VERIFY that this is where 12.x draws vigor]. By default it takes the essential cooldowns row's width and sits right under EUI's power bar (ERB_PrimaryBar; centred on the hidden row if there is none), since EUI hides that row while skyriding (Stig, 2026-10-01); the mover only applies with that off. Fake bars in edit mode and on Preview. Untested in game.
 
-**Built (2026-10-04), Stig asked for a "banger" loot window:** `Modules/Loot.lua` (Interface → Loot) replaces Blizzard's
+**Built (2026-10-04), Stig asked for a "banger" loot window:** `Modules/Loot.lua` (Loot → Loot window; own sidebar entry "Loot" since 2026-10-05, Stig) replaces Blizzard's
 loot window and group loot roll frames with ours (quality-coloured names and icon borders, travelling glow + quality wash
 from epic by default, item level and slot under the name, Loot all button, open at saved spot or at the cursor). Blizzard's
 `LootFrame` gets LOOT_OPENED / LOOT_CLOSED unregistered while on. In 12.x START_LOOT_ROLL is routed by Blizzard_Game's
@@ -815,7 +815,7 @@ EventRouting to `GroupLootContainer_AddRoll`, so Blizzard's roll frames still ru
 invisible and click-through (never touch GroupLootContainer: managed layout, taints) and draw our own from the same events.
 EUI's BlizzardSkin only reskins those frames, so nothing clashes. Bind/roll confirmation popups stay Blizzard's.
 Two movers (Loot window, Loot rolls); fakes in edit mode and on `/oui loot`. Untested in game.
-Stig confirmed the window works in game (2026-10-04). Same day: `Modules/LootHistory.lua` (Interface → Loot history): small
+Stig confirmed the window works in game (2026-10-04). Same day: `Modules/LootHistory.lua` (Loot → Loot history): small
 two-line cards that pop up and fade (name on top, "ilvl 678 · Chest" / "Trade Goods" under it; same width for all, epic+ taller with glow and sound; auction value of the stack on the right and every price in the item tooltip on mouseover, from TSM_API (dbmarket / dbregionmarketavg) or Auctionator.API.v1, vendor as fallback [VERIFY]; a ping (AH ding by default) and gold glow when the stack is worth valuableGold+ on the AH, default 500g; Stig picked these), mover "Loot history", preview
 `/oui lootfeed`. Stig wants only the lines, no list window. Items/currencies come from CHAT_MSG_LOOT / CHAT_MSG_CURRENCY
 matched against Blizzard's "You receive loot/item/currency" strings (secret text is skipped); money from PLAYER_MONEY gains
@@ -825,7 +825,7 @@ on LOOT_OPENED and showed nothing for Stig: EUI's Quick Loot loots on LOOT_READY
 reset (session in `OrionUICharDB.lootAppraiser`, survives reloads): gold looted, AH item value, total, gold per hour, items sorted by
 value with prices read live from `ns.LootPrices` (shared from LootHistory). Needs Loot history on. Since the same day: themes
 (OrionUI, Gold, Midnight, Emerald, Glass), background opacity, lock, "only list items worth X gold+", remembers its spot, and it
-reopens after loading screens / reloads if it was open (Stig: it closed on entering dungeons). Escape does not close it (Stig: it stays up in a corner while farming). Untested in game.
+reopens after loading screens / reloads if it was open (Stig: it closed on entering dungeons). Escape does not close it (Stig: it stays up in a corner while farming). Layouts: Classic (default; list newest first with labelled totals under it, in the spirit of the old Loot Appraiser addon, our own code), Compact (totals only) and Cards. `/oui la reset` starts over. Untested in game.
 
 ### 8.6 RaidControll
 
@@ -861,7 +861,7 @@ opens OrionUI's options.
   Raid Control); the selected part shows its pages as tabs along the top of the content area. A page joins a
   part through its module `category` (general, qol, reminders, tank, raid).
   **Since 2026-10-02 (Stig):** the sidebar copies EUI's layout: accent group headings with rows under
-  them. "OrionUI" holds General / Interface / Reminders / Class (pages as tabs); "Raid Control" gives each
+  them. "OrionUI" holds General / Interface / Loot / Reminders / Class (pages as tabs); "Raid Control" gives each
   raid tool page its own row (no tabs). Above the search box (moved into the sidebar, like EUI) sit tool rows:
   Unlock Mode, Raid Split (opens the planner) and Profiles; settings live in the groups below.
 - Pages are **auto-built from module option schemas** (`Options/Builder.lua`) so new modules get UI

@@ -1,7 +1,7 @@
 -- The options window (CLAUDE.md §9.1). The sidebar is laid out like EllesmereUI's (Stig, 2026-10-02):
 -- tool rows on top (Unlock Mode, Raid Split, Profiles), then the search box, then the settings as
 -- accent-coloured group headings with rows under them. Under "OrionUI" each row is a big part
--- (General, Interface, Reminders, Class) whose pages show as tabs along the top; under
+-- (General, Interface, Loot, Reminders, Class) whose pages show as tabs along the top; under
 -- "Raid Control" every raid tool is its own row. Pages are built from module schemas or are
 -- hand-written editors, laid out as a title plus cards of "label | control" rows. A search box
 -- works across all option labels. Created lazily on first open.
@@ -16,6 +16,7 @@ local GROUPS = {
     { label = ns.NAME, categories = {
         { key = "general",   label = L["General"] },
         { key = "qol",       label = L["Interface"] },
+        { key = "loot",      label = L["Loot"] },
         { key = "reminders", label = L["Reminders"] },
         { key = "tank",      label = L["Class"] },
     } },

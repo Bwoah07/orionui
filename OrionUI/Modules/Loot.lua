@@ -38,7 +38,7 @@ local ROLL_PASS, ROLL_NEED, ROLL_GREED, ROLL_TRANSMOG = 0, 1, 2, 4
 local GLOW_FROM = { never = 99, rare = 3, epic = 4, legendary = 5 }
 
 local M = ns.Modules:New("Loot", {
-    category = "qol", label = L["Loot"], order = 6,
+    category = "loot", label = L["Loot window"], order = 6,
     desc = L["OrionUI's own loot window and loot roll frames in place of Blizzard's. Use /oui loot to preview them."],
     profileKey = "layout",
     schema = S.Table{ fields = {
