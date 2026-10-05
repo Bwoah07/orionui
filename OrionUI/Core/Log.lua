@@ -63,5 +63,5 @@ end
 
 -- User-facing message in chat, prefixed. Not a log entry.
 function ns.Print(msg)
-    print("|cff9d7bff" .. ns.NAME .. "|r " .. tostring(msg))
+    print(ns.CHAT_PREFIX .. " " .. tostring(msg))
 end

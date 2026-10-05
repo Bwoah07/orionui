@@ -679,12 +679,12 @@ end
 
 local function Open(args)
     if not M:IsEnabled() then
-        print(ns.NAME .. ": " .. L["Loot appraiser is switched off (Loot → Loot appraiser)."])
+        ns.Print(L["Loot appraiser is switched off (Loot → Loot appraiser)."])
         return
     end
     if args and args[1] == "reset" then
         M:Reset()
-        print(ns.NAME .. ": " .. L["Loot appraiser session reset."])
+        ns.Print(L["Loot appraiser session reset."])
         return
     end
     M:Toggle()

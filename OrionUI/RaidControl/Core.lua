@@ -6,12 +6,19 @@ do
     local exists = C_AddOns.DoesAddOnExist and C_AddOns.DoesAddOnExist("Raidcontrol")
     if exists and C_AddOns.GetAddOnEnableState("Raidcontrol", UnitName("player")) > 0 then
         C_Timer.After(6, function()
-            print("|cff3399ffOrionUI|r: the standalone RaidControl addon is enabled, so OrionUI's built-in Raid Control is off. Disable RaidControl in your addon list to use OrionUI's.")
+            print((addonTable.CHAT_PREFIX or "Orion") .. " the standalone RaidControl addon is enabled, so OrionUI's built-in Raid Control is off. Disable RaidControl in your addon list to use OrionUI's.")
         end)
         return
     end
 end
 local RC = LibStub("AceAddon-3.0"):NewAddon("OrionUIRaidControl", "AceConsole-3.0", "AceEvent-3.0")
+-- AceConsole would put the addon name ("OrionUIRaidControl:") in front of every line; use
+-- OrionUI's short prefix instead (Stig, 2026-10-05).
+function RC:Print(...)
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    print(addonTable.CHAT_PREFIX .. " " .. table.concat(parts, " "))
+end
 -- Modules reach the addon through the private namespace (ns.RC). The single
 -- public global is RaidControl, for key bindings, macros and other addons.
 addonTable.RC = RC

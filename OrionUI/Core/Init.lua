@@ -3,6 +3,8 @@
 local ADDON_NAME, ns = ...
 
 ns.NAME = "OrionUI"
+-- Short name in front of every chat line (Stig, 2026-10-05: "OrionUIRaidControl:" was too long).
+ns.CHAT_PREFIX = "|cff2673d9Orion|r"
 ns.ADDON_NAME = ADDON_NAME
 ns.VERSION = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version") or "dev"
 -- Packaged builds replace the token; an unreplaced token means a git checkout.
