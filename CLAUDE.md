@@ -851,6 +851,13 @@ as flat countdown bars (dark background, 1px black border, one short upper-case 
 that is happening is drawn solid, upcoming ones dimmer). The big text only appears when it is time to act (TAUNT NOW,
 RUN OUT, JUMP…): the action big, the part after " — " as a small line, never a description paragraph, fading out.
 "Wait / hold / stay" windows are bars only. Old saved looks are dropped once (`tankAssistStyleVersion = 2`). Untested in game.
+**Tank assist timing (2026-10-08, Stig: taunt calls "far off"):** the Midnight raid rules identify tank mechanics
+by the Blizzard timeline bar's length (spell IDs are secret), and those length tables were stale against BigWigs
+(Ula'tek, Coiled Altar, Vashnik). `Integrations/BigWigs.lua` now keeps `ns.BossModTimeline[timelineEventID] =
+{ spellID, name }` from StartBar's 9th argument; tank assist waits 0.1 s for that link, matches by spell, and drops a
+timer-length taunt guess when BigWigs names a different spell. Without BigWigs the old guess remains. Each
+classification is logged (`/oui log`, tag TankAssist, "[BigWigs]" / "[timer length]"). The `resolveAfter` delays
+(time from cast start to "TAUNT NOW") are still RaidControl's own numbers and unverified. Untested in game.
 
 ---
 

@@ -33,6 +33,26 @@ local function Key(key)
     if t == "number" or t == "string" then return key end
 end
 
+-- Blizzard's timeline hides spell IDs and names in encounters, but BigWigs links
+-- each bar to its timeline event (9th StartBar argument) with a plain key and
+-- text. Tank assist reads this to know WHICH mechanic a timeline event is,
+-- instead of guessing from the timer length. Event ids restart every pull, so
+-- the table is wiped on engage and at the end of a fight.
+ns.BossModTimeline = ns.BossModTimeline or {}
+
+local function RememberTimelineEvent(mod, key, text, timelineEventID)
+    if not BossEncounter(mod) then return end
+    timelineEventID = Plain(timelineEventID)
+    if type(timelineEventID) ~= "number" then return end
+    key = Key(key)
+    text = Plain(text)
+    local name = type(text) == "string" and text:gsub("%s*%(%d+%)%s*$", ""):lower() or nil
+    ns.BossModTimeline[timelineEventID] = {
+        spellID = type(key) == "number" and key or nil,
+        name = name,
+    }
+end
+
 local function OnTimer(mod, key, text, duration, icon, approx)
     local encounterID = BossEncounter(mod)
     if not encounterID then return end
@@ -46,8 +66,12 @@ local function OnTimer(mod, key, text, duration, icon, approx)
 end
 
 local handlers = {
-    BigWigs_StartBar = function(_, mod, key, text, time, icon, isApprox)
+    BigWigs_StartBar = function(_, mod, key, text, time, icon, isApprox, _, _, timelineEventID)
+        RememberTimelineEvent(mod, key, text, timelineEventID)
         OnTimer(mod, key, text, time, icon, isApprox)
+    end,
+    BigWigs_OnBossEngage = function(_, mod)
+        if BossEncounter(mod) then wipe(ns.BossModTimeline) end
     end,
     BigWigs_Timer = function(_, mod, key, time, _, text, _, icon, isApprox)
         OnTimer(mod, key, text, time, icon, isApprox)
@@ -78,7 +102,10 @@ local handlers = {
     end,
 }
 local function EndOfFight(_, mod)
-    if BossEncounter(mod) then Bridge():CancelAll(SOURCE) end
+    if BossEncounter(mod) then
+        Bridge():CancelAll(SOURCE)
+        wipe(ns.BossModTimeline)
+    end
 end
 handlers.BigWigs_OnBossWin = EndOfFight
 handlers.BigWigs_OnBossWipe = EndOfFight

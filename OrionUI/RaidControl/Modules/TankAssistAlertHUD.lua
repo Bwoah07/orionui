@@ -1099,9 +1099,9 @@ local LegacyTimelineAdded = TankAssist.ENCOUNTER_TIMELINE_EVENT_ADDED
 local LegacyTimelineStateChanged = TankAssist.ENCOUNTER_TIMELINE_EVENT_STATE_CHANGED
 local LegacyTimelineRemoved = TankAssist.ENCOUNTER_TIMELINE_EVENT_REMOVED
 
-function TankAssist:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo)
+function TankAssist:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo, deferred)
     if LegacyTimelineAdded then
-        LegacyTimelineAdded(self, event, eventInfo)
+        LegacyTimelineAdded(self, event, eventInfo, deferred)
     end
     if type(eventInfo) ~= "table" or not self.timelineEvents then
         return

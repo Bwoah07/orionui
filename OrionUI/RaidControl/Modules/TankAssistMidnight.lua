@@ -373,6 +373,7 @@ local function GetEventFields(eventInfo)
     if type(eventInfo) ~= "table" or not ValueIsAccessible(eventInfo) then
         return nil, "", nil
     end
+    local bossMod = TankAssist.GetBossModTimelineInfo and TankAssist:GetBossModTimelineInfo(eventInfo)
     local okID, rawID = pcall(function() return eventInfo.spellID end)
     local spellID = okID and SafeNumber(rawID) or nil
     if not spellID then
@@ -381,6 +382,11 @@ local function GetEventFields(eventInfo)
     end
     local okName, rawName = pcall(function() return eventInfo.spellName end)
     local name = okName and SafeLower(rawName) or ""
+    -- Hidden in encounters; the linked BigWigs bar knows the spell and name.
+    if bossMod then
+        spellID = spellID or bossMod.spellID
+        if name == "" then name = bossMod.name or "" end
+    end
     local okDuration, rawDuration = pcall(function() return eventInfo.duration end)
     local duration = okDuration and SafeNumber(rawDuration) or nil
     if duration then
@@ -525,9 +531,10 @@ local function BuildTankRecord(label, action, meta)
     return CopyMeta(record, meta)
 end
 
-function TankAssist:ClassifyMidnightTimelineEvent(rule, eventInfo)
+function TankAssist:ClassifyMidnightTimelineEventByTimer(rule, eventInfo)
     local exact = self:GetTimelineMechanic(rule, eventInfo)
     if exact then
+        exact.identifiedBy = self:GetBossModTimelineInfo(eventInfo) and "BigWigs" or "spell"
         local meta = MECHANIC_META[rule.key] and MECHANIC_META[rule.key][exact.label]
         return CopyMeta(exact, meta)
     end
@@ -671,6 +678,24 @@ function TankAssist:ClassifyMidnightTimelineEvent(rule, eventInfo)
     end
 
     return nil
+end
+
+-- The timer-length buckets below date from when RaidControl was written and
+-- drift with every hotfix (2026-10-08 against BigWigs: Ula'tek, Coiled Altar
+-- and Vashnik buckets no longer match), which made taunt calls fire on the
+-- wrong ability. BigWigs keeps its buckets current and counts shared ones, so
+-- when its bar names a spell that is not one of our tank mechanics, the event
+-- is not a taunt and the timer-length guess is skipped.
+function TankAssist:ClassifyMidnightTimelineEvent(rule, eventInfo)
+    local result = self:ClassifyMidnightTimelineEventByTimer(rule, eventInfo)
+    if result and result.kind == "tank" and not result.identifiedBy then
+        local bossMod = self:GetBossModTimelineInfo(eventInfo)
+        if bossMod and bossMod.spellID then
+            return nil
+        end
+        result.identifiedBy = "timer length"
+    end
+    return result
 end
 
 function TankAssist:ClassifyTimelineEvent(rule, eventInfo)

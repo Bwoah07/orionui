@@ -1883,6 +1883,16 @@ function TankAssist:UNIT_AURA(event, unit)
     end
 end
 
+function TankAssist:GetBossModTimelineInfo(eventInfo)
+    local map = ns.BossModTimeline
+    if not map or type(eventInfo) ~= "table" then
+        return nil
+    end
+    local ok, rawID = pcall(function() return eventInfo.id end)
+    local eventID = ok and SafeNumber(rawID) or nil
+    return eventID and map[eventID] or nil
+end
+
 function TankAssist:GetTimelineMechanic(rule, eventInfo)
     local mechanics = rule and rule.timelineMechanics
     if type(mechanics) ~= "table" or type(eventInfo) ~= "table" or not ValueIsAccessible(eventInfo) then
@@ -1896,6 +1906,16 @@ function TankAssist:GetTimelineMechanic(rule, eventInfo)
     if not eventSpellID then
         local legacyOK, legacyID = pcall(function() return eventInfo.spellId end)
         eventSpellID = legacyOK and SafeNumber(legacyID) or nil
+    end
+
+    -- Encounters hide the timeline's spell; take it from the BigWigs bar linked
+    -- to this timeline event when there is one.
+    if not eventSpellID or eventName == "" then
+        local bossMod = self:GetBossModTimelineInfo(eventInfo)
+        if bossMod then
+            eventSpellID = eventSpellID or bossMod.spellID
+            if eventName == "" then eventName = bossMod.name or "" end
+        end
     end
 
     for _, mechanic in ipairs(mechanics) do
@@ -2116,7 +2136,7 @@ function TankAssist:ClassifyTimelineEvent(rule, eventInfo)
     return nil
 end
 
-function TankAssist:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo)
+function TankAssist:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo, deferred)
     if not self:ShouldRun()
         or RC.db.profile.tankAssistUseCastRules == false
         or not self.activeRule
@@ -2137,7 +2157,28 @@ function TankAssist:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo)
     if not eventID then
         return
     end
+    -- BigWigs may start its bar for this event after we see it. When the spell
+    -- is hidden, wait a moment for that bar so the mechanic is identified by
+    -- spell instead of guessed from the timer length.
+    if not deferred and BigWigsLoader and C_Timer and C_Timer.After
+        and not self:GetBossModTimelineInfo(eventInfo)
+    then
+        local okSpell, rawSpell = pcall(function() return eventInfo.spellID end)
+        if not (okSpell and SafeNumber(rawSpell)) then
+            C_Timer.After(0.1, function()
+                self:ENCOUNTER_TIMELINE_EVENT_ADDED(event, eventInfo, true)
+            end)
+            return
+        end
+    end
     local classified = self:ClassifyTimelineEvent(self.activeRule, eventInfo)
+    if classified and ns.Log then
+        local bossMod = self:GetBossModTimelineInfo(eventInfo)
+        ns.Log:Info("TankAssist", "timeline %d (%ss) -> %s %s [%s]", eventID,
+            tostring(SafeNumber(select(2, pcall(function() return eventInfo.duration end))) or "?"),
+            tostring(classified.kind), tostring(classified.label or classified.action),
+            classified.identifiedBy or (bossMod and "BigWigs" or "timer length"))
+    end
     if classified then
         local okDuration, rawDuration = pcall(function() return eventInfo.duration end)
         classified.duration = okDuration and SafeNumber(rawDuration) or nil
