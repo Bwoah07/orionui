@@ -180,6 +180,8 @@ local MECHANIC_META = {
             spoken = "Swap",
         },
         ["Mother's Wrath"] = {
+            -- The red circle both tanks stand in (Stig, 2026-10-08): defensive for both.
+            everyTank = true,
             resolveAfter = 8.0,
             playerTitle = "HOLD — MOTHER'S WRATH",
             playerDetail = "Stay in melee for the full 5 sec cast + 3 sec wrath sequence, then hand Ula'tek over.",
@@ -661,7 +663,7 @@ function TankAssist:ClassifyMidnightTimelineEventByTimer(rule, eventInfo)
         if stage == 1 then
             if duration == 42 then
                 return BuildTankRecord("Caustic Waves", "swap", MECHANIC_META.ulatek["Caustic Waves"])
-            elseif duration == 10 or duration == 37 or duration == 67 then
+            elseif duration == 10 or duration == 22 or duration == 37 or duration == 67 then
                 return BuildTankRecord("Mother's Wrath", "defensive", MECHANIC_META.ulatek["Mother's Wrath"])
             end
         elseif stage == 3 then

@@ -2290,7 +2290,9 @@ function TankAssist:HandleDefensiveWarning(tracked)
     -- knows who took it if the boss target is unreadable by then.
     local owner, bossUnit = self:GetMechanicOwner(tracked, rule)
     tracked.ownerBeforeHit = owner or tracked.ownerBeforeHit
-    if owner ~= "player" then
+    -- Soaks every tank stands in (everyTank) call a defensive for both tanks.
+    local everyTank = tracked.everyTank and (not self.IsPlayerTank or self:IsPlayerTank() == true)
+    if owner ~= "player" and not everyTank then
         return false
     end
     local playerBossName = bossUnit and UnitFullNameSafe(bossUnit) or nil
@@ -2298,7 +2300,7 @@ function TankAssist:HandleDefensiveWarning(tracked)
     local detail = "Use active mitigation or a defensive for " .. tracked.label
         .. (playerBossName and (" from " .. playerBossName) or "") .. "."
     return self:Alert(
-        "DEFENSIVE NOW",
+        "DEFENSIVE NOW — " .. string.upper(tostring(tracked.label or "TANK HIT")),
         detail,
         "Defensive",
         rule.key .. ":defensive:" .. tracked.label,

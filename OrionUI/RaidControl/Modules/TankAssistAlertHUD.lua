@@ -866,7 +866,8 @@ function TankAssist:GetTrackedPersonalCategory(tracked)
         owner = self:GetTrackedOwner(tracked, self.activeRule)
     end
     if tracked.action == "defensive" then
-        return owner == "player" and "defensive" or nil, owner
+        local everyTank = tracked.everyTank and (not self.IsPlayerTank or self:IsPlayerTank() == true)
+        return (owner == "player" or everyTank) and "defensive" or nil, owner
     end
     if tracked.crossSwap then
         local tank = not self.IsPlayerTank or self:IsPlayerTank()
