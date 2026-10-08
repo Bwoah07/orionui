@@ -846,6 +846,11 @@ stays off when the standalone RaidControl addon is enabled. These files are exem
 luacheck. Untested in game. Since 2026-09-30 the standalone addon is uninstalled and the copy is edited in
 place (tools/port-raidcontrol.py refuses to run without a source). The Escape-menu button reads "OrionUI" and
 opens OrionUI's options.
+**Tank assist restyle (2026-10-08, Stig: "neater"):** `RaidControl/Modules/TankAssistAlertHUD.lua` now shows mechanics
+as flat countdown bars (dark background, 1px black border, one short upper-case line, no icon by default; a mechanic
+that is happening is drawn solid, upcoming ones dimmer). The big text only appears when it is time to act (TAUNT NOW,
+RUN OUT, JUMP…): the action big, the part after " — " as a small line, never a description paragraph, fading out.
+"Wait / hold / stay" windows are bars only. Old saved looks are dropped once (`tankAssistStyleVersion = 2`). Untested in game.
 
 ---
 

@@ -16,15 +16,50 @@ local HUD_HEIGHT = 76
 local TIMER_BAR_LIMIT = 6
 
 local MOVEMENT_TIMER_LABELS = {
-    ["sszorak-center"] = "MOVE BOSS TO CENTER",
-    ["sszorak-clean-slice"] = "MOVE BOSS TO CLEAN SLICE",
-    ["sszorak-crosswinds"] = "SET BOSS — CROSSWINDS",
-    ["nekzali-coffins"] = "MOVE TOWARD COFFINS",
+    ["sszorak-center"] = "BOSS TO CENTER",
+    ["sszorak-clean-slice"] = "BOSS TO CLEAN SLICE",
+    ["sszorak-crosswinds"] = "SET BOSS · CROSSWINDS",
+    ["nekzali-coffins"] = "MOVE TO COFFINS",
     ["nymrissa-gap"] = "MOVE TO SAFE GAP",
     ["explorers-mushrooms"] = "MOVE TO MUSHROOMS",
     ["vashnik-fountains"] = "MOVE TO NEXT FOUNTAINS",
-    ["ulatek-platform"] = "MOVE BOSS TO JUMP EDGE",
+    ["ulatek-platform"] = "BOSS TO JUMP EDGE",
 }
+
+local BORDER = { 0, 0, 0, 1 }
+local BAR_BG = { 0.05, 0.055, 0.065 }
+
+-- The rule data writes titles as "ACTION — CONTEXT". The flash shows only the
+-- action big and the context small; bars use one short line.
+local function SplitTitle(title)
+    title = tostring(title or "")
+    local main, sub = title:match("^(.-)%s+—%s+(.+)$")
+    if main and main ~= "" then
+        return main, sub
+    end
+    return title, nil
+end
+
+local function BarText(text)
+    text = string.upper(tostring(text or ""))
+    text = text:gsub("^WAIT%s+—%s+", "")
+    return (text:gsub("%s+—%s+", " · "))
+end
+
+-- 1px black frame drawn with four textures (no backdrop template needed).
+local function AddBorder(frame)
+    local edges = {}
+    for i = 1, 4 do
+        local t = frame:CreateTexture(nil, "OVERLAY", nil, 7)
+        t:SetColorTexture(BORDER[1], BORDER[2], BORDER[3], BORDER[4])
+        edges[i] = t
+    end
+    edges[1]:SetPoint("TOPLEFT"); edges[1]:SetPoint("TOPRIGHT"); edges[1]:SetHeight(1)
+    edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT"); edges[2]:SetHeight(1)
+    edges[3]:SetPoint("TOPLEFT"); edges[3]:SetPoint("BOTTOMLEFT"); edges[3]:SetWidth(1)
+    edges[4]:SetPoint("TOPRIGHT"); edges[4]:SetPoint("BOTTOMRIGHT"); edges[4]:SetWidth(1)
+    return edges
+end
 
 local function ValueIsAccessible(value)
     if value == nil then
@@ -55,6 +90,35 @@ end
 
 local function Profile()
     return RC.db and RC.db.profile or {}
+end
+
+-- The 2026-10 restyle (flat bars, short action text) only reads right with the
+-- new sizes, so looks saved by the old RaidControl settings are dropped once.
+local OLD_STYLE_KEYS = {
+    "tankAssistDisplayStyle",
+    "tankAssistAlertWidth",
+    "tankAssistDetailFontSize",
+    "tankAssistShowIcon",
+    "tankAssistShowDetail",
+    "tankAssistTextAlign",
+    "tankAssistBackgroundAlpha",
+    "tankAssistTimerWidth",
+    "tankAssistTimerHeight",
+    "tankAssistTimerFontSize",
+    "tankAssistTimerSpacing",
+    "tankAssistTimerBackgroundAlpha",
+    "tankAssistTimerShowIcon",
+}
+
+local function DropOldStyle()
+    local profile = RC.db and RC.db.profile
+    if not profile or profile.tankAssistStyleVersion == 2 then
+        return
+    end
+    for _, key in ipairs(OLD_STYLE_KEYS) do
+        profile[key] = nil
+    end
+    profile.tankAssistStyleVersion = 2
 end
 
 local function Clamp(value, low, high, fallback)
@@ -137,7 +201,21 @@ function TankAssist:ApplyAlertHUDColor(title, category)
         self.frame.timerBar:SetStatusBarColor(r, g, b, 1)
     end
     if self.frame.timerText then
-        self.frame.timerText:SetTextColor(r, g, b, 1)
+        self.frame.timerText:SetTextColor(1, 1, 1, 1)
+    end
+end
+
+-- Puts "ACTION — CONTEXT" on the flash as a big action and a small context line.
+-- Description paragraphs are never shown: the bars carry the context.
+function TankAssist:SetAlertHUDText(title)
+    if not self.frame then
+        return
+    end
+    local main, sub = SplitTitle(title or "TAUNT NOW")
+    self.frame.title:SetText(main)
+    self.frame.detail:SetText(sub or "")
+    if self.frame.body then
+        self.frame.body:SetAlpha(1)
     end
 end
 
@@ -146,85 +224,87 @@ function TankAssist:CreateAlertFrame()
         return
     end
 
+    DropOldStyle()
     local frame = CreateFrame("Frame", "RaidControlTankAssistAlert", UIParent)
-    frame:SetSize(420, HUD_HEIGHT)
+    frame:SetSize(360, HUD_HEIGHT)
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(600)
     frame:Hide()
     frame._raidControlFloatingTankHUD = true
 
-    local panelBg = frame:CreateTexture(nil, "BACKGROUND")
-    panelBg:SetTexture("Interface\\Buttons\\WHITE8X8")
-    panelBg:SetAllPoints(frame)
-    panelBg:SetColorTexture(0.02, 0.025, 0.035, 0.88)
-    frame.panelBg = panelBg
+    -- Everything visible sits on body so the flash can fade out without
+    -- fighting the user's frame alpha, which ApplySingleFrameSettings sets on frame.
+    local body = CreateFrame("Frame", nil, frame)
+    body:SetAllPoints(frame)
+    frame.body = body
 
-    local accent = frame:CreateTexture(nil, "ARTWORK")
-    accent:SetTexture("Interface\\Buttons\\WHITE8X8")
-    accent:SetSize(4, 54)
-    accent:SetPoint("LEFT", frame, "LEFT", 4, 0)
+    local panelBg = body:CreateTexture(nil, "BACKGROUND")
+    panelBg:SetAllPoints(body)
+    panelBg:SetColorTexture(BAR_BG[1], BAR_BG[2], BAR_BG[3], 0.85)
+    frame.panelBg = panelBg
+    frame.border = AddBorder(body)
+
+    local accent = body:CreateTexture(nil, "ARTWORK")
+    accent:SetWidth(2)
+    accent:SetPoint("TOPLEFT", body, "TOPLEFT", 1, -1)
+    accent:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 1, 1)
     frame.accent = accent
 
-    local iconShadow = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    iconShadow:SetTexture("Interface\\Buttons\\WHITE8X8")
-    iconShadow:SetColorTexture(0, 0, 0, 0.55)
-    iconShadow:SetSize(50, 50)
+    local iconShadow = body:CreateTexture(nil, "BACKGROUND", nil, 1)
+    iconShadow:SetColorTexture(0, 0, 0, 1)
     frame.iconShadow = iconShadow
 
-    local icon = frame:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(42, 42)
-    icon:SetPoint("CENTER", iconShadow, "CENTER", 0, 0)
+    local icon = body:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("TOPLEFT", iconShadow, "TOPLEFT", 1, -1)
+    icon:SetPoint("BOTTOMRIGHT", iconShadow, "BOTTOMRIGHT", -1, 1)
     frame.icon = icon
 
-    local title = frame:CreateFontString(nil, "OVERLAY")
+    local title = body:CreateFontString(nil, "OVERLAY")
     RC:SetFont(title, 28, "OUTLINE")
-    title:SetJustifyH("LEFT")
-    title:SetShadowColor(0, 0, 0, 0.95)
-    title:SetShadowOffset(2, -2)
+    title:SetShadowColor(0, 0, 0, 0.9)
+    title:SetShadowOffset(1, -1)
+    title:SetWordWrap(false)
     title:SetText("TAUNT NOW")
     frame.title = title
 
-    local detail = frame:CreateFontString(nil, "OVERLAY")
-    RC:SetFont(detail, 14, "OUTLINE")
-    detail:SetJustifyH("LEFT")
-    detail:SetTextColor(0.92, 0.92, 0.92, 1)
-    detail:SetShadowColor(0, 0, 0, 0.95)
+    -- Small context line under the action ("IKU / NAMA"), never a paragraph.
+    local detail = body:CreateFontString(nil, "OVERLAY")
+    RC:SetFont(detail, 13, "OUTLINE")
+    detail:SetTextColor(0.85, 0.87, 0.9, 1)
+    detail:SetShadowColor(0, 0, 0, 0.9)
     detail:SetShadowOffset(1, -1)
+    detail:SetWordWrap(false)
     detail:SetText("")
     frame.detail = detail
 
-    local timerText = frame:CreateFontString(nil, "OVERLAY")
-    RC:SetFont(timerText, 20, "OUTLINE")
+    local timerText = body:CreateFontString(nil, "OVERLAY")
+    RC:SetFont(timerText, 18, "OUTLINE")
     timerText:SetJustifyH("RIGHT")
-    timerText:SetShadowColor(0, 0, 0, 0.95)
-    timerText:SetShadowOffset(2, -2)
     timerText:SetText("")
     frame.timerText = timerText
 
-    local timerBg = CreateFrame("StatusBar", nil, frame)
+    local timerBg = CreateFrame("StatusBar", nil, body)
     timerBg:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
-    timerBg:SetStatusBarColor(0, 0, 0, 0.58)
+    timerBg:SetStatusBarColor(0, 0, 0, 0.6)
     timerBg:SetMinMaxValues(0, 1)
     timerBg:SetValue(1)
     frame.timerBg = timerBg
 
-    local timerBar = CreateFrame("StatusBar", nil, frame)
+    local timerBar = CreateFrame("StatusBar", nil, body)
     timerBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     timerBar:SetMinMaxValues(0, 1)
     timerBar:SetValue(1)
     frame.timerBar = timerBar
 
-    local timerSpark = frame:CreateTexture(nil, "OVERLAY")
-    timerSpark:SetTexture("Interface\\Buttons\\WHITE8X8")
-    timerSpark:SetSize(2, 14)
-    timerSpark:SetColorTexture(1, 1, 1, 0.90)
+    local timerSpark = body:CreateTexture(nil, "OVERLAY")
+    timerSpark:SetSize(1, 5)
+    timerSpark:SetColorTexture(1, 1, 1, 0.9)
     timerSpark:Hide()
     frame.timerSpark = timerSpark
 
-    local countdownMarker = frame:CreateTexture(nil, "OVERLAY")
-    countdownMarker:SetTexture("Interface\\Buttons\\WHITE8X8")
-    countdownMarker:SetSize(1, 12)
-    countdownMarker:SetColorTexture(1, 1, 1, 0.38)
+    local countdownMarker = body:CreateTexture(nil, "OVERLAY")
+    countdownMarker:SetSize(1, 5)
+    countdownMarker:SetColorTexture(1, 1, 1, 0.5)
     countdownMarker:Hide()
     frame.countdownMarker = countdownMarker
 
@@ -241,60 +321,61 @@ end
 function TankAssist:ApplyTankAssistVisualSettings()
     local profile, frame = Profile(), self.frame
     if frame and frame._raidControlFloatingTankHUD then
-        local width = Clamp(profile.tankAssistAlertWidth, 260, 800, 420)
+        local width = Clamp(profile.tankAssistAlertWidth, 200, 800, 360)
         local titleSize = Clamp(profile.tankAssistAlertFontSize, 14, 56, 28)
-        local detailSize = Clamp(profile.tankAssistDetailFontSize, 9, 24, 14)
-        local panel = profile.tankAssistDisplayStyle ~= "text"
-        local showIcon = panel and profile.tankAssistShowIcon ~= false
-        local showDetail = profile.tankAssistShowDetail ~= false
+        local subSize = Clamp(profile.tankAssistDetailFontSize, 9, 24, 13)
+        -- "panel" = dark box with a thin border; "text" (default) = text only.
+        local panel = profile.tankAssistDisplayStyle == "panel"
+        local showIcon = panel and profile.tankAssistShowIcon == true
+        local subText = frame.detail:GetText()
+        local showSub = profile.tankAssistShowDetail ~= false and subText ~= nil and subText ~= ""
         local showTimer = profile.tankAssistShowTimer ~= false
             and (self.alertHUDTimerMode == "mechanic" or self._tankTimerPreviewActive)
-        local align = profile.tankAssistTextAlign == "CENTER" and "CENTER" or "LEFT"
-        local startX = showIcon and 76 or 12
-        local contentWidth = width - startX - (showTimer and 62 or 12)
+        local align = profile.tankAssistTextAlign == "LEFT" and "LEFT" or "CENTER"
+        local pad = panel and 8 or 2
+        local iconSize = titleSize + (showSub and subSize + 4 or 0)
+        local startX = showIcon and (pad + iconSize + 8) or pad
+        local rightPad = showTimer and 52 or pad
 
-        frame.title:ClearAllPoints()
-        frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT", startX, -10)
-        frame.title:SetWidth(contentWidth)
-        frame.title:SetHeight(0)
-        frame.title:SetWordWrap(true)
-        frame.title:SetJustifyH(align)
         RC:SetFont(frame.title, titleSize, "OUTLINE")
-        local titleHeight = math.max(titleSize + 4, math.min(titleSize * 2 + 8, frame.title:GetStringHeight()))
-        frame.title:SetHeight(titleHeight)
+        frame.title:ClearAllPoints()
+        frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT", startX, -pad)
+        frame.title:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -rightPad, -pad)
+        frame.title:SetHeight(titleSize + 4)
+        frame.title:SetJustifyH(align)
 
+        RC:SetFont(frame.detail, subSize, "OUTLINE")
         frame.detail:ClearAllPoints()
-        frame.detail:SetPoint("TOPLEFT", frame, "TOPLEFT", startX, -14 - titleHeight)
-        frame.detail:SetWidth(width - startX - 12)
-        frame.detail:SetHeight(0)
-        frame.detail:SetWordWrap(true)
+        frame.detail:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, 0)
+        frame.detail:SetPoint("TOPRIGHT", frame.title, "BOTTOMRIGHT", 0, 0)
+        frame.detail:SetHeight(subSize + 4)
         frame.detail:SetJustifyH(align)
-        RC:SetFont(frame.detail, detailSize, "OUTLINE")
-        local detailHeight = showDetail and math.max(detailSize + 3,
-            math.min(detailSize * 3 + 6, frame.detail:GetStringHeight())) or 0
-        frame.detail:SetHeight(math.max(1, detailHeight))
-        frame.detail:SetShown(showDetail)
+        frame.detail:SetShown(showSub)
 
-        local showBar = panel and showTimer
-        local height = math.max(showIcon and 74 or 40, titleHeight + detailHeight + 24 + (showBar and 13 or 0))
+        local showBar = showTimer
+        local barHeight = 3
+        local height = pad * 2 + titleSize + 4 + (showSub and subSize + 4 or 0) + (showBar and barHeight + 4 or 0)
         frame:SetSize(width, height)
         frame.panelBg:SetShown(panel)
-        frame.panelBg:SetColorTexture(0.02, 0.025, 0.035, Clamp(profile.tankAssistBackgroundAlpha, 0, 1, 0.88))
+        frame.panelBg:SetColorTexture(BAR_BG[1], BAR_BG[2], BAR_BG[3], Clamp(profile.tankAssistBackgroundAlpha, 0, 1, 0.85))
+        for _, edge in ipairs(frame.border) do
+            edge:SetShown(panel)
+        end
         frame.accent:SetShown(panel)
-        frame.accent:SetHeight(height - 16)
         frame.iconShadow:SetShown(showIcon)
         frame.icon:SetShown(showIcon)
         frame.iconShadow:ClearAllPoints()
-        frame.iconShadow:SetPoint("TOPLEFT", frame, "TOPLEFT", 14, -12)
+        frame.iconShadow:SetPoint("TOPLEFT", frame, "TOPLEFT", pad, -pad)
+        frame.iconShadow:SetSize(iconSize, iconSize)
         frame.timerText:ClearAllPoints()
-        frame.timerText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -12, -12)
+        frame.timerText:SetPoint("RIGHT", frame.title, "RIGHT", rightPad - pad, 0)
         frame.timerText:SetShown(showTimer)
 
-        local timerWidth = width - startX - 12
+        local timerWidth = width - startX - pad
         for _, bar in ipairs({ frame.timerBg, frame.timerBar }) do
             bar:ClearAllPoints()
-            bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", startX, 8)
-            bar:SetSize(timerWidth, 5)
+            bar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", startX, pad)
+            bar:SetSize(timerWidth, barHeight)
             bar:SetShown(showBar)
         end
         if not showBar then
@@ -314,7 +395,7 @@ end
 function TankAssist:RefreshTheme()
     if self.frame and self.frame._raidControlFloatingTankHUD then
         if self.frame.detail then
-            self.frame.detail:SetTextColor(0.92, 0.92, 0.92, 1)
+            self.frame.detail:SetTextColor(0.85, 0.87, 0.9, 1)
         end
         self:ApplyAlertHUDColor(nil, self.alertHUDCategory)
     end
@@ -437,6 +518,11 @@ function TankAssist:UpdateAlertHUDTimer()
         frame.countdownMarker:Hide()
     end
 
+    -- The action flash fades out over its last moments instead of popping off.
+    if frame and frame.body then
+        frame.body:SetAlpha(self.alertHUDTimerMode == "visual" and math.min(1, remaining / 0.35) or 1)
+    end
+
     if remaining <= 0 then
         if self.alertHUDMechanicKey and self.activeHUDMechanics then
             self.activeHUDMechanics[self.alertHUDMechanicKey] = nil
@@ -493,8 +579,59 @@ function TankAssist:ShowTimelineMechanicCountdown(tracked)
     return true
 end
 
+-- An active window ("wait, taunt after X") is a countdown to the moment to act,
+-- so it lives in the bar stack. The big text is kept for the act itself
+-- (TAUNT NOW), and only stands in here when bars for this kind are turned off.
+function TankAssist:ActiveWindowUsesBar(record)
+    local profile = Profile()
+    if profile.tankAssistShowTimerBars == false or profile.tankAssistUseCastRules == false then
+        return false
+    end
+    if record.category == "movement" then return profile.tankAssistTimerMovement ~= false end
+    if record.category == "defensive" then return profile.tankAssistTimerDefensive ~= false end
+    return profile.tankAssistTimerTaunt ~= false
+end
+
+-- "HOLD BOSS", "WAIT", "STAY BY MUSHROOM" describe a state to keep, so the bar
+-- is enough. Anything else ("RUN OUT", "AIM WATER JET", "JUMP") is something to
+-- do right now and also gets the short flash.
+local PASSIVE_WORDS = { WAIT = true, HOLD = true, STAY = true, KEEP = true }
+
+local function IsPassiveTitle(title)
+    local first = string.upper(tostring(title or "")):match("^(%a+)")
+    return first == nil or PASSIVE_WORDS[first] == true
+end
+
+-- Short action text with no sound and no repeat guard; Alert() is the path
+-- with sounds. Used when an active window opens with something to do now.
+function TankAssist:FlashAlertHUD(title, category)
+    local profile = Profile()
+    if profile.tankAssistShowVisual == false then
+        return
+    end
+    if self.hideTimer then
+        self.hideTimer:Cancel()
+        self.hideTimer = nil
+    end
+    self:CreateAlertFrame()
+    if not self.frame then
+        return
+    end
+    self.alertHUDCategory = category
+    self:ApplyAlertIcon(self.activeRule)
+    self:SetAlertHUDText(title)
+    self:StartVisualAlertHUDTimer()
+    self:ApplyTankAssistVisualSettings()
+    self:ApplyAlertHUDColor(title, category)
+    self.frame:Show()
+end
+
 function TankAssist:DisplayActiveMechanic(record)
     local profile = Profile()
+    if self:ActiveWindowUsesBar(record) then
+        self:UpdateUpcomingTimerBars(true)
+        return
+    end
     self.alertHUDCategory = record.category
     self.alertHUDTimerCategory = record.category
     self.alertHUDMechanicKey = record.key
@@ -511,8 +648,7 @@ function TankAssist:DisplayActiveMechanic(record)
     if profile.tankAssistShowVisual ~= false then
         self:CreateAlertFrame()
         self:ApplyAlertIcon(self.activeRule)
-        self.frame.title:SetText(record.title)
-        self.frame.detail:SetText(record.detail)
+        self:SetAlertHUDText(record.title)
         self:ApplyTankAssistVisualSettings()
         self:ApplyAlertHUDColor(record.title, record.category)
         self.frame:Show()
@@ -548,13 +684,15 @@ function TankAssist:ShowActiveMechanicCountdown(tracked, duration, title, detail
         key = key, tracked = tracked, category = timerCategory,
         duration = duration, endTime = now + duration,
         title = title or ("HOLD — " .. string.upper(label)),
-        detail = detail or "Keep the current assignment until the timer ends.",
-        label = timerCategory == "movement" and ("MOVE IN — " .. label)
-            or ("SWAP IN — " .. label),
+        label = BarText(title or ((timerCategory == "movement" and "MOVE — " or "TAUNT — ") .. label)),
+        active = true,
     }
     self.activeHUDMechanics = self.activeHUDMechanics or {}
     self.activeHUDMechanics[key] = record
     self:DisplayActiveMechanic(record)
+    if self:ActiveWindowUsesBar(record) and not IsPassiveTitle(record.title) then
+        self:FlashAlertHUD(record.title, category)
+    end
     self:EnsureTankAssistHUDDriver()
     self:UpdateUpcomingTimerBars(true)
     return true
@@ -596,36 +734,34 @@ function TankAssist:CreateUpcomingTimerBar(parent, index)
     bar.index = index
 
     local bg = bar:CreateTexture(nil, "BACKGROUND")
-    bg:SetTexture("Interface\\Buttons\\WHITE8X8")
     bg:SetAllPoints(bar)
     bar.bg = bg
 
     local progress = CreateFrame("StatusBar", nil, bar)
-    progress:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
-    progress:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, 0)
+    progress:SetPoint("TOPLEFT", bar, "TOPLEFT", 1, -1)
+    progress:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -1, 1)
     progress:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     progress:SetMinMaxValues(0, 1)
     progress:SetValue(1)
     bar.progress = progress
+    bar.border = AddBorder(bar)
 
-    local shade = progress:CreateTexture(nil, "ARTWORK", nil, 1)
-    shade:SetTexture("Interface\\Buttons\\WHITE8X8")
-    shade:SetAllPoints(progress)
-    shade:SetColorTexture(0, 0, 0, 0.38)
-    bar.shade = shade
-
-    local accent = progress:CreateTexture(nil, "OVERLAY", nil, 1)
-    accent:SetTexture("Interface\\Buttons\\WHITE8X8")
-    accent:SetWidth(3)
-    accent:SetPoint("TOPLEFT", progress, "TOPLEFT", 0, 0)
-    accent:SetPoint("BOTTOMLEFT", progress, "BOTTOMLEFT", 0, 0)
-    bar.accent = accent
-
-    local icon = progress:CreateTexture(nil, "OVERLAY", nil, 2)
+    -- Icon sits outside the bar on the left, like a BigWigs bar, with its own border.
+    local iconHolder = CreateFrame("Frame", nil, bar)
+    iconHolder:SetPoint("TOPRIGHT", bar, "TOPLEFT", -2, 0)
+    iconHolder:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", -2, 0)
+    local iconBg = iconHolder:CreateTexture(nil, "BACKGROUND")
+    iconBg:SetAllPoints(iconHolder)
+    iconBg:SetColorTexture(0, 0, 0, 1)
+    local icon = iconHolder:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("TOPLEFT", iconHolder, "TOPLEFT", 1, -1)
+    icon:SetPoint("BOTTOMRIGHT", iconHolder, "BOTTOMRIGHT", -1, 1)
+    bar.iconHolder = iconHolder
     bar.icon = icon
 
     local label = progress:CreateFontString(nil, "OVERLAY")
     label:SetJustifyH("LEFT")
+    label:SetWordWrap(false)
     label:SetShadowColor(0, 0, 0, 1)
     label:SetShadowOffset(1, -1)
     bar.label = label
@@ -644,8 +780,9 @@ function TankAssist:CreateTimerFrame()
     if self.timerFrame or not CreateFrame then
         return
     end
+    DropOldStyle()
     local frame = CreateFrame("Frame", "RaidControlTankAssistTimers", UIParent)
-    frame:SetSize(360, 34)
+    frame:SetSize(280, 20)
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(580)
     frame:Hide()
@@ -669,13 +806,14 @@ function TankAssist:ApplyUpcomingTimerAppearance()
         return
     end
     local profile = Profile()
-    local width = Clamp(profile.tankAssistTimerWidth, 200, 700, 360)
-    local height = Clamp(profile.tankAssistTimerHeight, 22, 64, 34)
-    local spacing = Clamp(profile.tankAssistTimerSpacing, 0, 20, 5)
-    local fontSize = Clamp(profile.tankAssistTimerFontSize, 10, 24, 15)
+    local width = Clamp(profile.tankAssistTimerWidth, 160, 700, 280)
+    local height = Clamp(profile.tankAssistTimerHeight, 14, 64, 20)
+    local spacing = Clamp(profile.tankAssistTimerSpacing, 0, 20, 2)
+    local fontSize = Clamp(profile.tankAssistTimerFontSize, 8, 24, 12)
     local maxBars = math.floor(Clamp(profile.tankAssistTimerMaxBars, 1, TIMER_BAR_LIMIT, 3))
     local growth = profile.tankAssistTimerGrowth == "UP" and "UP" or "DOWN"
     local totalHeight = (height * maxBars) + (spacing * math.max(0, maxBars - 1))
+    local showIcon = profile.tankAssistTimerShowIcon == true
     frame:SetSize(width, totalHeight)
 
     for i, bar in ipairs(frame.bars) do
@@ -686,25 +824,22 @@ function TankAssist:ApplyUpcomingTimerAppearance()
         else
             bar:SetPoint("TOP", frame, "TOP", 0, -((i - 1) * (height + spacing)))
         end
-        local backgroundAlpha = Clamp(profile.tankAssistTimerBackgroundAlpha, 0, 1, 0.65)
-        bar.bg:SetColorTexture(0.015, 0.02, 0.03, backgroundAlpha)
-        bar.shade:SetColorTexture(0, 0, 0, backgroundAlpha * 0.45)
+        local backgroundAlpha = Clamp(profile.tankAssistTimerBackgroundAlpha, 0, 1, 0.8)
+        bar.bg:SetColorTexture(BAR_BG[1], BAR_BG[2], BAR_BG[3], backgroundAlpha)
 
-        local iconSize = math.max(16, height - 8)
-        bar.icon:SetSize(iconSize, iconSize)
-        bar.icon:ClearAllPoints()
-        bar.icon:SetPoint("LEFT", bar, "LEFT", 7, 0)
-        bar.icon:SetShown(profile.tankAssistTimerShowIcon ~= false)
+        bar.iconHolder:SetWidth(height)
+        bar.iconHolder:SetShown(showIcon)
+        bar.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
         RC:SetFont(bar.label, fontSize, "OUTLINE")
         bar.label:ClearAllPoints()
-        bar.label:SetPoint("LEFT", bar, "LEFT", profile.tankAssistTimerShowIcon ~= false and (iconSize + 13) or 9, 0)
-        bar.label:SetPoint("RIGHT", bar, "RIGHT", profile.tankAssistTimerShowSeconds ~= false and -54 or -9, 0)
+        bar.label:SetPoint("LEFT", bar, "LEFT", 6, 0)
+        bar.label:SetPoint("RIGHT", bar, "RIGHT", profile.tankAssistTimerShowSeconds ~= false and -44 or -6, 0)
         bar.label:SetShown(profile.tankAssistTimerShowLabel ~= false)
 
         RC:SetFont(bar.seconds, fontSize, "OUTLINE")
         bar.seconds:ClearAllPoints()
-        bar.seconds:SetPoint("RIGHT", bar, "RIGHT", -8, 0)
+        bar.seconds:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
         bar.seconds:SetShown(profile.tankAssistTimerShowSeconds ~= false)
     end
 end
@@ -801,23 +936,26 @@ function TankAssist:GetUpcomingTimerEntry(tracked)
         return nil
     end
 
+    -- One short line: what to do, then the mechanic. The colour says the kind.
+    local name = tostring(tracked.label or "MECHANIC")
     local label
     if tracked.everyoneTitle then
         label = tracked.everyoneTitle
     elseif category == "movement" then
         label = MOVEMENT_TIMER_LABELS[tracked.action] or tracked.previewTitle or tracked.preMoveTitle
-            or ("MOVE — " .. tostring(tracked.label or "POSITION"))
+            or ("MOVE — " .. name)
     elseif category == "defensive" then
-        label = "DEFENSIVE — " .. tostring(tracked.label or "TANK HIT")
+        label = "DEFENSIVE — " .. name
     elseif tracked.crossSwap then
-        label = "CROSS-TAUNT AFTER — " .. tostring(tracked.label or "MECHANIC")
+        label = "CROSS-TAUNT — " .. name
     elseif owner == "cotank" then
-        label = "TAUNT AFTER — " .. tostring(tracked.label or "MECHANIC")
+        label = "TAUNT — " .. name
     elseif owner == "player" then
-        label = "SWAP AFTER — " .. tostring(tracked.label or "MECHANIC")
+        label = "SWAP — " .. name
     else
-        label = "TANK HIT — " .. tostring(tracked.label or "MECHANIC")
+        label = "TANK HIT — " .. name
     end
+    label = BarText(label)
 
     return {
         tracked = tracked,
@@ -832,25 +970,27 @@ end
 function TankAssist:RenderUpcomingTimerEntry(bar, entry)
     local profile = Profile()
     local r, g, b = GetCategoryColor(entry.category, entry.label)
-    bar.progress:SetStatusBarColor(r, g, b, 0.48)
-    bar.accent:SetColorTexture(r, g, b, 1)
+    -- Active windows (the mechanic is happening, act when it runs out) are drawn
+    -- solid; mechanics that haven't started yet are drawn dimmer.
+    bar.progress:SetStatusBarColor(r, g, b, entry.active and 0.95 or 0.6)
     bar.progress:SetMinMaxValues(0, math.max(0.001, entry.duration))
     bar.progress:SetValue(entry.remaining)
     bar.label:SetText(entry.label)
-    bar.label:SetTextColor(0.96, 0.97, 1, 1)
-    bar.seconds:SetText(FormatRemaining(entry.remaining) .. "s")
-    bar.seconds:SetTextColor(r, g, b, 1)
+    bar.label:SetTextColor(1, 1, 1, 1)
+    bar.seconds:SetText(FormatRemaining(entry.remaining))
+    bar.seconds:SetTextColor(1, 1, 1, 1)
 
-    local iconData = self.GetRuleIconData and self:GetRuleIconData(self.activeRule) or nil
+    local showIcon = profile.tankAssistTimerShowIcon == true
+    local iconData = showIcon and self.GetRuleIconData and self:GetRuleIconData(self.activeRule) or nil
     if iconData then
         bar.icon:SetTexture(iconData.texture)
         if iconData.texCoord then
             bar.icon:SetTexCoord(iconData.texCoord[1], iconData.texCoord[2], iconData.texCoord[3], iconData.texCoord[4])
         else
-            bar.icon:SetTexCoord(0, 1, 0, 1)
+            bar.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         end
     end
-    bar.icon:SetShown(profile.tankAssistTimerShowIcon ~= false)
+    bar.iconHolder:SetShown(showIcon and iconData ~= nil)
     bar.label:SetShown(profile.tankAssistTimerShowLabel ~= false)
     bar.seconds:SetShown(profile.tankAssistTimerShowSeconds ~= false)
     bar:Show()
@@ -863,9 +1003,9 @@ function TankAssist:RenderUpcomingTimerPreview()
     end
     self:ApplyUpcomingTimerAppearance()
     local examples = {
-        { category = "movement", remaining = 10.0, duration = 15, label = "MOVE BOSS TO JUMP EDGE" },
-        { category = "defensive", remaining = 6.0, duration = 12, label = "DEFENSIVE — MOTHER'S WRATH" },
-        { category = "taunt", remaining = 3.0, duration = 10, label = "TAUNT AFTER — WATER JET" },
+        { category = "taunt", remaining = 2.2, duration = 6, label = "TAUNT AFTER WATER JET", active = true },
+        { category = "defensive", remaining = 6.0, duration = 12, label = "DEFENSIVE · MOTHER'S WRATH" },
+        { category = "movement", remaining = 14.0, duration = 20, label = "BOSS TO JUMP EDGE" },
     }
     local maxBars = math.floor(Clamp(Profile().tankAssistTimerMaxBars, 1, TIMER_BAR_LIMIT, 3))
     for i, bar in ipairs(self.timerFrame.bars) do
@@ -918,7 +1058,7 @@ function TankAssist:UpdateUpcomingTimerBars(force)
             self.activeHUDMechanics[key] = nil
         elseif remaining <= horizon and categoryVisible and self:IsWarningEnabled(record.category) then
             entries[#entries + 1] = { category = record.category, label = record.label,
-                remaining = remaining, duration = record.duration }
+                remaining = remaining, duration = record.duration, active = true }
         end
     end
     table.sort(entries, function(a, b)
@@ -1029,6 +1169,7 @@ function TankAssist:Alert(title, detail, spokenText, key, playSound, rule, categ
     if shown then
         self.alertHUDCategory = category
         if self.frame and self.frame:IsShown() then
+            self:SetAlertHUDText(title)
             self:StartVisualAlertHUDTimer()
             self:ApplyTankAssistVisualSettings()
             self:ApplyAlertHUDColor(title, category)
@@ -1060,6 +1201,8 @@ if LegacyPreviewLayout then
             LegacyPreviewLayout(self, persistent)
             if self.frame and self.frame._raidControlFloatingTankHUD then
                 self.alertHUDCategory = "taunt"
+                self:SetAlertHUDText("TAUNT NOW")
+                if self.frame.body then self.frame.body:SetAlpha(1) end
                 self:ApplyTankAssistVisualSettings()
                 self:ApplyAlertHUDColor("TAUNT NOW", "taunt")
                 self.frame:Show()
