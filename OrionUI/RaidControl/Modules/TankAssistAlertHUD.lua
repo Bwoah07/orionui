@@ -947,7 +947,8 @@ function TankAssist:GetUpcomingTimerEntry(tracked)
     elseif category == "defensive" then
         label = "DEFENSIVE — " .. name
     elseif tracked.crossSwap then
-        label = "CROSS-TAUNT — " .. name
+        local _, targetName = self.GetCrossSwapTarget and self:GetCrossSwapTarget()
+        label = targetName and ("TAUNT " .. targetName .. " — " .. name) or ("CROSS-TAUNT — " .. name)
     elseif owner == "cotank" then
         label = "TAUNT — " .. name
     elseif owner == "player" then

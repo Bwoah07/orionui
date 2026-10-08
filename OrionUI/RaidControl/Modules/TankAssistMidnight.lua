@@ -705,6 +705,41 @@ function TankAssist:ClassifyTimelineEvent(rule, eventInfo)
     return LegacyClassifyTimelineEvent and LegacyClassifyTimelineEvent(self, rule, eventInfo) or nil
 end
 
+-- Explorers cross-swap: Nama is boss3, Iku is boss4 (see EXPLORER_UNIT_STAGE).
+local CROSS_SWAP_PAIR = {
+    { unit = "boss3", name = "NAMA" },
+    { unit = "boss4", name = "IKU" },
+}
+
+-- Which boss the player should taunt when the cross-swap comes, from who has
+-- held each boss for a while (the stable holder, not the live target, so a boss
+-- turning for a cast doesn't flip the answer). Falls back to the live target,
+-- then nil (unknown, keep the generic call). Returns the boss unit and name.
+function TankAssist:GetCrossSwapTarget()
+    local a, b = CROSS_SWAP_PAIR[1], CROSS_SWAP_PAIR[2]
+    local roleA = self:GetHolderRole(self:GetStableBossHolder(a.unit))
+    local roleB = self:GetHolderRole(self:GetStableBossHolder(b.unit))
+    local mine
+    if roleA == "player" and roleB ~= "player" then
+        mine = a
+    elseif roleB == "player" and roleA ~= "player" then
+        mine = b
+    elseif roleA == "cotank" and roleB ~= "cotank" then
+        mine = b
+    elseif roleB == "cotank" and roleA ~= "cotank" then
+        mine = a
+    elseif self:GetBossTargetState("player", a.unit) == true then
+        mine = a
+    elseif self:GetBossTargetState("player", b.unit) == true then
+        mine = b
+    end
+    if not mine then
+        return nil, nil
+    end
+    local other = mine == a and b or a
+    return other.unit, self:GetBossDisplayName(other.unit, other.name) or other.name
+end
+
 function TankAssist:ShowPersonalMechanicStart(tracked, owner, rule)
     local title
     local detail
@@ -713,6 +748,11 @@ function TankAssist:ShowPersonalMechanicStart(tracked, owner, rule)
         title = tracked.everyoneTitle
         detail = tracked.everyoneDetail or tracked.label
         spoken = tracked.spoken
+    elseif tracked.crossSwap and tracked.crossTargetName then
+        -- Hold your boss through the sequence, then take the other one.
+        title = "WAIT — TAUNT " .. tracked.crossTargetName .. " AFTER SHARDS"
+        detail = nil
+        spoken = owner == "player" and (tracked.playerSpoken or "Defensive") or tracked.offSpoken
     elseif owner == "player" then
         title = tracked.playerTitle or ("HOLD — " .. string.upper(tracked.label or "TANK MECHANIC"))
         detail = tracked.playerDetail or "Keep the boss until the mechanic fully resolves."
@@ -760,6 +800,26 @@ function TankAssist:ResolveMidnightTankMechanic(tracked, owner, rule)
             tracked.resolveEveryoneDetail or tostring(tracked.label or "Tank mechanic") .. " resolved.",
             tracked.resolveEveryoneSpoken or "Swap",
             rule.key .. ":resolve:everyone:" .. tostring(tracked.label),
+            true,
+            rule,
+            "taunt"
+        )
+        return
+    end
+
+    if tracked.crossSwap and tracked.crossTargetName then
+        if self:IsPlayerDead() then
+            return
+        end
+        -- Already on it (a fast taunt): stay quiet rather than call it again.
+        if tracked.crossTargetUnit and self:GetBossTargetState("player", tracked.crossTargetUnit) == true then
+            return
+        end
+        self:Alert(
+            "TAUNT " .. tracked.crossTargetName .. " NOW",
+            "Cross-swap after " .. tostring(tracked.label or "Shredding Shards") .. ". Never taunt Gebbo.",
+            "Taunt",
+            rule.key .. ":resolve:" .. tostring(tracked.label),
             true,
             rule,
             "taunt"
@@ -1136,6 +1196,11 @@ function TankAssist:HandleTimelineFinished(tracked)
     -- boss target cannot be read as the mechanic starts.
     local owner = self:GetTrackedOwner(tracked, rule) or tracked.ownerBeforeHit
     tracked.ownerAtStart = owner
+    -- Snapshot the cross-swap direction at the start, like the owner: after
+    -- the swap the holders flip and would point back the wrong way.
+    if tracked.crossSwap then
+        tracked.crossTargetUnit, tracked.crossTargetName = self:GetCrossSwapTarget()
+    end
 
     if tracked.startOnly or tracked.action == "stonebreaker"
         or (tracked.action == "assignment" and not SafeNumber(tracked.resolveAfter))
