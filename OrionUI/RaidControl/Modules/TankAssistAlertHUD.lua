@@ -150,6 +150,89 @@ local function FormatRemaining(remaining)
     return string.format("%.1f", remaining)
 end
 
+-- ---------------------------------------------------------------------------
+-- Placement through OrionUI's movers (Stig, 2026-10-08: the alert and bars had
+-- no spot in edit mode). Both frames are OrionUI movers, so they show up in
+-- /oui edit and in EllesmereUI's Unlock Mode; RaidControl's own drag-to-move
+-- and saved positions are not used for them any more.
+-- ---------------------------------------------------------------------------
+
+local MOVERS = {
+    tankAssistAlertPos = { key = "TankAssistAlert", label = ns.L["Tank assist alert"], frameField = "frame",
+        create = "CreateAlertFrame", default = { x = ALERT_DEFAULT_POS[4], y = ALERT_DEFAULT_POS[5] } },
+    tankAssistTimerPos = { key = "TankAssistBars", label = ns.L["Tank assist bars"], frameField = "timerFrame",
+        create = "CreateTimerFrame", default = { x = TIMER_DEFAULT_POS[4], y = TIMER_DEFAULT_POS[5] } },
+}
+
+local function MoverPosition(info)
+    local db = ns.Movers and ns.Movers.module and ns.Movers.module.db
+    local saved = db and db.positions and db.positions[info.key]
+    local p = saved or info.default
+    return p.x or 0, p.y or 0
+end
+
+-- Frames can be created mid-fight, and Movers:Apply waits for combat to end, so
+-- the first placement is done here directly (these frames are not protected).
+local function PlaceFrame(frame, info)
+    local x, y = MoverPosition(info)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+end
+
+if ns.Movers then
+    for positionKey, info in pairs(MOVERS) do
+        info.mover = ns.Movers:Register(info.key, {
+            label = info.label,
+            default = info.default,
+            getFrame = function()
+                if RC.db and not TankAssist[info.frameField] then
+                    TankAssist[info.create](TankAssist)
+                end
+                return TankAssist[info.frameField]
+            end,
+        })
+    end
+end
+
+local LegacyConfigureMovableFrame = TankAssist.ConfigureMovableFrame
+function TankAssist:ConfigureMovableFrame(frame, positionKey, defaultPosition)
+    local info = MOVERS[positionKey]
+    if not (info and info.mover) then
+        return LegacyConfigureMovableFrame(self, frame, positionKey, defaultPosition)
+    end
+    frame._positionKey = positionKey
+    frame._defaultPosition = defaultPosition
+    frame._orionMover = info
+    frame:SetClampedToScreen(true)
+    -- Keep a spot the player already picked with RaidControl's old drag.
+    local db = ns.Movers.module.db
+    local old = RC.db and RC.db.profile and RC.db.profile[positionKey]
+    if db and db.positions and not db.positions[info.key] and type(old) == "table"
+        and old[1] == "CENTER" and old[3] == "CENTER"
+        and (old[4] ~= defaultPosition[4] or old[5] ~= defaultPosition[5])
+    then
+        db.positions[info.key] = { x = math.floor((tonumber(old[4]) or 0) + 0.5), y = math.floor((tonumber(old[5]) or 0) + 0.5) }
+    end
+    -- ApplySingleFrameSettings only handles scale from here on; the mover owns the spot.
+    frame._rcPositionReady = true
+    frame:SetScale(Clamp(Profile().tankAssistFrameScale, 0.5, 2, 1))
+    PlaceFrame(frame, info)
+end
+
+-- Show the alert and bars (fake data) while OrionUI's edit mode is open, so
+-- there is something to drag and to judge the size by.
+if ns.Events then
+    ns.Events:On("OUI_EDIT_MODE", { name = "TankAssistEditPreview" }, function(_, _, shown)
+        if shown then
+            if not TankAssist.activeEncounter and TankAssist.PreviewLayout then
+                TankAssist:PreviewLayout(true)
+            end
+        elseif TankAssist._tankTimerPreviewActive and TankAssist.HidePreview then
+            TankAssist:HidePreview()
+        end
+    end)
+end
+
 function TankAssist:EnsureTankAssistHUDDriver()
     if self.alertHUDDriver or not CreateFrame then
         return

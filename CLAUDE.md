@@ -851,6 +851,9 @@ as flat countdown bars (dark background, 1px black border, one short upper-case 
 that is happening is drawn solid, upcoming ones dimmer). The big text only appears when it is time to act (TAUNT NOW,
 RUN OUT, JUMP…): the action big, the part after " — " as a small line, never a description paragraph, fading out.
 "Wait / hold / stay" windows are bars only. Old saved looks are dropped once (`tankAssistStyleVersion = 2`). Untested in game.
+The alert and the bars are OrionUI movers ("Tank assist alert" / "Tank assist bars": `/oui edit` and EUI Unlock Mode, fake
+data shown while edit mode is open); RaidControl's own drag and saved spots are no longer used for them. Their look
+settings (text sizes, background, bar size / count / growth, which bars) are on Raid Control → Tank assist (2026-10-08, Stig).
 **Tank assist timing (2026-10-08, Stig: taunt calls "far off"):** the Midnight raid rules identify tank mechanics
 by the Blizzard timeline bar's length (spell IDs are secret), and those length tables were stale against BigWigs
 (Ula'tek, Coiled Altar, Vashnik). `Integrations/BigWigs.lua` now keeps `ns.BossModTimeline[timelineEventID] =

@@ -171,17 +171,56 @@ local PAGES = {
             { "tankAssistMovementLeadSeconds", L["Movement call this early (seconds)"], kind = "slider", min = 1, max = 15, step = 0.5 },
             { "tankAssistAlertCooldown", L["Don't repeat a call within (seconds)"], kind = "slider", min = 0, max = 20, step = 1 },
         } },
-        { L["Sound and display"], {
+        { L["Sound"], {
             { "tankAssistSoundEnabled", L["Play sounds"] },
             { "tankAssistTtsVolume", L["Voice volume"], kind = "slider", min = 0, max = 100, step = 5 },
+        } },
+        { L["Alert text (when it's time to act)"], {
             { "tankAssistShowVisual", L["Show the alert"] },
-            { "tankAssistShowTimerBars", L["Show timer bars"] },
-            { "tankAssistFrameScale", L["Size"], kind = "slider", min = 0.5, max = 2, step = 0.05 },
+            { "tankAssistAlertFontSize", L["Text size"], kind = "slider", min = 14, max = 56, step = 1 },
+            { "tankAssistShowDetail", L["Show the small line under it"] },
+            { "tankAssistDetailFontSize", L["Small line size"], kind = "slider", min = 9, max = 24, step = 1 },
+            { "tankAssistVisualDuration", L["Stays up for (seconds)"], kind = "slider", min = 1, max = 6, step = 0.5 },
+            { "tankAssistDisplayStyle", L["Background"], kind = "dropdown", values = {
+                { value = "text", text = L["None (text only)"] }, { value = "panel", text = L["Dark box with a thin border"] } } },
+            { "tankAssistTextAlign", L["Text alignment"], kind = "dropdown", values = {
+                { value = "CENTER", text = L["Centre"] }, { value = "LEFT", text = L["Left"] } } },
+        } },
+        { L["Countdown bars"], {
+            { "tankAssistShowTimerBars", L["Show countdown bars"] },
+            { "tankAssistTimerTaunt", L["Bars for taunts"] },
+            { "tankAssistTimerDefensive", L["Bars for defensives"] },
+            { "tankAssistTimerMovement", L["Bars for movement"] },
+            { "tankAssistTimerHorizon", L["Show a bar this early (seconds)"], kind = "slider", min = 5, max = 120, step = 5 },
+            { "tankAssistTimerMaxBars", L["Most bars at once"], kind = "slider", min = 1, max = 6, step = 1 },
+            { "tankAssistTimerWidth", L["Bar width"], kind = "slider", min = 160, max = 700, step = 10 },
+            { "tankAssistTimerHeight", L["Bar height"], kind = "slider", min = 14, max = 40, step = 1 },
+            { "tankAssistTimerSpacing", L["Gap between bars"], kind = "slider", min = 0, max = 10, step = 1 },
+            { "tankAssistTimerFontSize", L["Bar text size"], kind = "slider", min = 8, max = 24, step = 1 },
+            { "tankAssistTimerGrowth", L["New bars go"], kind = "dropdown", values = {
+                { value = "DOWN", text = L["Below"] }, { value = "UP", text = L["Above"] } } },
+            { "tankAssistTimerBackgroundAlpha", L["Bar background opacity"], kind = "slider", min = 0, max = 1, step = 0.05 },
+            { "tankAssistTimerShowIcon", L["Show the boss icon"] },
+            { "tankAssistTimerShowSeconds", L["Show seconds left"] },
+        } },
+        { L["Size and colours"], {
+            { "tankAssistFrameScale", L["Overall size"], kind = "slider", min = 0.5, max = 2, step = 0.05 },
             { "tankAssistTauntColor", L["Taunt colour"], kind = "color" },
             { "tankAssistDefensiveColor", L["Defensive colour"], kind = "color" },
             { "tankAssistMovementColor", L["Movement colour"], kind = "color" },
         } },
-      } },
+      },
+      -- The alert and bars only show in fights; let people see their changes.
+      extra = function()
+          return {
+              { type = "Description", label = L["Move the alert and the bars in edit mode (/oui edit) or EllesmereUI's Unlock Mode."] },
+              { type = "Button", label = L["Show a preview"], func = function()
+                  local tank = ns.RC and ns.RC:GetModule("TankAssist", true)
+                  if tank and tank.PreviewLayout then tank:PreviewLayout(false) end
+              end },
+              { type = "Button", label = L["Open edit mode"], func = function() ns.EditMode:Toggle(true) end },
+          }
+      end },
 
     { id = "RC_Automation", label = L["Automation"], order = 7,
       desc = L["Things RaidControl can do for you: invites, assists, role markers, combat logging, repairs, screenshots."],
@@ -322,6 +361,9 @@ local function Specs(page)
         for _, row in ipairs(section[2]) do
             if Defaults()[row[1]] ~= nil then out[#out + 1] = Spec(row) end -- skip keys this build lacks
         end
+    end
+    if page.extra then
+        for _, item in ipairs(page.extra()) do out[#out + 1] = item end
     end
     out[#out + 1] = { type = "Header", label = L["Apply"] }
     out[#out + 1] = { type = "Description", label = L["Most changes show right away; a few need a /reload."] }
