@@ -1,30 +1,17 @@
-# BigWigs packager config. One tag builds one zip containing the release addons.
-# OrionUI_Dev is never shipped (CLAUDE.md §17).
-package-as: OrionUI
+# BigWigs packager config (CurseForge / Wago). The repository root is the addon folder;
+# a version tag builds RaidControl-<tag>.zip.
+package-as: RaidControl
 
 enable-nolib-creation: no
 
-move-folders:
-  OrionUI/OrionUI: OrionUI
-  # OrionUI/OrionUI_Installer: OrionUI_Installer   # enable in phase 5
-
-# Libraries are fetched at package time, never committed. URLs match what DBM/BigWigs use.
-# For local dev run tools/fetch-libs.sh.
+# Libraries are fetched at package time, never committed. For local dev run tools/fetch-libs.sh.
 externals:
-  OrionUI/Libs/LibStub: https://repos.wowace.com/wow/libstub/trunk
-  OrionUI/Libs/LibSerialize: https://github.com/rossnichols/LibSerialize.git
-  OrionUI/Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate.git
-  # Used by the built-in RaidControl (OrionUI/RaidControl)
-  OrionUI/Libs/Ace3: https://repos.curseforge.com/wow/ace3/trunk
-  OrionUI/Libs/LibSharedMedia-3.0: https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk
+  Libs/Ace3: https://repos.curseforge.com/wow/ace3/trunk
+  Libs/LibSharedMedia-3.0: https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk
 
 ignore:
-  - OrionUI_Dev
-  - OrionUI_Installer
-  - docs
-  - tests
-  - CLAUDE.md
-  - .luacheckrc
-  - .editorconfig
-  - .busted
   - tools
+  - dist
+  - CLAUDE.md
+  - .editorconfig
+  - .gitattributes

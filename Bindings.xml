@@ -1,0 +1,30 @@
+<Bindings>
+    <!-- Target markers: direct secure target icon buttons, Skull-first to match the UI. -->
+    <Binding name="CLICK RC_KeybindTarget8:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget7:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget6:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget5:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget4:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget3:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget2:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget1:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindTarget0:LeftButton" category="RAIDCONTROL" />
+
+    <!-- World markers: direct secure cursor flare buttons, Skull-first to match the UI. -->
+    <Binding name="CLICK RC_KeybindWorld8:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld7:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld6:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld5:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld4:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld3:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld2:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld1:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindWorld0:LeftButton" category="RAIDCONTROL" />
+
+    <!-- Utility actions. -->
+    <Binding name="CLICK RC_KeybindCycle:LeftButton" category="RAIDCONTROL" />
+    <Binding name="CLICK RC_KeybindShuffleWorld:LeftButton" category="RAIDCONTROL" />
+    <Binding name="RC_SCREENSHOT_MODE" category="RAIDCONTROL" runOnUp="false">
+        local m = RaidControl and RaidControl:GetModule("Screenshot", true); if m and m.Take then m:Take() end
+    </Binding>
+</Bindings>

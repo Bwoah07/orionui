@@ -1,14 +1,9 @@
-# Private competitor analyses: never publish
-/docs-private/
-# Reference repos (cloned for grepping, not part of this project)
-/refs/
-# Libraries are fetched by the packager via .pkgmeta
-*/Libs/
+# Libraries are fetched by the packager via .pkgmeta (tools/fetch-libs.sh for local dev)
+/Libs/
+# Local builds
+/dist/
 # OS / editor junk
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-/class-tracking-and-visuals.md
-# Local, never committed: presets captured from setups we must not ship (see docs-private/captures)
-/OrionUI_Dev/Private/

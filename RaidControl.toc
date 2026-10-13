@@ -1,0 +1,44 @@
+## Interface: 120100, 120105
+## Title: Raid|cff0cd29dControl|r
+## Notes: A small launcher tab with a drop-down raid menu (ready check, pull timer, markers, difficulty, invites) and an optional action strip.
+## Author: Stig
+## Version: @project-version@
+## Category: Group
+## IconTexture: Interface\AddOns\RaidControl\Media\RaidControlIcon
+## SavedVariables: RaidControlDB
+## OptionalDeps: BigWigs, DBM-Core
+
+# Libraries (fetched by .pkgmeta when packaging; see README for local dev)
+Libs\Ace3\LibStub\LibStub.lua
+Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\Ace3\AceAddon-3.0\AceAddon-3.0.xml
+Libs\Ace3\AceEvent-3.0\AceEvent-3.0.xml
+Libs\Ace3\AceLocale-3.0\AceLocale-3.0.xml
+Libs\Ace3\AceDB-3.0\AceDB-3.0.xml
+Libs\Ace3\AceConsole-3.0\AceConsole-3.0.xml
+Libs\Ace3\AceGUI-3.0\AceGUI-3.0.xml
+Libs\Ace3\AceConfig-3.0\AceConfig-3.0.xml
+Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
+
+Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\frFR.lua
+Locales\itIT.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
+Core.lua
+Media\Media.lua
+Settings.lua
+Modules\FrameScaling.lua
+Modules\Roles.lua
+Modules\ActionStrip.lua
+Modules\LayoutMode.lua
+Modules\Control.lua
+Modules\Screenshot.lua
+Modules\MarkerBar.lua

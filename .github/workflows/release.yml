@@ -1,6 +1,6 @@
-# Pushing a version tag packages the release addons and uploads to CurseForge (CLAUDE.md §17).
-# Needs repository secrets CF_API_KEY (and WAGO_API_TOKEN if we publish to Wago).
-# The TOCs also need ## X-Curse-Project-ID once the project exists.
+# Pushing a version tag (v1.0.0, ...) packages RaidControl and uploads it to CurseForge.
+# Needs the repository secret CF_API_KEY and ## X-Curse-Project-ID in RaidControl.toc
+# (add WAGO_API_TOKEN and ## X-Wago-ID to publish on Wago too).
 name: Release
 on:
   push:
