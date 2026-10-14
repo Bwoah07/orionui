@@ -1888,6 +1888,10 @@ function RC:OnInitialize()
             local workspace = self:GetModule("Workspace", true)
             if workspace and workspace.Open then workspace:Open("tank") end
             return
+        elseif lower == "bone" then
+            local boneShield = self:GetModule("BoneShield", true)
+            if boneShield then boneShield:PrintDiagnostics() end
+            return
         elseif lower == "layouts" then
             local RaidSplit = self:GetModule("RaidSplit", true)
             if RaidSplit and RaidSplit.ListLayouts then RaidSplit:ListLayouts() end
@@ -1993,6 +1997,7 @@ local SLASH_HELP_LINES = {
     { "/rc save | load <name>", L["Save or load a Raid Split layout"] },
     { "/rc layouts", L["List saved Raid Split layouts"] },
     { "/rc tank", L["Open the Tank settings"] },
+    { "/rc bone", L["Bone Shield check (what the icon sees right now)"] },
     { "/rc screenshot", L["Take a max-quality screenshot"] },
     { "/rc version", L["Show the addon and client version"] },
 }

@@ -54,6 +54,7 @@ Modules\TankAssist.lua
 Modules\TankAssistMidnight.lua
 Modules\TankAssistAlertHUD.lua
 Modules\TankAssistCountdownAudio.lua
+Modules\BoneShield.lua
 Modules\Roles.lua
 Modules\RaidSplit.lua
 Modules\ActionStrip.lua

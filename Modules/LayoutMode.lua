@@ -8,6 +8,7 @@ local PREVIEW_MODULES = {
     "ReadyTracker",
     "NoteReminders",
     "TankAssist",
+    "BoneShield",
     "AutoMarker",
     "RaidLeadTools",
 }
@@ -601,6 +602,10 @@ function LayoutMode:UpdateFrameTags()
     self:ShowFrameTag(leadTools and leadTools.healerManaFrame, L["Healer Mana"])
     self:ShowFrameTag(leadTools and leadTools.bresFrame, L["Battle Res"])
     self:ShowFrameTag(readyTracker and readyTracker.frame, L["Ready Check"])
+    local boneShield = RC:GetModule("BoneShield", true)
+    if boneShield and boneShield.preview then
+        self:ShowFrameTag(boneShield.frame, L["Bone Shield"])
+    end
 end
 
 function LayoutMode:Begin()

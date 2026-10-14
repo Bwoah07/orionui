@@ -41,6 +41,7 @@ local INDEX = {
     { label = "Co-Tank Tracking", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "tank target ownership manual name override detect" },
     { label = "Tank Quick Setup", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "preset clean hud text sound silent mute" },
     { label = "Tank Frame Position and Size", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "preview move reset layout unlock lock drag scale opacity" },
+    { label = "Bone Shield", page = "tank", tab = "bone", path = "Tank > Bone Shield", keywords = "blood death knight dk stacks ossuary marrowrend icon cooldown manager" },
     { label = "Tank Warning Types", page = "tank", tab = "warnings", path = "Tank > Warnings", keywords = "taunt swap movement enable disable" },
     { label = "Tank Warning Style", page = "tank", tab = "warnings", path = "Tank > Warnings", keywords = "text only panel compact hud screen display alert detail icon timer font size width alignment background opacity" },
     { label = "Tank Warning Colors", page = "tank", tab = "warnings", path = "Tank > Warnings", keywords = "taunt swap movement timer bar color" },

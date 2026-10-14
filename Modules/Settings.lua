@@ -2710,6 +2710,63 @@ function Settings:BuildTankSettings(container, subTab)
         shield = L["Shield"], warning = L["Warning"],
     }
 
+    if subTab == "bone" then
+        local boneShield = RC:GetModule("BoneShield", true)
+        local function RefreshBone()
+            if boneShield and boneShield.Refresh then boneShield:Refresh() end
+        end
+        AddSection(container, L["Bone Shield"], L["Blood Death Knight only. Stacks on top, time left in the centre. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."])
+        Toggle(L["Show Bone Shield"], "boneShieldEnabled", true, RefreshBone)
+        Number(L["Icon Size"], "boneShieldIconSize", 36, 20, 96, 1, RefreshBone)
+        Number(L["Stack Count Size"], "boneShieldFontSize", 16, 8, 40, 1, RefreshBone)
+        Toggle(L["Show Time Left"], "boneShieldShowTime", true, RefreshBone)
+        Toggle(L["Hide Bone Shield and Ossuary in the Cooldown Manager"], "boneShieldHideInCDM", true, RefreshBone)
+
+        AddSection(container, L["Bone Shield Warnings"], L["Below 5 stacks uses Ossuary (up at 5+ stacks), because the game hides the number in combat."])
+        Toggle(L["Blink and Warn Below 5 Stacks"], "boneShieldLowWarning", true, RefreshBone)
+        Toggle(L["Warn Before It Runs Out"], "boneShieldExpiryWarning", true, RefreshBone)
+        Number(L["Highlight at Seconds Left"], "boneShieldGlowAt", 8, 2, 20, 1, RefreshBone)
+        Number(L["Sound at Seconds Left (0 = off)"], "boneShieldSoundAt", 5, 0, 15, 1, RefreshBone)
+        Toggle(L["Show a Red 0 When It Drops in Combat"], "boneShieldDownWarning", true, RefreshBone)
+        Toggle(L["Sound When It Drops"], "boneShieldSoundOnDrop", true, RefreshBone)
+        Toggle(L["Sound When It Comes Back"], "boneShieldSoundOnGain", false, RefreshBone)
+        AddDropdown(container, L["Warning Sound"], { voice = L["Voice (Text to Speech)"], sound = L["Raid Warning"] },
+            function() return Read("boneShieldAlertStyle", "voice") end,
+            function(value) profile.boneShieldAlertStyle = value or "voice" end,
+            RefreshBone, { "voice", "sound" })
+        AddButton(container, L["Test Warning"], function()
+            if boneShield and boneShield.Test then boneShield:Test() end
+        end)
+
+        AddSection(container, L["Bone Shield Position"], L["Drag it in /rc layout, or stick it to a Cooldown Manager row. Other: type the name of any frame (use /fstack to find it)."])
+        AddDropdown(container, L["Attach To"], {
+            none = L["Nothing (move it yourself)"], essential = L["Essential cooldowns row"],
+            utility = L["Utility cooldowns row"], buffs = L["Buff icons row"], custom = L["Other frame (by name)"],
+        }, function() return Read("boneShieldAttach", "none") end,
+            function(value) profile.boneShieldAttach = value or "none" end,
+            function() RefreshBone() RebuildPage() end, { "none", "essential", "utility", "buffs", "custom" })
+        if Read("boneShieldAttach", "none") ~= "none" then
+            if Read("boneShieldAttach", "none") == "custom" then
+                AddEditBox(container, L["Frame Name"],
+                    function() return profile.boneShieldAttachFrame or "" end,
+                    function(value)
+                        profile.boneShieldAttachFrame = (value or ""):match("^%s*(.-)%s*$")
+                        RefreshBone()
+                    end)
+            end
+            AddDropdown(container, L["Side"], { LEFT = L["Left"], RIGHT = L["Right"], ABOVE = L["Above"], BELOW = L["Below"] },
+                function() return Read("boneShieldAttachSide", "LEFT") end,
+                function(value) profile.boneShieldAttachSide = value or "LEFT" end,
+                RefreshBone, { "LEFT", "RIGHT", "ABOVE", "BELOW" })
+            Number(L["Gap (pixels)"], "boneShieldAttachGap", 1, -10, 40, 1, RefreshBone)
+        end
+        AddButton(container, L["Reset Position"], function()
+            if boneShield and boneShield.ResetPosition then boneShield:ResetPosition() end
+            RebuildPage()
+        end)
+        return
+    end
+
     if subTab == "overview" then
         AddSection(container, L["Tank Assist"], L["Personal taunt and movement instructions. Set up the basics here; use the tabs above to fine-tune each part."])
         Toggle(L["Enable Tank Assist"], "enableTankAssist", false, function()
@@ -3135,6 +3192,7 @@ function Settings:BuildRaidTools(container, pageKey)
         { key = "timers", label = L["Timer Bars"] },
         { key = "sounds", label = L["Sounds"] },
         { key = "bosses", label = L["Boss Rules"] },
+        { key = "bone", label = L["Bone Shield"] },
     }
     local subTab = DrawSubTabs(self, container, "tank", tabs, tabs[1].key)
     self:BuildTankSettings(container, subTab)
