@@ -23,6 +23,7 @@ local MIDNIGHT_KEYS = {
     twinfangs = true,
     coiledaltar = true,
     ulatek = true,
+    kithix = true,
 }
 
 local MECHANIC_META = {
@@ -168,6 +169,30 @@ local MECHANIC_META = {
             preMoveTitle = "FACE BOSS INTO CLEANUP PILE — SEVER SOON",
             preMoveDetail = "Set the combined boss facing before Blighted Sever so the frontal performs the planned cleanup.",
             preMoveSpoken = "Aim",
+        },
+    },
+    kithix = {
+        ["Dark Devastation"] = {
+            bossUnit = "boss1",
+            resolveAfter = 4.5,
+            playerTitle = "RUN OUT — DARK DEVASTATION",
+            playerDetail = "Defensive, keep the boss and take the hit at your drop spot, away from the raid.",
+            offTitle = "WAIT — TAUNT AFTER DEVASTATION",
+            offDetail = "Stay out of the 15 yd hit. Take Kith'ix when the cast lands.",
+            preMoveLead = 7,
+            preMoveTitle = "TAKE BOSS TO DROP SPOT — DEVASTATION SOON",
+            preMoveDetail = "Move Kith'ix to the agreed edge spot so Dark Devastation and its scar land away from the raid.",
+            preMoveSpoken = "Move",
+        },
+        ["Negation"] = {
+            bossUnit = "boss1",
+            resolveAfter = 0.5,
+            playerTitle = "NEGATION — RUN INTO A NULL GATE",
+            playerDetail = "Defensive, then run into a Null Gate away from melee to clear it before it expires.",
+            playerSpoken = "Gate",
+            offTitle = "TAUNT NOW — NEGATION",
+            offDetail = "Take Kith'ix right away: the other tank is going to a Null Gate.",
+            offSpoken = "Taunt",
         },
     },
     ulatek = {

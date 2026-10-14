@@ -312,6 +312,9 @@ function BoneShield:CreateFrame()
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon:SetTexture(C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(BONE_SHIELD) or 136120)
     frame.icon = icon
+    -- Darkens the icon a little so white text reads on it.
+    frame.shade = frame:CreateTexture(nil, "ARTWORK", nil, 1)
+    frame.shade:SetAllPoints()
 
     -- 1px border drawn inside the icon edge.
     frame.borderLines = {}
@@ -367,10 +370,24 @@ function BoneShield:Layout()
     local frame = self.frame
     if not frame then return end
     local size = Get("boneShieldIconSize", 36)
-    local fontSize = Get("boneShieldFontSize", 16)
+    local fontSize = Get("boneShieldFontSize", 18)
     frame:SetSize(size, size)
-    RC:SetFont(frame.count, fontSize, "OUTLINE")
-    RC:SetFont(frame.timer, math.max(8, math.floor(fontSize * 0.85)), "OUTLINE")
+    -- Own outline + shadow (the shared RaidControl font drops outlines), so the numbers stay
+    -- readable over the bright icon.
+    local font = RC:GetFont()
+    local name = Get("boneShieldFont", "default")
+    if name ~= "default" then
+        local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+        font = LSM and LSM:Fetch("font", name, true) or font
+    end
+    local outline = Get("boneShieldThickOutline", true) and "THICKOUTLINE" or "OUTLINE"
+    local timerSize = math.max(8, math.floor(fontSize * Get("boneShieldTimerScale", 0.9) + 0.5))
+    for _, text in ipairs({ frame.count, frame.timer }) do
+        text:SetFont(font or STANDARD_TEXT_FONT, text == frame.count and fontSize or timerSize, outline)
+        text:SetShadowColor(0, 0, 0, 1)
+        text:SetShadowOffset(1, -1)
+    end
+    frame.shade:SetColorTexture(0, 0, 0, Get("boneShieldDarken", 0.35))
     frame.count:ClearAllPoints()
     frame.count:SetPoint("CENTER", frame, "TOP", 0, 0)
     frame.timer:ClearAllPoints()

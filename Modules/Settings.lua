@@ -2718,8 +2718,26 @@ function Settings:BuildTankSettings(container, subTab)
         AddSection(container, L["Bone Shield"], L["Blood Death Knight only. Stacks on top, time left in the centre. In combat the count is copied from your Cooldown Manager: keep Bone Shield and Ossuary in its tracked buffs."])
         Toggle(L["Show Bone Shield"], "boneShieldEnabled", true, RefreshBone)
         Number(L["Icon Size"], "boneShieldIconSize", 36, 20, 96, 1, RefreshBone)
-        Number(L["Stack Count Size"], "boneShieldFontSize", 16, 8, 40, 1, RefreshBone)
+        Number(L["Stack Count Size"], "boneShieldFontSize", 18, 8, 40, 1, RefreshBone)
         Toggle(L["Show Time Left"], "boneShieldShowTime", true, RefreshBone)
+        AddSlider(container, L["Time Left Size (% of stack count)"], 50, 150, 5,
+            function() return math.floor((tonumber(Read("boneShieldTimerScale", 0.9)) or 0.9) * 100 + 0.5) end,
+            function(value) profile.boneShieldTimerScale = value / 100 end, RefreshBone)
+        local boneFonts = { default = L["Same as RaidControl"] }
+        local boneFontOrder = { "default" }
+        local LSM = LibStub("LibSharedMedia-3.0")
+        for _, name in ipairs(LSM:List("font")) do
+            boneFonts[name] = name
+            boneFontOrder[#boneFontOrder + 1] = name
+        end
+        AddDropdown(container, L["Font"], boneFonts,
+            function() return Read("boneShieldFont", "default") end,
+            function(value) profile.boneShieldFont = value or "default" end,
+            RefreshBone, boneFontOrder)
+        Toggle(L["Thick Outline"], "boneShieldThickOutline", true, RefreshBone)
+        AddSlider(container, L["Darken Icon (%)"], 0, 80, 5,
+            function() return math.floor((tonumber(Read("boneShieldDarken", 0.35)) or 0.35) * 100 + 0.5) end,
+            function(value) profile.boneShieldDarken = value / 100 end, RefreshBone)
         Toggle(L["Hide Bone Shield and Ossuary in the Cooldown Manager"], "boneShieldHideInCDM", true, RefreshBone)
 
         AddSection(container, L["Bone Shield Warnings"], L["Below 5 stacks uses Ossuary (up at 5+ stacks), because the game hides the number in combat."])

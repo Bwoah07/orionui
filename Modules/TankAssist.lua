@@ -551,6 +551,33 @@ local BOSS_RULES = {
         statusText = "Phase 1: trade during Caustic Waves. Phase 3: trade after Mother's Wrath.",
         note = "Phase 1 Mother's Wrath is a defensive-only warning; trade as Caustic Waves begins. In phase 3, use a defensive for Mother's Wrath and swap after it resolves. Private Stone Venom values are never read or guessed.",
     },
+    -- 12.1.5 (BigWigs The Unbinding of Kith'ix; guides 2026-10-14). Stage 1: Dark Devastation hits
+    -- the tank and everyone within 15 yd and leaves Devastated (+150% damage taken, 25 s): run it
+    -- away from the raid, swap after every cast. Stage 2: Negation (+100% physical damage taken,
+    -- dies when it expires): the other tank taunts at once, the debuffed tank runs into a Null Gate.
+    {
+        key = "kithix",
+        current = true,
+        encounterID = 3513,
+        raid = "The Unbinding of Kith'ix",
+        name = "Kith'ix",
+        aliases = { "kith'ix", "kithix" },
+        mechanic = "Dark Devastation / Negation",
+        timeline = "kithix",
+        action = "swap",
+        bossUnit = "boss1",
+        timelineMechanics = {
+            { spellID = 1304930, name = "Dark Devastation", action = "swap", bossUnit = "boss1", resolveAfter = 4.5 },
+            { spellID = 1318467, name = "Negation", action = "swap", bossUnit = "boss1", resolveAfter = 0.5 },
+        },
+        stackAuras = {
+            { spellID = 1304948, name = "Devastated", private = true },
+            { spellID = 1318467, name = "Negation", private = true },
+        },
+        tauntText = "TAUNT NOW",
+        statusText = "Stage 1: run Dark Devastation out and swap after it. Stage 2: swap the moment Negation lands.",
+        note = "Dark Devastation: take the boss away from the raid, use a defensive, and swap after every cast (Devastated lasts 25 s). Negation: the other tank taunts at once; the debuffed tank runs into a Null Gate away from the group to clear it.",
+    },
 }
 
 local RULES_BY_ENCOUNTER = {}
