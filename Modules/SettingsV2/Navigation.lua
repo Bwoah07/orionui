@@ -21,31 +21,33 @@ function V2.Navigation:BuildSidebar(settings, pages)
 
     settings.tabs = {}
     for _, tabInfo in ipairs(pages) do
-        local tab = AceGUI:Create("RC_Tab")
-        tab:SetText(tabInfo.label)
-        if tab.SetTabStyle then
-            tab:SetTabStyle("sidebar")
-        end
-        if tab.SetHovered then
-            tab:SetHovered(false)
-        end
-        if tab.SetSelected then
-            tab:SetSelected(tabInfo.key == settings.selectedTab)
-        end
-        tab:SetFullWidth(true)
-        tab:SetHeight(RC:GetThemeLayout("navItemHeight", 40))
-        tab:SetCallback("OnClick", function()
-            local workspace = RC:GetModule("Workspace", true)
-            if workspace and workspace.Open and workspace.activeKey ~= "settings" then
-                workspace:Open("settings")
+        if not tabInfo.hidden then -- pages with their own top tab (Tank) stay out of the sidebar
+            local tab = AceGUI:Create("RC_Tab")
+            tab:SetText(tabInfo.label)
+            if tab.SetTabStyle then
+                tab:SetTabStyle("sidebar")
             end
-            if settings.ClearSearch then
-                settings:ClearSearch(false)
+            if tab.SetHovered then
+                tab:SetHovered(false)
             end
-            settings:SelectTab(tabInfo.key)
-        end)
-        settings.sidebarContainer:AddChild(tab)
-        settings.tabs[tabInfo.key] = tab
+            if tab.SetSelected then
+                tab:SetSelected(tabInfo.key == settings.selectedTab)
+            end
+            tab:SetFullWidth(true)
+            tab:SetHeight(RC:GetThemeLayout("navItemHeight", 40))
+            tab:SetCallback("OnClick", function()
+                local workspace = RC:GetModule("Workspace", true)
+                if workspace and workspace.Open and workspace.activeKey ~= "settings" then
+                    workspace:Open("settings")
+                end
+                if settings.ClearSearch then
+                    settings:ClearSearch(false)
+                end
+                settings:SelectTab(tabInfo.key)
+            end)
+            settings.sidebarContainer:AddChild(tab)
+            settings.tabs[tabInfo.key] = tab
+        end
     end
     if settings.sidebarContainer.DoLayout then
         settings.sidebarContainer:DoLayout()

@@ -44,7 +44,7 @@ local DESCRIPTIONS = {
     ["Menu Alpha (%)"] = "Opacity of the top tab and dropdown panel.",
     ["Top Tab Scale (%)"] = "Size of the RaidControl tab at the top of the screen.",
     ["Dropdown Panel Scale (%)"] = "Size of the dropdown panel opened from the top tab.",
-    ["Settings Window Scale (%)"] = "Size of this settings window.",
+    ["Settings Window Scale (%)"] = "Size of this settings window and Raid Split.",
 
     -- Tank
     ["Enable Tank Assist"] = "Turns on personal taunt, defensive and movement instructions for supported encounters.",

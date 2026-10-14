@@ -1135,3 +1135,4 @@ L["Browse Tank Assist"] = true
 L["Personal taunt and movement instructions. Set up the basics here; use the tabs above to fine-tune each part."] = true
 L["The same colors identify taunts and movement in both warnings and timer bars."] = true
 L["Separate personal timer bars show only your upcoming taunts/swaps and movement when the encounter supplies safe timing. Ambiguous ownership stays hidden; follow the actual taunt warning for the final swap."] = true
+L["Open the Tank settings"] = true

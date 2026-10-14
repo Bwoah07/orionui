@@ -1878,6 +1878,33 @@ function RC:OnInitialize()
                 self:Print(self.db.profile.showActionStrip and L["Action Strip is now VISIBLE."] or L["Action Strip is now HIDDEN."])
             end
             return
+        elseif lower == "split" then
+            local workspace = self:GetModule("Workspace", true)
+            local RaidSplit = self:GetModule("RaidSplit", true)
+            if workspace and workspace.Open then workspace:Open("split")
+            elseif RaidSplit then RaidSplit:Toggle() end
+            return
+        elseif lower == "tank" then
+            local workspace = self:GetModule("Workspace", true)
+            if workspace and workspace.Open then workspace:Open("tank") end
+            return
+        elseif lower == "layouts" then
+            local RaidSplit = self:GetModule("RaidSplit", true)
+            if RaidSplit and RaidSplit.ListLayouts then RaidSplit:ListLayouts() end
+            return
+        elseif command == "save" or command == "load" then
+            local name = strtrim(rest)
+            if name ~= "" then
+                local RaidSplit = self:GetModule("RaidSplit", true)
+                if RaidSplit and command == "save" then
+                    RaidSplit:SaveLayout(name)
+                elseif RaidSplit then
+                    RaidSplit:LoadLayout(name)
+                end
+            else
+                self:Printf(L["Usage: /rc %s <layout name>"], command)
+            end
+            return
         elseif lower == "screenshot" or lower == "ss" or lower == "photo" then
             local ScreenshotModule = self:GetModule("Screenshot", true)
             if ScreenshotModule and ScreenshotModule.Take then
@@ -1962,6 +1989,10 @@ local SLASH_HELP_LINES = {
     { "/rc unlock | lock", L["Unlock or lock every RaidControl frame"] },
     { "/rc reset", L["Move the launcher back to the centre of the screen"] },
     { "/rc strip", L["Show or hide the action strip"] },
+    { "/rc split", L["Open Raid Split"] },
+    { "/rc save | load <name>", L["Save or load a Raid Split layout"] },
+    { "/rc layouts", L["List saved Raid Split layouts"] },
+    { "/rc tank", L["Open the Tank settings"] },
     { "/rc screenshot", L["Take a max-quality screenshot"] },
     { "/rc version", L["Show the addon and client version"] },
 }

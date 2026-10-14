@@ -3,15 +3,18 @@
 This branch is the standalone RaidControl addon, cut out of OrionUI's built-in copy
 (OrionUI/RaidControl on main). It carries the launcher tab, its drop-down menu, the action strip
 and tank assist's taunt and movement calls (Stig, 2026-10-14; defensive calls are off by default
-and not in the settings). Raid Split, lead tools, ready tracker and automation stay in OrionUI.
+and not in the settings). Raid Split came back on 2026-10-14 as its own top tab; lead tools, ready tracker, boss notes and
+automation stay in OrionUI.
 - Tank assist: Modules/TankAssist*.lua; Modules/BossModTimeline.lua links Blizzard timeline events
   to BigWigs spell keys (ns.BossModTimeline). Alert and bars move with /rc layout.
 
 - The repository root is the addon folder (`RaidControl.toc`). Libraries come from `.pkgmeta`
   externals (Ace3, LibSharedMedia-3.0); `tools/fetch-libs.sh` for local dev. `Libs/` is gitignored.
 - Settings: the original RaidControl settings window (Modules/Settings.lua + Modules/SettingsV2/,
-  from the Bwoah07/Raidcontrol repo) trimmed to Interface, Tank, Screenshots and Look & Feel; no
-  Workspace host. Opened by `/rc`, right-click the tab, Escape menu, Blizzard AddOns page and the
+  from the Bwoah07/Raidcontrol repo) inside the original Workspace host (Modules/Workspace.lua).
+  Top tabs: Settings (Interface, Screenshots, Look & Feel), Raid Split (Modules/RaidSplit.lua) and
+  Tank (the Tank settings page, hidden from the sidebar). Opened by `/rc`, `/rc split`, `/rc tank`,
+  right-click the tab, Escape menu, Blizzard AddOns page and the
   addon compartment (Modules/BlizzardOptions.lua). Saved variable `RaidControlDB` (AceDB, same name as the old standalone addon).
 - Defaults: launcher tab + drop-down menu on (`hideTopBar = false`), action strip off
   (`showActionStrip = false`).

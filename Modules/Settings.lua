@@ -16,7 +16,8 @@ local L = RC.L
 
 local NAV_TABS = {
     { key = "interface", label = L["Interface"], glyph = "UI", description = L["Visibility, dropdown controls, and the action strip"] },
-    { key = "tank", label = L["Tank"], glyph = "TK", description = L["Personal warnings, upcoming mechanics, sounds, and boss rules"] },
+    -- Tank has its own top tab (Workspace "tank"), so it stays out of the sidebar.
+    { key = "tank", label = L["Tank"], glyph = "TK", description = L["Personal warnings, upcoming mechanics, sounds, and boss rules"], hidden = true },
     { key = "screenshot", label = L["Screenshots"], glyph = "SS", description = L["Capture quality, format, render scale, and resolution"] },
     { key = "appearance", label = L["Look & Feel"], glyph = "AP", description = L["Theme, surfaces, fonts, scaling, and profiles"] },
 }
@@ -1532,6 +1533,10 @@ function Settings:SelectTab(key)
     end
 
     self.selectedTab = key
+    local workspace = RC:GetModule("Workspace", true)
+    if workspace and workspace.RefreshChrome then
+        workspace:RefreshChrome()
+    end
     self.layoutModeActionButton = nil
     self.layoutLockCheckbox = nil
     local tabInfo = self:GetTabInfo(key)

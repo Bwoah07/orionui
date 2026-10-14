@@ -38,6 +38,7 @@ Locales\zhTW.lua
 Core.lua
 Media\Media.lua
 Modules\FrameScaling.lua
+Modules\Workspace.lua
 Modules\SettingsV2\Constants.lua
 Modules\SettingsV2\Layout.lua
 Modules\SettingsV2\ThemeBridge.lua
@@ -53,6 +54,7 @@ Modules\TankAssistMidnight.lua
 Modules\TankAssistAlertHUD.lua
 Modules\TankAssistCountdownAudio.lua
 Modules\Roles.lua
+Modules\RaidSplit.lua
 Modules\ActionStrip.lua
 Modules\LayoutMode.lua
 Modules\Control.lua
