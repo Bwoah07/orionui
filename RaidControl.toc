@@ -19,6 +19,7 @@ Libs\Ace3\AceEvent-3.0\AceEvent-3.0.xml
 Libs\Ace3\AceLocale-3.0\AceLocale-3.0.xml
 Libs\Ace3\AceDB-3.0\AceDB-3.0.xml
 Libs\Ace3\AceConsole-3.0\AceConsole-3.0.xml
+Libs\Ace3\AceComm-3.0\AceComm-3.0.xml
 Libs\Ace3\AceSerializer-3.0\AceSerializer-3.0.xml
 Libs\Ace3\AceGUI-3.0\AceGUI-3.0.xml
 Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
@@ -60,6 +61,7 @@ Modules\LayoutMode.lua
 Modules\Control.lua
 Modules\Screenshot.lua
 Modules\MarkerBar.lua
+Modules\Durability.lua
 Modules\ReadyTracker.lua
 Modules\Settings.lua
 Modules\BlizzardOptions.lua

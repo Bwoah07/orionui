@@ -3,7 +3,7 @@
 This branch is the standalone RaidControl addon, cut out of OrionUI's built-in copy
 (OrionUI/RaidControl on main). It carries the launcher tab, its drop-down menu, the action strip
 and tank assist's taunt and movement calls (Stig, 2026-10-14; defensive calls are off by default
-and not in the settings). Raid Split came back on 2026-10-14 as its own top tab; the ready check panel (Modules/ReadyTracker.lua) came back too; lead tools, boss notes and
+and not in the settings). Raid Split came back on 2026-10-14 as its own top tab; the ready check panel (Modules/ReadyTracker.lua) came back too, with durability sync between RaidControl users (Modules/Durability.lua, prefix RCLEAD); lead tools, boss notes and
 automation stay in OrionUI.
 - Tank assist: Modules/TankAssist*.lua; Modules/BossModTimeline.lua links Blizzard timeline events
   to BigWigs spell keys (ns.BossModTimeline). Alert and bars move with /rc layout.

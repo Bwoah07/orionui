@@ -703,7 +703,7 @@ function ReadyTracker:READY_CHECK(event, initiator, duration)
 
     self:StartConsumableScan(entries)
 
-    local leadTools = RC:GetModule("RaidLeadTools", true)
+    local leadTools = RC:GetModule("Durability", true)
     if leadTools and leadTools.RequestDurability and leadTools.SendDurability then
         if self.db.durabilityReadyCheckRequest ~= false then
             leadTools:RequestDurability(false)
@@ -1552,7 +1552,7 @@ function ReadyTracker:UpdateFrame()
     local f = self.frame
     if not f then return end
 
-    local leadTools = RC:GetModule("RaidLeadTools", true)
+    local leadTools = RC:GetModule("Durability", true)
     local summary = self:BuildReadinessSummary(function(name)
         local data = self.consumableData and self.consumableData[name]
         if data and type(data.previewDurability) == "number" then

@@ -2965,7 +2965,7 @@ function Settings:BuildTankSettings(container, subTab)
 end
 
 function Settings:BuildReadyCheck(container)
-    AddSection(container, L["Ready Check"], L["Ready responses, preparation issues and consumables in one view."])
+    AddSection(container, L["Ready Check"], L["Ready responses, preparation issues, consumables and durability in one view."])
 
     local readyTracker = RC:GetModule("ReadyTracker", true)
 
@@ -3045,6 +3045,34 @@ function Settings:BuildReadyCheck(container)
             end
         end
     )
+    AddCheckbox(
+        container,
+        L["Share Durability with RaidControl Users"],
+        function() return RC.db.profile.enableDurabilityComm ~= false end,
+        function(value) RC.db.profile.enableDurabilityComm = value and true or false end
+    )
+    AddCheckbox(
+        container,
+        L["Ask RaidControl Users for Durability"],
+        function() return RC.db.profile.durabilityReadyCheckRequest ~= false end,
+        function(value) RC.db.profile.durabilityReadyCheckRequest = value and true or false end
+    )
+
+    AddSlider(
+        container,
+        L["Low Durability Warning (%)"],
+        5, 80, 5,
+        function() return RC.db.profile.durabilityWarnThreshold or 30 end,
+        function(value) RC.db.profile.durabilityWarnThreshold = value end
+    )
+
+    AddButton(container, L["Check Durability Now"], function()
+        local durability = RC:GetModule("Durability", true)
+        if durability and durability.RequestDurability then
+            durability:RequestDurability(true)
+        end
+    end)
+
     AddSlider(
         container,
         L["Ready Check Scale"],
