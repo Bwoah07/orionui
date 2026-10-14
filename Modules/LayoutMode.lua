@@ -101,74 +101,174 @@ function LayoutMode:OpenSettingsFromGameMenu(frame)
     return true
 end
 
-function LayoutMode:AddGameMenuButtons(frame)
-    if not frame or type(frame.AddButton) ~= "function" or frame._raidControlAddingButtons then
-        return false
+-- =============================================================================
+-- ESCAPE MENU BUTTON
+-- A "RaidControl" button in its own block under Options / Shop, styled as a flat dark button with
+-- the brand name. It is our own frame (not one of Blizzard's pooled menu buttons), placed after
+-- every menu layout: below the last button above AddOns (Shop, or a button another addon put
+-- there), with the buttons underneath moved down to make room.
+-- =============================================================================
+
+local GAME_MENU_VISUAL_INSET = 2
+local GAME_MENU_GAP = 4
+
+local function GetBrandText()
+    local accent = RC.Config and RC.Config.Accent or { r = 0.05, g = 0.82, b = 0.62 }
+    return string.format("|cff%02x%02x%02xRaid|r|cffffffffControl|r",
+        math.floor((accent.r or 0.05) * 255 + 0.5),
+        math.floor((accent.g or 0.82) * 255 + 0.5),
+        math.floor((accent.b or 0.62) * 255 + 0.5))
+end
+
+local function ButtonText(button)
+    local ok, text = pcall(function() return button.GetText and button:GetText() end)
+    return ok and text or nil
+end
+
+function LayoutMode:CreateGameMenuButton(frame)
+    if self.gameMenuButton then
+        return self.gameMenuButton
     end
-    if frame._raidControlButtonsAdded then
-        return true
+    local button = CreateFrame("Button", "RaidControl_GameMenuButton", frame)
+    button:SetSize(200, 35)
+    button:SetFrameLevel(frame:GetFrameLevel() + 5)
+    button:RegisterForClicks("LeftButtonUp")
+    button:SetScript("OnClick", function()
+        LayoutMode:OpenSettingsFromGameMenu(frame)
+    end)
+
+    local inset = GAME_MENU_VISUAL_INSET
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetPoint("TOPLEFT", inset + 1, -(inset + 1))
+    background:SetPoint("BOTTOMRIGHT", -(inset + 1), inset + 1)
+    local borders = {}
+    for i = 1, 4 do borders[i] = button:CreateTexture(nil, "BORDER") end
+    borders[1]:SetPoint("TOPLEFT", inset, -inset) borders[1]:SetPoint("TOPRIGHT", -inset, -inset) borders[1]:SetHeight(1)
+    borders[2]:SetPoint("BOTTOMLEFT", inset, inset) borders[2]:SetPoint("BOTTOMRIGHT", -inset, inset) borders[2]:SetHeight(1)
+    borders[3]:SetPoint("TOPLEFT", inset, -inset) borders[3]:SetPoint("BOTTOMLEFT", inset, inset) borders[3]:SetWidth(1)
+    borders[4]:SetPoint("TOPRIGHT", -inset, -inset) borders[4]:SetPoint("BOTTOMRIGHT", -inset, inset) borders[4]:SetWidth(1)
+
+    button.Text = button:CreateFontString(nil, "OVERLAY")
+    button.Text:SetPoint("CENTER")
+
+    local function Refresh(hovered)
+        local bg = hovered and RC.Config.ButtonHover or RC.Config.ButtonBg
+        if bg then background:SetColorTexture(bg.r, bg.g, bg.b, bg.a or 1) end
+        local border = hovered and RC.Config.AccentHover or RC.Config.InputBorder
+        if border then
+            for _, line in ipairs(borders) do
+                line:SetColorTexture(border.r, border.g, border.b, hovered and 1 or (border.a or 0.88))
+            end
+        end
+        RC:SetFont(button.Text, 13, "")
+        button.Text:SetText(GetBrandText())
+    end
+    button:SetScript("OnEnter", function() Refresh(true) end)
+    button:SetScript("OnLeave", function() Refresh(false) end)
+    button.RefreshTheme = function() Refresh(false) end
+    if RC.RegisterThemeWidget then RC:RegisterThemeWidget(button) end
+    Refresh(false)
+
+    self.gameMenuButton = button
+    return button
+end
+
+function LayoutMode:LayoutGameMenuButton(frame)
+    if IsInCombat() or not frame or not frame:IsShown() then
+        return
+    end
+    local button = self:CreateGameMenuButton(frame)
+    local pool = frame.buttonPool
+    if not pool or type(pool.EnumerateActive) ~= "function" then
+        button:Hide()
+        return
     end
 
-    frame._raidControlAddingButtons = true
-    local closeIndex = math.max(1, (tonumber(frame.nextLayoutIndex) or 2) - 1)
-    local closeButton
-    local pool = frame.buttonPool
-    if pool and type(pool.EnumerateActive) == "function" then
-        for button in pool:EnumerateActive() do
-            if button and button.layoutIndex == closeIndex then
-                closeButton = button
-                break
+    -- AddOns starts the block we sit above.
+    local addonsLabel = _G.ADDONS or "AddOns"
+    local addonsButton
+    for menuButton in pool:EnumerateActive() do
+        if ButtonText(menuButton) == addonsLabel then
+            addonsButton = menuButton
+            break
+        end
+    end
+    local addonsTop = addonsButton and addonsButton:GetTop()
+    if not addonsTop then
+        button:Hide()
+        return
+    end
+
+    -- Anchor under the lowest shown button above AddOns, Blizzard's or another addon's.
+    local pooled = {}
+    for menuButton in pool:EnumerateActive() do pooled[menuButton] = true end
+    local anchor, anchorBottom
+    local function Consider(child)
+        if child ~= button and child.IsObjectType and child:IsObjectType("Button") and child:IsShown() then
+            local bottom = child:GetBottom()
+            if bottom and bottom > addonsTop and (not anchorBottom or bottom < anchorBottom) then
+                anchor, anchorBottom = child, bottom
             end
         end
     end
+    for menuButton in pool:EnumerateActive() do Consider(menuButton) end
+    for _, child in ipairs({ frame:GetChildren() }) do Consider(child) end
+    if not anchor then
+        button:Hide()
+        return
+    end
 
-    if frame.AddSection then frame:AddSection(14) end
-    local settingsButton = frame:AddButton("RaidControl", function()
-        self:OpenSettingsFromGameMenu(frame)
-    end)
+    local width, height = addonsButton:GetWidth(), addonsButton:GetHeight()
+    button:SetSize(width and width > 0 and width or 200, height and height > 0 and height or 35)
+    -- Under a Blizzard button (Shop) we start a block of our own, spaced like the menu's blocks;
+    -- under another addon's button we join its block.
+    local gap = GAME_MENU_GAP
+    if pooled[anchor] then
+        gap = math.max(GAME_MENU_GAP, anchorBottom - addonsTop)
+    end
+    button:ClearAllPoints()
+    button:SetPoint("TOP", anchor, "BOTTOM", 0, -gap)
+    button:Show()
 
-    -- Blizzard builds Return to Game last. Keep that familiar final position.
-    if closeButton and settingsButton then
-        local sectionSpacing = closeButton.topPadding or 20
-        settingsButton.layoutIndex = closeIndex
-        settingsButton.topPadding = sectionSpacing
-        closeButton.layoutIndex = closeIndex + 1
-        closeButton.topPadding = 20
-        frame.nextLayoutIndex = math.max(tonumber(frame.nextLayoutIndex) or 1, closeIndex + 2)
-        if frame.MarkDirty then
-            frame:MarkDirty()
+    local extraHeight = button:GetHeight() + gap
+    for menuButton in pool:EnumerateActive() do
+        local top = menuButton:GetTop()
+        if top and top <= addonsTop + 1 then
+            local point, relativeTo, relativePoint, x, y = menuButton:GetPoint(1)
+            if point then
+                menuButton:ClearAllPoints()
+                menuButton:SetPoint(point, relativeTo, relativePoint, x, (y or 0) - extraHeight)
+            end
         end
     end
-    frame._raidControlButtonsAdded = true
-    frame._raidControlAddingButtons = nil
-    return true
+    frame:SetHeight(frame:GetHeight() + extraHeight)
 end
 
 function LayoutMode:InstallGameMenuHook()
     if self.gameMenuHooked or type(hooksecurefunc) ~= "function" then
         return self.gameMenuHooked == true
     end
-
-    local target = _G.GameMenuFrameMixin
-    if type(target) ~= "table" or type(target.InitButtons) ~= "function" then
-        target = _G.GameMenuFrame
-    end
-    if type(target) ~= "table" or type(target.InitButtons) ~= "function" then
+    local frame = _G.GameMenuFrame
+    if not frame or type(frame.Layout) ~= "function" then
         return false
     end
-
-    hooksecurefunc(target, "InitButtons", function(frame)
-        if _G.GameMenuFrame and frame ~= _G.GameMenuFrame then
-            return
-        end
-        local ok, err = pcall(LayoutMode.AddGameMenuButtons, LayoutMode, frame)
-        if not ok then
-            frame._raidControlAddingButtons = nil
-            if not LayoutMode.gameMenuErrorShown then
+    hooksecurefunc(frame, "Layout", function()
+        if IsInCombat() then return end
+        LayoutMode.gameMenuLayoutSerial = (LayoutMode.gameMenuLayoutSerial or 0) + 1
+        local serial = LayoutMode.gameMenuLayoutSerial
+        -- Wait two frames so the menu, and any addon that adds its own button after the layout,
+        -- has finished before we measure.
+        C_Timer.After(0, function() C_Timer.After(0, function()
+            if serial ~= LayoutMode.gameMenuLayoutSerial then return end
+            local ok, err = pcall(LayoutMode.LayoutGameMenuButton, LayoutMode, frame)
+            if not ok and not LayoutMode.gameMenuErrorShown then
                 LayoutMode.gameMenuErrorShown = true
                 RC:Print(string.format(L["Could not add RaidControl to the Escape menu: %s"], tostring(err)))
             end
-        end
+        end) end)
+    end)
+    frame:HookScript("OnHide", function()
+        if LayoutMode.gameMenuButton then LayoutMode.gameMenuButton:Hide() end
     end)
     self.gameMenuHooked = true
     return true

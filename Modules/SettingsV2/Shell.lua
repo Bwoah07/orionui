@@ -298,8 +298,15 @@ function V2.Shell:Create(settings, options)
                 workspace:Open("split")
             end
         end),
+        CreateSidebarQuickAction(shell, L["Tank"], "T", 4, function()
+            local workspace = RC:GetModule("Workspace", true)
+            if workspace and workspace.Open then
+                workspace:Open("tank")
+            end
+        end),
     }
     shell.quickActions[2].workspaceKey = "split"
+    shell.quickActions[3].workspaceKey = "tank"
 
     shell.sectionLabel = CreateShellFontString(shell.sidebar, "LEFT", RC:IsShadowsteelTheme() and 10 or 11, "OUTLINE")
     shell.sectionLabel:SetText("SETTINGS")
