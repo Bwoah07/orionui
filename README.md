@@ -6,6 +6,8 @@ A small, free raid helper for World of Warcraft (Retail, Midnight).
 - **Drop-down menu**: ready check, pull timer, convert party / raid, difficulty, guild invite,
   clear markers, disband, screenshot, tank / healer / DPS counts and raid marker buttons.
 - **Action strip** (off by default): the same buttons as a single row you can place anywhere.
+- **Tank assist**: taunt swap and movement calls for tanks in boss fights, as a short alert when it's
+  time to act plus countdown bars. Uses BigWigs to tell mechanics apart when it's installed.
 
 Defaults: the launcher tab and its drop-down menu are on, the action strip is off.
 

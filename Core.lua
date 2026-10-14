@@ -1357,7 +1357,7 @@ function RC:OnInitialize()
             tankAssistCustomSoundFile = "",
             tankAssistSoundEnabled = true,
             tankAssistTauntEnabled = true,
-            tankAssistDefensiveEnabled = true,
+            tankAssistDefensiveEnabled = false, -- this addon only calls taunts and movement
             tankAssistMovementEnabled = true,
             tankAssistTauntSound = "voicepack",
             tankAssistDefensiveSound = "ready",
@@ -1398,7 +1398,7 @@ function RC:OnInitialize()
             tankAssistMovementColor = { r = 0.2, g = 0.8, b = 1 },
             tankAssistShowTimerBars = true,
             tankAssistTimerTaunt = true,
-            tankAssistTimerDefensive = true,
+            tankAssistTimerDefensive = false,
             tankAssistTimerMovement = true,
             tankAssistTimerWidth = 280,
             tankAssistTimerHeight = 20,

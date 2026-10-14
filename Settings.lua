@@ -1,6 +1,6 @@
 -- RaidControl settings: one AceConfig panel, opened with /rc, a right-click on the launcher tab,
 -- the Escape menu button, or Options > AddOns > RaidControl. Rows read and write RC.db.profile
--- directly; every change re-applies the launcher, menu and action strip.
+-- directly; every change re-applies the launcher, menu, action strip and tank assist.
 local _, ns = ...
 local RC = ns.RC
 local L = RC.L
@@ -43,6 +43,10 @@ local function Changed()
     Call(strip, "UpdateVisibility")
     Call(strip, "UpdateScale", p.actionStripScale or 1)
     Call(strip, "RefreshModifierAttributes")
+    local tank = RC:GetModule("TankAssist", true)
+    Call(tank, "ApplyEnabledState")
+    Call(tank, "RefreshRuntimeSettings")
+    Call(tank, "ApplyFrameSettings")
 end
 
 local function Value(key)
@@ -84,6 +88,17 @@ local function Select(key, name, values, sorting)
         type = "select", name = name, order = Next(), values = values, sorting = sorting,
         get = function() return Value(key) end,
         set = function(_, v) Profile()[key] = v; Changed() end,
+    }
+end
+
+local function ColorRow(key, name)
+    return {
+        type = "color", name = name, order = Next(),
+        get = function()
+            local c = Value(key) or {}
+            return c.r or 1, c.g or 1, c.b or 1, c.a or 1
+        end,
+        set = function(_, r, g, b, a) Profile()[key] = { r = r, g = g, b = b, a = a or 1 }; Changed() end,
     }
 end
 
@@ -160,6 +175,52 @@ local function BuildOptions()
                 clearWorld = Toggle("actionStripShowClearWorld", L["Clear world markers"]),
                 disband = Toggle("actionStripShowDisband", L["Disband group"]),
                 screenshot = Toggle("actionStripShowScreenshot", L["Screenshot"]),
+            }),
+            tank = Group(L["Tank assist"], {
+                desc = { type = "description", order = Next(), fontSize = "medium",
+                    name = L["Taunt swap and movement calls for tanks in boss fights. Move the alert and the bars with /rc layout."] },
+                h1 = Header(L["Tank assist"]),
+                enable = Toggle("enableTankAssist", L["Enable tank assist"]),
+                tanksOnly = Toggle("tankAssistTanksOnly", L["Only when I'm a tank"]),
+                encounterOnly = Toggle("tankAssistEncounterOnly", L["Only during boss fights"]),
+                busters = Toggle("tankAssistEnableDungeonBusters", L["Include dungeon tank busters"]),
+                coTank = { type = "input", name = L["Co-tank name (empty = automatic)"], order = Next(), width = "double",
+                    get = function() return tostring(Value("tankAssistCoTankName") or "") end,
+                    set = function(_, v) Profile().tankAssistCoTankName = strtrim(v or ""); Changed() end },
+                h2 = Header(L["Calls"]),
+                taunt = Toggle("tankAssistTauntEnabled", L["Taunt swaps"]),
+                movement = Toggle("tankAssistMovementEnabled", L["Movement"]),
+                movementLead = Range("tankAssistMovementLeadSeconds", L["Movement call this early (seconds)"], 1, 15, 0.5),
+                repeatGuard = Range("tankAssistAlertCooldown", L["Don't repeat a call within (seconds)"], 0, 20, 1),
+                h3 = Header(L["Sound"]),
+                sound = Toggle("tankAssistSoundEnabled", L["Play sounds"]),
+                volume = Range("tankAssistTtsVolume", L["Voice volume"], 0, 100, 5),
+                h4 = Header(L["Alert text (when it's time to act)"]),
+                visual = Toggle("tankAssistShowVisual", L["Show the alert"]),
+                fontSize = Range("tankAssistAlertFontSize", L["Text size"], 14, 56, 1),
+                detail = Toggle("tankAssistShowDetail", L["Show the small line under it"]),
+                detailSize = Range("tankAssistDetailFontSize", L["Small line size"], 9, 24, 1),
+                duration = Range("tankAssistVisualDuration", L["Stays up for (seconds)"], 1, 6, 0.5),
+                style = Select("tankAssistDisplayStyle", L["Background"],
+                    { text = L["None (text only)"], panel = L["Dark box with a thin border"] }, { "text", "panel" }),
+                h5 = Header(L["Countdown bars"]),
+                bars = Toggle("tankAssistShowTimerBars", L["Show countdown bars"]),
+                barTaunt = Toggle("tankAssistTimerTaunt", L["Bars for taunts"]),
+                barMovement = Toggle("tankAssistTimerMovement", L["Bars for movement"]),
+                horizon = Range("tankAssistTimerHorizon", L["Show a bar this early (seconds)"], 5, 120, 5),
+                maxBars = Range("tankAssistTimerMaxBars", L["Most bars at once"], 1, 6, 1),
+                barWidth = Range("tankAssistTimerWidth", L["Bar width"], 160, 700, 10),
+                barHeight = Range("tankAssistTimerHeight", L["Bar height"], 14, 40, 1),
+                growth = Select("tankAssistTimerGrowth", L["New bars go"], { DOWN = L["Below"], UP = L["Above"] }, { "DOWN", "UP" }),
+                h6 = Header(L["Size and colours"]),
+                scale = Range("tankAssistFrameScale", L["Overall size"], 0.5, 2, 0.05),
+                tauntColor = ColorRow("tankAssistTauntColor", L["Taunt colour"]),
+                movementColor = ColorRow("tankAssistMovementColor", L["Movement colour"]),
+                preview = { type = "execute", name = L["Show a preview"], order = Next(),
+                    func = function()
+                        local tank = RC:GetModule("TankAssist", true)
+                        if tank and tank.PreviewLayout then tank:PreviewLayout(false) end
+                    end },
             }),
             look = Group(L["Look"], {
                 h1 = Header(L["Look"]),

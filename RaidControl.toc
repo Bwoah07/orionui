@@ -1,6 +1,6 @@
 ## Interface: 120100, 120105
 ## Title: Raid|cff0cd29dControl|r
-## Notes: A small launcher tab with a drop-down raid menu (ready check, pull timer, markers, difficulty, invites) and an optional action strip.
+## Notes: A small launcher tab with a drop-down raid menu (ready check, pull timer, markers, difficulty, invites), an optional action strip, and taunt and movement calls for tanks.
 ## Author: Stig
 ## Version: @project-version@
 ## Category: Group
@@ -36,6 +36,11 @@ Core.lua
 Media\Media.lua
 Settings.lua
 Modules\FrameScaling.lua
+Modules\BossModTimeline.lua
+Modules\TankAssist.lua
+Modules\TankAssistMidnight.lua
+Modules\TankAssistAlertHUD.lua
+Modules\TankAssistCountdownAudio.lua
 Modules\Roles.lua
 Modules\ActionStrip.lua
 Modules\LayoutMode.lua

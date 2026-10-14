@@ -1,8 +1,11 @@
 # CLAUDE.md: RaidControl (standalone)
 
 This branch is the standalone RaidControl addon, cut out of OrionUI's built-in copy
-(OrionUI/RaidControl on main). It only carries the launcher tab, its drop-down menu and the
-action strip; Raid Split, tank assist, lead tools, ready tracker and automation stay in OrionUI.
+(OrionUI/RaidControl on main). It carries the launcher tab, its drop-down menu, the action strip
+and tank assist's taunt and movement calls (Stig, 2026-10-14; defensive calls are off by default
+and not in the settings). Raid Split, lead tools, ready tracker and automation stay in OrionUI.
+- Tank assist: Modules/TankAssist*.lua; Modules/BossModTimeline.lua links Blizzard timeline events
+  to BigWigs spell keys (ns.BossModTimeline). Alert and bars move with /rc layout.
 
 - The repository root is the addon folder (`RaidControl.toc`). Libraries come from `.pkgmeta`
   externals (Ace3, LibSharedMedia-3.0); `tools/fetch-libs.sh` for local dev. `Libs/` is gitignored.
