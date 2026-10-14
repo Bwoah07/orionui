@@ -9,6 +9,7 @@ V2.Constants = V2.Constants or {}
 
 V2.Constants.Pages = {
     { key = "interface", label = L["Interface"], glyph = "UI", description = L["Visibility, dropdown controls, and the action strip"] },
+    { key = "ready", label = L["Ready Check"], glyph = "RC", description = L["Ready responses, preparation issues and consumables in one view."] },
     { key = "tank", label = L["Tank"], glyph = "TK", description = L["Personal warnings, upcoming timers, separate sounds, and boss rules"] },
     { key = "screenshot", label = L["Screenshot"], glyph = "SS", description = L["Capture quality, format, render scale, and resolution"] },
     { key = "appearance", label = L["Look & Feel"], glyph = "AP", description = L["Theme, surfaces, fonts, scaling, and profiles"] },

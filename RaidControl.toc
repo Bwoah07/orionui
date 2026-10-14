@@ -60,5 +60,6 @@ Modules\LayoutMode.lua
 Modules\Control.lua
 Modules\Screenshot.lua
 Modules\MarkerBar.lua
+Modules\ReadyTracker.lua
 Modules\Settings.lua
 Modules\BlizzardOptions.lua

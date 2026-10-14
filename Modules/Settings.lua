@@ -18,6 +18,7 @@ local NAV_TABS = {
     { key = "interface", label = L["Interface"], glyph = "UI", description = L["Visibility, dropdown controls, and the action strip"] },
     -- Tank has its own top tab (Workspace "tank"), so it stays out of the sidebar.
     { key = "tank", label = L["Tank"], glyph = "TK", description = L["Personal warnings, upcoming mechanics, sounds, and boss rules"], hidden = true },
+    { key = "ready", label = L["Ready Check"], glyph = "RC", description = L["Ready responses, preparation issues and consumables in one view."] },
     { key = "screenshot", label = L["Screenshots"], glyph = "SS", description = L["Capture quality, format, render scale, and resolution"] },
     { key = "appearance", label = L["Look & Feel"], glyph = "AP", description = L["Theme, surfaces, fonts, scaling, and profiles"] },
 }
@@ -1629,6 +1630,8 @@ function Settings:SelectTab(key)
             self:BuildAppearance(scroll)
         elseif key == "markers" then
             self:BuildMarkers(scroll)
+        elseif key == "ready" then
+            self:BuildReadyCheck(scroll)
         elseif key == "tank" then
             self:BuildRaidTools(scroll, "tank")
         end
@@ -2960,6 +2963,142 @@ function Settings:BuildTankSettings(container, subTab)
         })
     end
 end
+
+function Settings:BuildReadyCheck(container)
+    AddSection(container, L["Ready Check"], L["Ready responses, preparation issues and consumables in one view."])
+
+    local readyTracker = RC:GetModule("ReadyTracker", true)
+
+    AddCheckbox(
+        container,
+        L["Enable Ready Check Tracker"],
+        function() return RC.db.profile.enableReadyTracker end,
+        function(value)
+            RC.db.profile.enableReadyTracker = value
+            if not value and readyTracker and readyTracker.HideReadyCheckFrame then
+                readyTracker:HideReadyCheckFrame()
+            end
+        end
+    )
+    AddCheckbox(
+        container,
+        L["Announce Slackers"],
+        function() return RC.db.profile.announceReadySlackers end,
+        function(value) RC.db.profile.announceReadySlackers = value end
+    )
+    AddCheckbox(
+        container,
+        L["Whisper Slackers"],
+        function() return RC.db.profile.whisperSlackers end,
+        function(value) RC.db.profile.whisperSlackers = value end
+    )
+    AddCheckbox(
+        container,
+        L["Report to Chat"],
+        function() return RC.db.profile.reportToChat end,
+        function(value) RC.db.profile.reportToChat = value end
+    )
+    AddCheckbox(
+        container,
+        L["Use Custom Ready Check UI"],
+        function() return RC.db.profile.useCustomReadyCheck end,
+        function(value)
+            RC.db.profile.useCustomReadyCheck = value
+            if readyTracker and readyTracker.HideBlizzardFrame then
+                readyTracker:HideBlizzardFrame()
+            end
+            if not value and readyTracker and readyTracker.HideReadyCheckFrame then
+                readyTracker:HideReadyCheckFrame()
+            end
+        end
+    )
+    AddCheckbox(
+        container,
+        L["Enable Consumable Scans"],
+        function() return RC.db.profile.enableConsumableChecker end,
+        function(value)
+            RC.db.profile.enableConsumableChecker = value
+            if readyTracker and readyTracker.ApplySettings then
+                readyTracker:ApplySettings()
+            end
+        end
+    )
+    AddCheckbox(
+        container,
+        L["Issues View by Default"],
+        function() return RC.db.profile.readyTrackerMissingOnly end,
+        function(value)
+            RC.db.profile.readyTrackerMissingOnly = value
+            if readyTracker and readyTracker.UpdateFrame then
+                readyTracker:UpdateFrame()
+            end
+        end
+    )
+    AddCheckbox(
+        container,
+        L["Enable Missing-Consumable Whisper Button"],
+        function() return RC.db.profile.readyTrackerWhisperMissing ~= false end,
+        function(value)
+            RC.db.profile.readyTrackerWhisperMissing = value and true or false
+            if readyTracker and readyTracker.ApplySettings then
+                readyTracker:ApplySettings()
+            end
+        end
+    )
+    AddSlider(
+        container,
+        L["Ready Check Scale"],
+        70, 150, 1,
+        function() return math.floor((RC.db.profile.readyTrackerScale or 1) * 100 + 0.5) end,
+        function(value)
+            RC.db.profile.readyTrackerScale = value / 100
+            if readyTracker and readyTracker.ApplyScale then
+                readyTracker:ApplyScale(value / 100)
+            elseif readyTracker and readyTracker.ApplySettings then
+                readyTracker:ApplySettings()
+            end
+        end
+    )
+
+    AddSlider(
+        container,
+        L["Ready Check Opacity"],
+        45, 100, 5,
+        function() return math.floor((RC.db.profile.readyTrackerAlpha or 1) * 100 + 0.5) end,
+        function(value)
+            RC.db.profile.readyTrackerAlpha = value / 100
+            if readyTracker and readyTracker.ApplySettings then readyTracker:ApplySettings() end
+        end
+    )
+
+    AddSlider(
+        container,
+        L["Result Auto-Close"],
+        0, 30, 1,
+        function() return RC.db.profile.readyTrackerAutoCloseSeconds or 8 end,
+        function(value) RC.db.profile.readyTrackerAutoCloseSeconds = value end
+    )
+
+    AddActionToolbar(container, {
+        {
+            text = L["Preview & Move"],
+            onClick = function()
+                if readyTracker and readyTracker.PreviewLayout then
+                    readyTracker:PreviewLayout()
+                end
+            end,
+        },
+        {
+            text = L["Reset Position"],
+            onClick = function()
+                if readyTracker and readyTracker.ResetPosition then
+                    readyTracker:ResetPosition()
+                end
+            end,
+        },
+    })
+end
+
 
 function Settings:BuildRaidTools(container, pageKey)
     local tabs = {

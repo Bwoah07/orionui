@@ -32,6 +32,11 @@ local INDEX = {
     { label = "Action Strip Markers", page = "interface", tab = "action_strip", path = "Interface > Action Strip", keywords = "raid target world marker icons" },
     { label = "Marker Bar Preset", page = "interface", tab = "action_strip", path = "Interface > Action Strip", keywords = "icons layout" },
 
+    { label = "Ready Check Tracker", page = "ready", path = "Ready Check", keywords = "responses prepared missing consumables" },
+    { label = "Ready Responses", page = "ready", path = "Ready Check", keywords = "ready not ready waiting offline afk slackers whisper announce" },
+    { label = "Consumable Scan", page = "ready", path = "Ready Check", keywords = "food flask rune weapon oil buff" },
+    { label = "Ready Check Position", page = "ready", path = "Ready Check", keywords = "move preview reset layout scale opacity" },
+
     { label = "Tank Assist", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "enable co tank cotank swap taunt stacks boss dungeon mythic tank buster" },
     { label = "Co-Tank Tracking", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "tank target ownership manual name override detect" },
     { label = "Tank Quick Setup", page = "tank", tab = "overview", path = "Tank > Overview", keywords = "preset clean hud text sound silent mute" },
