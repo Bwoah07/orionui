@@ -6,6 +6,9 @@
 ## Category: Group
 ## IconTexture: Interface\AddOns\RaidControl\Media\RaidControlIcon
 ## SavedVariables: RaidControlDB
+## AddonCompartmentFunc: RaidControl_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: RaidControl_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: RaidControl_OnAddonCompartmentLeave
 ## OptionalDeps: BigWigs, DBM-Core
 
 # Libraries (fetched by .pkgmeta when packaging; see README for local dev)
@@ -16,6 +19,7 @@ Libs\Ace3\AceEvent-3.0\AceEvent-3.0.xml
 Libs\Ace3\AceLocale-3.0\AceLocale-3.0.xml
 Libs\Ace3\AceDB-3.0\AceDB-3.0.xml
 Libs\Ace3\AceConsole-3.0\AceConsole-3.0.xml
+Libs\Ace3\AceSerializer-3.0\AceSerializer-3.0.xml
 Libs\Ace3\AceGUI-3.0\AceGUI-3.0.xml
 Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 
@@ -33,8 +37,16 @@ Locales\zhTW.lua
 
 Core.lua
 Media\Media.lua
-Settings.lua
 Modules\FrameScaling.lua
+Modules\SettingsV2\Constants.lua
+Modules\SettingsV2\Layout.lua
+Modules\SettingsV2\ThemeBridge.lua
+Modules\SettingsV2\Shell.lua
+Modules\SettingsV2\Navigation.lua
+Modules\SettingsV2\Sections.lua
+Modules\SettingsV2\Widgets.lua
+Modules\SettingsV2\Search.lua
+Modules\SettingsV2\Tooltips.lua
 Modules\BossModTimeline.lua
 Modules\TankAssist.lua
 Modules\TankAssistMidnight.lua
@@ -46,3 +58,5 @@ Modules\LayoutMode.lua
 Modules\Control.lua
 Modules\Screenshot.lua
 Modules\MarkerBar.lua
+Modules\Settings.lua
+Modules\BlizzardOptions.lua

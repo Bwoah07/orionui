@@ -9,8 +9,10 @@ and not in the settings). Raid Split, lead tools, ready tracker and automation s
 
 - The repository root is the addon folder (`RaidControl.toc`). Libraries come from `.pkgmeta`
   externals (Ace3, LibSharedMedia-3.0); `tools/fetch-libs.sh` for local dev. `Libs/` is gitignored.
-- Settings: `Settings.lua`, one AceConfig panel (`/rc`, right-click the tab, Escape menu, Blizzard
-  AddOns options). Saved variable `RaidControlDB` (AceDB, same name as the old standalone addon).
+- Settings: the original RaidControl settings window (Modules/Settings.lua + Modules/SettingsV2/,
+  from the Bwoah07/Raidcontrol repo) trimmed to Interface, Tank, Screenshots and Look & Feel; no
+  Workspace host. Opened by `/rc`, right-click the tab, Escape menu, Blizzard AddOns page and the
+  addon compartment (Modules/BlizzardOptions.lua). Saved variable `RaidControlDB` (AceDB, same name as the old standalone addon).
 - Defaults: launcher tab + drop-down menu on (`hideTopBar = false`), action strip off
   (`showActionStrip = false`).
 - Do not mention or depend on other UI suites by name anywhere in this branch.
