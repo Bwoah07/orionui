@@ -2,7 +2,7 @@ local _, ns = ...
 local RC = ns.RC
 local ReadyTracker = RC:NewModule("ReadyTracker", "AceEvent-3.0")
 
-local FRAME_WIDTH = 468
+local FRAME_WIDTH = 518
 local ROW_HEIGHT = 24
 local MIN_FRAME_HEIGHT = 286
 -- Header, summary, columns and buttons around the roster rows.
@@ -1130,8 +1130,9 @@ function ReadyTracker:CreateMainFrame()
         {text = "Flask", width = 42, x = 184},
         {text = "Rune", width = 42, x = 226},
         {text = "Weap", width = 42, x = 268},
-        {text = "Dura", width = 52, x = 312},
-        {text = "Status", width = 76, x = 372},
+        {text = "Low", width = 52, x = 312},
+        {text = "Avg", width = 44, x = 362},
+        {text = "Status", width = 76, x = 422},
     }
 
     f.columnHeaders = {}
@@ -1154,7 +1155,7 @@ function ReadyTracker:CreateMainFrame()
     f.scrollFrame = scrollFrame
 
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(446, 1)
+    content:SetSize(496, 1)
     scrollFrame:SetScrollChild(content)
     f.content = content
 
@@ -1548,6 +1549,25 @@ function ReadyTracker:GetFrameHeight(rowCount, screenHeight, scale)
     return math.min(wanted, cap)
 end
 
+local function SetDurabilityText(text, percent)
+    if not text then
+        return
+    end
+    if type(percent) == "number" then
+        text:SetText(percent .. "%")
+        if percent <= (RC.db.profile.durabilityWarnThreshold or 30) then
+            text:SetTextColor(1, 0.25, 0.18, 1)
+        elseif percent <= 60 then
+            text:SetTextColor(1, 0.78, 0.25, 1)
+        else
+            text:SetTextColor(0.35, 1, 0.35, 1)
+        end
+    else
+        text:SetText("--")
+        text:SetTextColor(0.45, 0.45, 0.45, 1)
+    end
+end
+
 function ReadyTracker:UpdateFrame()
     local f = self.frame
     if not f then return end
@@ -1633,7 +1653,7 @@ function ReadyTracker:UpdateFrame()
             -- Status icon
             row.statusIcon = row:CreateTexture(nil, "OVERLAY")
             row.statusIcon:SetSize(14, 14)
-            row.statusIcon:SetPoint("CENTER", row, "TOPLEFT", 380, -(ROW_HEIGHT / 2))
+            row.statusIcon:SetPoint("CENTER", row, "TOPLEFT", 430, -(ROW_HEIGHT / 2))
             row.statusIcon:Hide()
 
             row.durabilityText = row:CreateFontString(nil, "OVERLAY")
@@ -1641,13 +1661,18 @@ function ReadyTracker:UpdateFrame()
             row.durabilityText:SetPoint("CENTER", row, "TOPLEFT", 338, -(ROW_HEIGHT / 2))
             row.durabilityText:SetWidth(50)
             row.durabilityText:SetJustifyH("CENTER")
+            row.averageText = row:CreateFontString(nil, "OVERLAY")
+            RC:SetFont(row.averageText, 10, "OUTLINE")
+            row.averageText:SetPoint("CENTER", row, "TOPLEFT", 384, -(ROW_HEIGHT / 2))
+            row.averageText:SetWidth(44)
+            row.averageText:SetJustifyH("CENTER")
 
             -- Status text (fallback)
             row.statusText = row:CreateFontString(nil, "OVERLAY")
             RC:SetFont(row.statusText, 9, "OUTLINE")
             -- Icon + label sit together under the centred "Status" header and
             -- stay inside the row's right edge.
-            row.statusText:SetPoint("LEFT", row, "TOPLEFT", 391, -(ROW_HEIGHT / 2))
+            row.statusText:SetPoint("LEFT", row, "TOPLEFT", 441, -(ROW_HEIGHT / 2))
             row.statusText:SetWidth(52)
             row.statusText:SetJustifyH("LEFT")
             row.statusText:SetWordWrap(false)
@@ -1701,21 +1726,13 @@ function ReadyTracker:UpdateFrame()
         SetBuff(row.buffs[3], row.buffFrames[3], data.rune, 134419)
         SetBuff(row.buffs[4], row.buffFrames[4], data.weaponMain or data.shamanEnchant, 135129)
 
-        if row.durabilityText then
-            if durability then
-                row.durabilityText:SetText(durability .. "%")
-                if durability <= (RC.db.profile.durabilityWarnThreshold or 30) then
-                    row.durabilityText:SetTextColor(1, 0.25, 0.18, 1)
-                elseif durability <= 60 then
-                    row.durabilityText:SetTextColor(1, 0.78, 0.25, 1)
-                else
-                    row.durabilityText:SetTextColor(0.35, 1, 0.35, 1)
-                end
-            else
-                row.durabilityText:SetText("--")
-                row.durabilityText:SetTextColor(0.45, 0.45, 0.45, 1)
-            end
+        local lowest, average = data.previewDurability, data.previewAverage
+        if lowest == nil and average == nil and leadTools then
+            lowest = leadTools.GetLowestForName and leadTools:GetLowestForName(name) or nil
+            average = leadTools.GetAverageForName and leadTools:GetAverageForName(name) or nil
         end
+        SetDurabilityText(row.durabilityText, lowest)
+        SetDurabilityText(row.averageText, average)
 
         -- Status icon and label
         if data.connected == false then
@@ -1753,7 +1770,7 @@ function ReadyTracker:UpdateFrame()
     local contentHeight = math.max(i * ROW_HEIGHT, 1)
     f.content:SetHeight(contentHeight)
     if f.scrollFrame and f.content.SetWidth then
-        f.content:SetWidth(f.scrollFrame:GetWidth() or 446)
+        f.content:SetWidth(f.scrollFrame:GetWidth() or 496)
     end
     if f.scrollbar and f.scrollbar.Update and f.scrollFrame then
         f.scrollbar:Update(contentHeight, f.scrollFrame:GetHeight() or 1)
@@ -1787,10 +1804,10 @@ function ReadyTracker:BeginLayoutMode()
         ["Kharos-Realm"] = "ready",
     }
     self.consumableData = {
-        ["Auralis-Realm"] = { classFile = "PRIEST", connected = true, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 94 },
-        ["Nymara-Realm"] = { classFile = "DRUID", connected = true, dead = false, scanned = true, food = 134062, flask = false, rune = false, weaponMain = 135129, previewDurability = 22 },
-        ["Solenne-Realm"] = { classFile = "SHAMAN", connected = true, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 78 },
-        ["Kharos-Realm"] = { classFile = "WARRIOR", connected = false, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 63 },
+        ["Auralis-Realm"] = { classFile = "PRIEST", connected = true, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 94, previewAverage = 97 },
+        ["Nymara-Realm"] = { classFile = "DRUID", connected = true, dead = false, scanned = true, food = 134062, flask = false, rune = false, weaponMain = 135129, previewDurability = 22, previewAverage = 58 },
+        ["Solenne-Realm"] = { classFile = "SHAMAN", connected = true, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 78, previewAverage = 88 },
+        ["Kharos-Realm"] = { classFile = "WARRIOR", connected = false, dead = false, scanned = true, food = 134062, flask = 132805, rune = 134419, weaponMain = 135129, previewDurability = 63, previewAverage = 81 },
     }
     self.readyCheckActive = false
     self.initiator = nil

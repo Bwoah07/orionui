@@ -5,7 +5,8 @@ local L = RC.L
 local Durability = RC:NewModule("Durability", "AceComm-3.0")
 
 -- Durability sync for the ready check panel. Each RaidControl user sends their lowest item
--- durability when a ready check starts (and when asked), and the panel shows it per player.
+-- durability and their average durability when a ready check starts (and when asked), and the
+-- panel shows both per player.
 -- Same prefix and messages as RaidControl's raid lead tools ("DREQ" asks, "DURA:<percent>"
 -- answers), so every RaidControl version in the group shares one pool.
 --
@@ -108,7 +109,8 @@ end
 
 function Durability:OnInitialize()
     self.db = RC.db.profile
-    self.durability = {}
+    self.durability = {} -- lowest item, per player
+    self.average = {}    -- average over equipped gear, per player
     self.sharedAnswered, self.sharedRequested = {}, {}
 end
 
@@ -133,11 +135,17 @@ function Durability:IsSyncEnabled()
     return self.db.enableDurabilityComm ~= false
 end
 
--- Keeps one value per player and source; the panel shows the lowest of them.
-function Durability:Store(name, percent, source, broken)
-    local entry = self.durability[name] or {}
-    entry[source] = { percent = math.max(0, math.min(100, percent or 0)), broken = broken, updated = Now() }
-    self.durability[name] = entry
+local function Clamp(percent)
+    return math.max(0, math.min(100, math.floor((percent or 0) + 0.5)))
+end
+
+function Durability:Store(name, percent)
+    self.durability[name] = { percent = Clamp(percent), updated = Now() }
+    RefreshPanel()
+end
+
+function Durability:StoreAverage(name, percent, broken)
+    self.average[name] = { percent = Clamp(percent), broken = broken or 0, updated = Now() }
     RefreshPanel()
 end
 
@@ -151,7 +159,11 @@ function Durability:SendDurability()
     end
     local playerName = NormalizeName(UnitName("player"))
     if playerName then
-        self:Store(playerName, percent, "own")
+        self:Store(playerName, percent)
+        local average, broken = GetAverageDurability()
+        if average then
+            self:StoreAverage(playerName, average, broken)
+        end
     end
     local channel = GetCommChannel()
     if channel then
@@ -201,7 +213,10 @@ function Durability:ReportDurability(toChat)
     end
     local threshold = tonumber(self.db.durabilityWarnThreshold) or 30
     local low = {}
-    for name in pairs(self.durability) do
+    local names = {}
+    for name in pairs(self.durability) do names[name] = true end
+    for name in pairs(self.average) do names[name] = true end
+    for name in pairs(names) do
         local percent = self:GetDurabilityForName(name)
         if percent and percent <= threshold then
             table.insert(low, string.format("%s %d%%", name, percent))
@@ -215,15 +230,30 @@ function Durability:ReportDurability(toChat)
     end
 end
 
-function Durability:GetDurabilityForName(name)
+function Durability:GetLowestForName(name)
     local key = NormalizeName(name)
-    local percent, updated
-    for _, info in pairs(key and self.durability[key] or {}) do
-        if not percent or info.percent < percent then
-            percent, updated = info.percent, info.updated
-        end
+    local info = key and self.durability[key]
+    if info then
+        return info.percent, info.updated
     end
-    return percent, updated
+end
+
+function Durability:GetAverageForName(name)
+    local key = NormalizeName(name)
+    local info = key and self.average[key]
+    if info then
+        return info.percent, info.broken, info.updated
+    end
+end
+
+-- The worst value we know for a player (lowest item, else average); used for warnings.
+function Durability:GetDurabilityForName(name)
+    local lowest, updated = self:GetLowestForName(name)
+    local average, _, averageUpdated = self:GetAverageForName(name)
+    if lowest and (not average or lowest <= average) then
+        return lowest, updated
+    end
+    return average, averageUpdated
 end
 
 function Durability:OnCommReceived(prefix, message, _, sender)
@@ -239,7 +269,7 @@ function Durability:OnCommReceived(prefix, message, _, sender)
     local percent = message:match("^DURA:(%d+)$")
     local name = percent and NormalizeName(sender)
     if name then
-        self:Store(name, tonumber(percent), "raidcontrol")
+        self:Store(name, tonumber(percent))
     end
 end
 
@@ -261,6 +291,6 @@ function Durability:OnSharedMessage(prefix, message, channel, sender)
     local percent, broken = message:match("^(%d+),(%d+)$")
     local name = percent and NormalizeName(sender)
     if name then
-        self:Store(name, tonumber(percent), "shared", tonumber(broken))
+        self:StoreAverage(name, tonumber(percent), tonumber(broken))
     end
 end
