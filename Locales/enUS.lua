@@ -1139,3 +1139,4 @@ L["Open the Tank settings"] = true
 L["Ready responses, preparation issues and consumables in one view."] = true
 L["Share Durability with RaidControl Users"] = true
 L["Ready responses, preparation issues, consumables and durability in one view."] = true
+L["Durability: nobody reported below %d%%."] = true

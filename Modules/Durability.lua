@@ -8,7 +8,15 @@ local Durability = RC:NewModule("Durability", "AceComm-3.0")
 -- durability when a ready check starts (and when asked), and the panel shows it per player.
 -- Same prefix and messages as RaidControl's raid lead tools ("DREQ" asks, "DURA:<percent>"
 -- answers), so every RaidControl version in the group shares one pool.
+--
+-- It also speaks the shared LibDurability protocol (prefix "LibDRBLT"), which several raid
+-- addons embed: each answers a ready check with "<percent>,<broken items>" (average durability
+-- of equipped gear) and answers "R" requests. We read those answers, and when no addon here has
+-- loaded the library we answer in the same format ourselves, so players without RaidControl
+-- show up for us and we show up for them.
 local COMM_PREFIX = "RCLEAD"
+local SHARED_PREFIX = "LibDRBLT"
+local SHARED_THROTTLE = 4
 
 local function IsSecret(value)
     if not issecretvalue then
@@ -62,17 +70,33 @@ local function GetLowestDurabilityPercent()
     return lowest
 end
 
-function Durability:OnInitialize()
-    self.db = RC.db.profile
-    self.durability = {}
+-- Average durability over equipped items plus the number of broken ones, as the shared protocol sends it.
+local function GetAverageDurability()
+    local current, maximum, broken = 0, 0, 0
+    for slot = 1, 18 do
+        local cur, max = GetInventoryItemDurability(slot)
+        if cur and max then
+            current, maximum = current + cur, maximum + max
+            if max > 0 and cur == 0 then
+                broken = broken + 1
+            end
+        end
+    end
+    if maximum == 0 then
+        return nil, 0
+    end
+    return current / maximum * 100, broken
 end
 
-function Durability:OnEnable()
-    self:RegisterComm(COMM_PREFIX)
+-- When another addon has loaded the shared library it already answers for this player.
+local function SharedLibraryLoaded()
+    return LibStub and LibStub("LibDurability", true) ~= nil
 end
 
-function Durability:IsSyncEnabled()
-    return self.db.enableDurabilityComm ~= false
+local function SendSharedMessage(message, channel)
+    if channel and C_ChatInfo and C_ChatInfo.SendAddonMessage then
+        pcall(C_ChatInfo.SendAddonMessage, SHARED_PREFIX, message, channel)
+    end
 end
 
 local function RefreshPanel()
@@ -80,6 +104,41 @@ local function RefreshPanel()
     if readyTracker and readyTracker.UpdateFrame then
         readyTracker:UpdateFrame()
     end
+end
+
+function Durability:OnInitialize()
+    self.db = RC.db.profile
+    self.durability = {}
+    self.sharedAnswered, self.sharedRequested = {}, {}
+end
+
+function Durability:OnEnable()
+    self:RegisterComm(COMM_PREFIX)
+    if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
+        C_ChatInfo.RegisterAddonMessagePrefix(SHARED_PREFIX)
+    end
+    self.eventFrame = self.eventFrame or CreateFrame("Frame")
+    self.eventFrame:SetScript("OnEvent", function(_, event, ...)
+        if event == "CHAT_MSG_ADDON" then
+            self:OnSharedMessage(...)
+        elseif event == "READY_CHECK" then
+            self:SendShared()
+        end
+    end)
+    self.eventFrame:RegisterEvent("CHAT_MSG_ADDON")
+    self.eventFrame:RegisterEvent("READY_CHECK")
+end
+
+function Durability:IsSyncEnabled()
+    return self.db.enableDurabilityComm ~= false
+end
+
+-- Keeps one value per player and source; the panel shows the lowest of them.
+function Durability:Store(name, percent, source, broken)
+    local entry = self.durability[name] or {}
+    entry[source] = { percent = math.max(0, math.min(100, percent or 0)), broken = broken, updated = Now() }
+    self.durability[name] = entry
+    RefreshPanel()
 end
 
 function Durability:SendDurability()
@@ -92,11 +151,22 @@ function Durability:SendDurability()
     end
     local playerName = NormalizeName(UnitName("player"))
     if playerName then
-        self.durability[playerName] = { percent = percent, updated = Now() }
+        self:Store(playerName, percent, "own")
     end
     local channel = GetCommChannel()
     if channel then
         self:SendCommMessage(COMM_PREFIX, "DURA:" .. tostring(percent), channel)
+    end
+end
+
+function Durability:SendShared(channel)
+    if not self:IsSyncEnabled() or SharedLibraryLoaded() then
+        return
+    end
+    channel = channel or GetCommChannel()
+    local percent, broken = GetAverageDurability()
+    if channel and percent then
+        SendSharedMessage(string.format("%d,%d", percent, broken), channel)
     end
 end
 
@@ -109,6 +179,11 @@ function Durability:RequestDurability(manual)
     local channel = GetCommChannel()
     if channel then
         self:SendCommMessage(COMM_PREFIX, "DREQ", channel)
+        local now = GetTime()
+        if now - (self.sharedRequested[channel] or 0) > SHARED_THROTTLE then
+            self.sharedRequested[channel] = now
+            SendSharedMessage("R", channel)
+        end
     end
     if manual then
         C_Timer.After(2, function()
@@ -126,14 +201,15 @@ function Durability:ReportDurability(toChat)
     end
     local threshold = tonumber(self.db.durabilityWarnThreshold) or 30
     local low = {}
-    for name, info in pairs(self.durability) do
-        if info.percent and info.percent <= threshold then
-            table.insert(low, string.format("%s %d%%", name, info.percent))
+    for name in pairs(self.durability) do
+        local percent = self:GetDurabilityForName(name)
+        if percent and percent <= threshold then
+            table.insert(low, string.format("%s %d%%", name, percent))
         end
     end
     table.sort(low)
     if #low == 0 then
-        RC:Print(string.format(L["Durability: no RaidControl users below %d%%."], threshold))
+        RC:Print(string.format(L["Durability: nobody reported below %d%%."], threshold))
     else
         RC:Print(string.format(L["Low durability: %s"], table.concat(low, ", ")))
     end
@@ -141,11 +217,13 @@ end
 
 function Durability:GetDurabilityForName(name)
     local key = NormalizeName(name)
-    local info = key and self.durability[key]
-    if info then
-        return info.percent, info.updated
+    local percent, updated
+    for _, info in pairs(key and self.durability[key] or {}) do
+        if not percent or info.percent < percent then
+            percent, updated = info.percent, info.updated
+        end
     end
-    return nil
+    return percent, updated
 end
 
 function Durability:OnCommReceived(prefix, message, _, sender)
@@ -161,7 +239,28 @@ function Durability:OnCommReceived(prefix, message, _, sender)
     local percent = message:match("^DURA:(%d+)$")
     local name = percent and NormalizeName(sender)
     if name then
-        self.durability[name] = { percent = math.min(100, tonumber(percent) or 0), updated = Now() }
-        RefreshPanel()
+        self:Store(name, tonumber(percent), "raidcontrol")
+    end
+end
+
+function Durability:OnSharedMessage(prefix, message, channel, sender)
+    if prefix ~= SHARED_PREFIX or IsSecret(message) or type(message) ~= "string" or not self:IsSyncEnabled() then
+        return
+    end
+    if channel ~= "RAID" and channel ~= "PARTY" and channel ~= "INSTANCE_CHAT" then
+        return
+    end
+    if message == "R" then
+        local now = GetTime()
+        if now - (self.sharedAnswered[channel] or 0) > SHARED_THROTTLE then
+            self.sharedAnswered[channel] = now
+            self:SendShared(channel)
+        end
+        return
+    end
+    local percent, broken = message:match("^(%d+),(%d+)$")
+    local name = percent and NormalizeName(sender)
+    if name then
+        self:Store(name, tonumber(percent), "shared", tonumber(broken))
     end
 end
