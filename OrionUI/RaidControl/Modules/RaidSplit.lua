@@ -387,9 +387,11 @@ function RaidSplit:OnDisable()
     self.pendingMeleeRangedRefresh = nil
     self.isProcessing = false
     self.processGeneration = (self.processGeneration or 0) + 1
-    if ClearInspectPlayer and not IsInCombat() then
-        pcall(ClearInspectPlayer)
+    if self.inspectWindowTimer then
+        self.inspectWindowTimer:Cancel()
+        self.inspectWindowTimer = nil
     end
+    ClearOwnInspect()
 end
 
 function RaidSplit:OnGroupRosterUpdate()
@@ -583,7 +585,39 @@ function RaidSplit:QueueInspectUnit(unit)
     return true
 end
 
+-- The player has someone's inspect window open (Blizzard's or another addon's). Background spec
+-- inspects must not run then: NotifyInspect switches the inspected unit and ClearInspectPlayer
+-- wipes the gear the window is showing.
+local function PlayerIsInspecting()
+    local frame = _G.InspectFrame
+    return frame ~= nil and frame.IsShown ~= nil and frame:IsShown() == true
+end
+
+local function ClearOwnInspect()
+    if ClearInspectPlayer and not IsInCombat() and not PlayerIsInspecting() then
+        pcall(ClearInspectPlayer)
+    end
+end
+
+function RaidSplit:WaitForInspectWindow()
+    if self.inspectWindowTimer then
+        return
+    end
+    self.inspectWindowTimer = C_Timer.NewTicker(1, function()
+        if PlayerIsInspecting() then
+            return
+        end
+        self.inspectWindowTimer:Cancel()
+        self.inspectWindowTimer = nil
+        self:ProcessInspectQueue()
+    end)
+end
+
 function RaidSplit:ProcessInspectQueue()
+    if PlayerIsInspecting() then
+        self:WaitForInspectWindow()
+        return false
+    end
     if IsInCombat() then
         self.inspectPendingAfterCombat = true
         return false
@@ -628,9 +662,7 @@ function RaidSplit:ProcessInspectQueue()
                         self.inspectPendingAfterCombat = true
                         return
                     end
-                    if ClearInspectPlayer then
-                        pcall(ClearInspectPlayer)
-                    end
+                    ClearOwnInspect()
                     self.pendingInspectGUID = nil
                     self.pendingInspectUnit = nil
                     self.inspectTimeoutTimer = nil
@@ -742,7 +774,9 @@ function RaidSplit:FindUnitByGUID(guid)
 end
 
 function RaidSplit:OnInspectReady(_, guid)
-    if not guid then
+    -- Only answers to our own background request; anyone else's inspect (the player opening
+    -- the inspect window) is left alone.
+    if not guid or guid ~= self.pendingInspectGUID then
         return
     end
     if IsInCombat() then
@@ -772,9 +806,7 @@ function RaidSplit:OnInspectReady(_, guid)
         end
     end
 
-    if ClearInspectPlayer then
-        pcall(ClearInspectPlayer)
-    end
+    ClearOwnInspect()
     CancelTimer(self.inspectTimeoutTimer)
     self.inspectTimeoutTimer = nil
     if self.inspectRetryAfter then
@@ -797,8 +829,8 @@ function RaidSplit:OnInspectReady(_, guid)
 end
 
 function RaidSplit:OnPlayerRegenEnabled()
-    if self.inspectPendingAfterCombat and ClearInspectPlayer then
-        pcall(ClearInspectPlayer)
+    if self.inspectPendingAfterCombat then
+        ClearOwnInspect()
     end
     self.inspectPendingAfterCombat = nil
     self.pendingInspectGUID = nil
