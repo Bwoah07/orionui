@@ -46,6 +46,21 @@ local function IsInCombat()
         or (UnitAffectingCombat and UnitAffectingCombat("player"))
 end
 
+-- The player has someone's inspect window open (Blizzard's or another addon's). Background spec
+-- inspects must not run then: NotifyInspect switches the inspected unit and ClearInspectPlayer
+-- wipes the gear the window is showing.
+local function PlayerIsInspecting()
+    local frame = _G.InspectFrame
+    return frame ~= nil and frame.IsShown ~= nil and frame:IsShown() == true
+end
+
+local function ClearOwnInspect()
+    if ClearInspectPlayer and not IsInCombat() and not PlayerIsInspecting() then
+        pcall(ClearInspectPlayer)
+    end
+end
+
+
 local function ClampRaidSplitScale(rawValue)
     local numeric = tonumber(rawValue) or 1
     local snapped = math.floor((numeric / RAIDSPLIT_SCALE_STEP) + 0.5) * RAIDSPLIT_SCALE_STEP
@@ -583,20 +598,6 @@ function RaidSplit:QueueInspectUnit(unit)
     self.inspectQueuedGUIDs[guid] = true
     self:ProcessInspectQueue()
     return true
-end
-
--- The player has someone's inspect window open (Blizzard's or another addon's). Background spec
--- inspects must not run then: NotifyInspect switches the inspected unit and ClearInspectPlayer
--- wipes the gear the window is showing.
-local function PlayerIsInspecting()
-    local frame = _G.InspectFrame
-    return frame ~= nil and frame.IsShown ~= nil and frame:IsShown() == true
-end
-
-local function ClearOwnInspect()
-    if ClearInspectPlayer and not IsInCombat() and not PlayerIsInspecting() then
-        pcall(ClearInspectPlayer)
-    end
 end
 
 function RaidSplit:WaitForInspectWindow()
