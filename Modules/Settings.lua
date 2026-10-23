@@ -1759,7 +1759,138 @@ function Settings:BuildGeneral(container)
         { key = "layout", label = L["General"] },
         { key = "buttons", label = L["Dropdown"] },
         { key = "action_strip", label = L["Action Strip"] },
+        { key = "marks", label = L["Role Marks"] },
     }, "layout")
+
+    if subTab == "marks" then
+        local autoMarker = RC:GetModule("AutoMarker", true)
+        local markerOptions = {
+            [1] = L["Star"],
+            [2] = L["Circle"],
+            [3] = L["Diamond"],
+            [4] = L["Triangle"],
+            [5] = L["Moon"],
+            [6] = L["Square"],
+            [7] = L["Cross"],
+            [8] = L["Skull"],
+        }
+        local markerOrder = { 1, 2, 3, 4, 5, 6, 7, 8 }
+        local function RefreshAutoMarker()
+            if autoMarker and autoMarker.ApplySettings then
+                autoMarker:ApplySettings()
+            end
+        end
+
+        AddSection(container, L["Mythic+ Role Marks"], L["One secure tank and healer reminder before each key."])
+
+        AddCheckbox(
+            container,
+            L["Mark Tank"],
+            function() return RC.db.profile.autoMarkTanks ~= false end,
+            function(value) RC.db.profile.autoMarkTanks = value end,
+            RefreshAutoMarker
+        )
+
+        -- Tank and healer can't share a marker; when one pick bumps the other,
+        -- update the other dropdown so it never shows a stale icon.
+        local tankMarkerDropdown, healerMarkerDropdown
+        tankMarkerDropdown = AddDropdown(
+            container,
+            L["Tank Marker"],
+            markerOptions,
+            function() return tonumber(RC.db.profile.autoMarkTanksIcon) or 6 end,
+            function(value)
+                value = tonumber(value) or 6
+                RC.db.profile.autoMarkTanksIcon = value
+                if tonumber(RC.db.profile.autoMarkHealersIcon) == value then
+                    RC.db.profile.autoMarkHealersIcon = value == 2 and 1 or 2
+                    if healerMarkerDropdown and healerMarkerDropdown.SetValue then
+                        healerMarkerDropdown:SetValue(RC.db.profile.autoMarkHealersIcon)
+                    end
+                end
+            end,
+            RefreshAutoMarker,
+            markerOrder
+        )
+
+        AddCheckbox(
+            container,
+            L["Mark Healer"],
+            function() return RC.db.profile.autoMarkHealers ~= false end,
+            function(value) RC.db.profile.autoMarkHealers = value end,
+            RefreshAutoMarker
+        )
+
+        healerMarkerDropdown = AddDropdown(
+            container,
+            L["Healer Marker"],
+            markerOptions,
+            function() return tonumber(RC.db.profile.autoMarkHealersIcon) or 2 end,
+            function(value)
+                value = tonumber(value) or 2
+                RC.db.profile.autoMarkHealersIcon = value
+                if tonumber(RC.db.profile.autoMarkTanksIcon) == value then
+                    RC.db.profile.autoMarkTanksIcon = value == 6 and 1 or 6
+                    if tankMarkerDropdown and tankMarkerDropdown.SetValue then
+                        tankMarkerDropdown:SetValue(RC.db.profile.autoMarkTanksIcon)
+                    end
+                end
+            end,
+            RefreshAutoMarker,
+            markerOrder
+        )
+
+        AddCheckbox(
+            container,
+            L["Only in Mythic Dungeons"],
+            function() return RC.db.profile.autoMarkRolesDungeonOnly ~= false end,
+            function(value) RC.db.profile.autoMarkRolesDungeonOnly = value end,
+            RefreshAutoMarker
+        )
+
+        AddSlider(
+            container,
+            L["Reminder Scale"],
+            60, 160, 1,
+            function() return math.floor((RC.db.profile.autoMarkRoleButtonScale or 1) * 100 + 0.5) end,
+            function(value)
+                RC.db.profile.autoMarkRoleButtonScale = value / 100
+                if autoMarker and autoMarker.ApplyRoleMarkButtonScale then
+                    autoMarker:ApplyRoleMarkButtonScale(value / 100)
+                end
+            end,
+            RefreshAutoMarker
+        )
+
+        AddActionToolbar(container, {
+            {
+                text = L["Check Now"],
+                onClick = function()
+                    if autoMarker and autoMarker.MarkRolesNow then
+                        autoMarker:MarkRolesNow()
+                    end
+                end,
+            },
+            {
+                text = L["Preview Button"],
+                onClick = function()
+                    if autoMarker and autoMarker.PreviewRoleMarkButton then
+                        autoMarker:PreviewRoleMarkButton()
+                    end
+                end,
+            },
+            {
+                text = L["Reset Position"],
+                onClick = function()
+                    if autoMarker and autoMarker.ResetRoleMarkPosition then
+                        autoMarker:ResetRoleMarkPosition()
+                    end
+                end,
+            },
+        })
+        return
+    end
+
 
     if subTab == "layout" then
         AddSection(container, L["Interface"], L["Main visibility and frame behavior."])

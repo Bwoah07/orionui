@@ -1181,3 +1181,4 @@ L["Font"] = true
 L["Same as RaidControl"] = true
 L["Thick Outline"] = true
 L["Time Left Size (% of stack count)"] = true
+L["Tank Assist log of the last boss pull"] = true

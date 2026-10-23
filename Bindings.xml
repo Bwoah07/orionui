@@ -22,6 +22,7 @@
     <Binding name="CLICK RC_KeybindWorld0:LeftButton" category="RAIDCONTROL" />
 
     <!-- Utility actions. -->
+    <Binding name="CLICK RC_RoleMarkButton:LeftButton" category="RAIDCONTROL" />
     <Binding name="CLICK RC_KeybindCycle:LeftButton" category="RAIDCONTROL" />
     <Binding name="CLICK RC_KeybindShuffleWorld:LeftButton" category="RAIDCONTROL" />
     <Binding name="RC_SCREENSHOT_MODE" category="RAIDCONTROL" runOnUp="false">
