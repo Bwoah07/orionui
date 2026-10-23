@@ -434,7 +434,7 @@ local BOSS_RULES = {
         timeline = "explorers",
         action = "swap",
         timelineMechanics = {
-            { spellID = 1295854, name = "Shredding Shards", action = "cross-swap", bossUnit = "boss4", resolveAfter = 3.5 },
+            { spellID = 1295854, name = "Shredding Shards", action = "cross-swap", bossUnit = "boss4", resolveAfter = 4.0 },
         },
         stackAuras = {
             { spellID = 1295858, name = "Shredding Shards", private = true },
@@ -454,7 +454,7 @@ local BOSS_RULES = {
         timeline = "vashnik",
         action = "swap",
         timelineMechanics = {
-            { spellID = 1280935, name = "Dripping Fangs", action = "swap", bossUnit = "boss1", resolveAfter = 2.0 },
+            { spellID = 1280935, name = "Dripping Fangs", action = "swap", bossUnit = "boss1", resolveAfter = 3.0 },
         },
         stackAuras = {
             { spellID = 1280934, name = "Dripping Fangs", private = true },
@@ -480,7 +480,7 @@ local BOSS_RULES = {
             { spellID = 1277105, name = "Ravage", private = true },
         },
         tauntText = "APEX ASSIGNMENT",
-        statusText = "Apex Predator: each tank takes one Ravage and one Mutilate; Tempest never triggers a taunt.",
+        statusText = "Apex Predator: the tank on the boss takes two hits, then the other tank taunts; Tempest never triggers a taunt.",
         note = "Apex Predator is treated as a tank assignment, not a blind taunt trigger: each tank takes one Ravage and one Mutilate, while Tempest never causes a swap call. Private Corroding Venom values are never guessed.",
     },
     {
@@ -494,15 +494,15 @@ local BOSS_RULES = {
         timeline = "twinfangs",
         action = "swap",
         timelineMechanics = {
-            { spellID = 1289192, name = "Caustic Deluge", action = "swap", resolveAfter = 5.0 },
+            { spellID = 1289192, name = "Caustic Deluge", action = "defensive", bossName = "vexhul" },
             { spellID = 1288538, name = "Stone Breaker", action = "stonebreaker", defensive = false },
         },
         stackAuras = {
             { spellID = 1289092, name = "Stone Breaker", private = true },
         },
         tauntText = "TAUNT NOW",
-        statusText = "Vexhul swaps after Caustic Deluge; Ithraz is held through all three Stone Breaker impacts before the exchange.",
-        note = "RaidControl binds each mechanic to the correct boss: hold Vexhul for the full Caustic Deluge, then swap; hold Ithraz through all three Stone Breaker impacts and exchange only after 3/3. Ambiguous repeating timeline buckets are ignored rather than guessed.",
+        statusText = "Ithraz is held through all three Stone Breaker impacts, then both bosses trade; Caustic Deluge is not a swap.",
+        note = "Hold Ithraz through all three Stone Breaker impacts and exchange both bosses after 3/3. Caustic Deluge gets no taunt call. Ambiguous repeating timeline buckets are ignored rather than guessed.",
     },
     {
         key = "coiledaltar",
@@ -516,7 +516,7 @@ local BOSS_RULES = {
         action = "swap",
         timelineMechanics = {
             { spellID = 1299680, name = "Sever", action = "swap", bossName = "zul\'jan", resolveAfter = 3.5 },
-            { spellID = 1286573, name = "Soul Sever", action = "swap", bossName = "malacrass", resolveAfter = 3.5 },
+            { spellID = 1286573, name = "Soul Sever", action = "swap", bossName = "malacrass", resolveAfter = 5.0 },
             { spellID = 1307279, name = "Blighted Sever", action = "swap", bossName = "zul\'jan", resolveAfter = 3.5 },
         },
         stackAuras = {
@@ -541,15 +541,14 @@ local BOSS_RULES = {
         timelineMechanics = {
             { spellID = 1292188, name = "Caustic Waves", action = "swap", defensive = false, phases = { 1 } },
             { spellID = 1292403, name = "Caustic Waves", action = "swap", defensive = false, phases = { 1 } },
-            { spellID = 1298367, name = "Mother's Wrath", action = "defensive", phases = { 1, 2, 2.5 } },
-            { spellID = 1298367, name = "Mother's Wrath", action = "swap", phases = { 3 } },
+            { spellID = 1298367, name = "Mother's Wrath", action = "defensive" },
         },
         stackAuras = {
             { spellID = 1298417, name = "Stone Venom", private = true },
         },
         tauntText = "TAUNT NOW",
-        statusText = "Phase 1: trade during Caustic Waves. Phase 3: trade after Mother's Wrath.",
-        note = "Phase 1 Mother's Wrath is a defensive-only warning; trade as Caustic Waves begins. In phase 3, use a defensive for Mother's Wrath and swap after it resolves. Private Stone Venom values are never read or guessed.",
+        statusText = "Phase 1: trade after Caustic Waves. Mother's Wrath is a defensive, not a swap.",
+        note = "Trade after each phase 1 Caustic Waves cast. Mother's Wrath is a defensive-only warning in every phase. Private Stone Venom values are never read or guessed.",
     },
     -- 12.1.5 (BigWigs The Unbinding of Kith'ix; guides 2026-10-14). Stage 1: Dark Devastation hits
     -- the tank and everyone within 15 yd and leaves Devastated (+150% damage taken, 25 s): run it
@@ -568,7 +567,7 @@ local BOSS_RULES = {
         bossUnit = "boss1",
         timelineMechanics = {
             { spellID = 1304930, name = "Dark Devastation", action = "swap", bossUnit = "boss1", resolveAfter = 4.5 },
-            { spellID = 1318467, name = "Negation", action = "swap", bossUnit = "boss1", resolveAfter = 0.5 },
+            { spellID = 1318467, name = "Negation", action = "swap", bossUnit = "boss1", resolveAfter = 2.2 },
         },
         stackAuras = {
             { spellID = 1304948, name = "Devastated", private = true },

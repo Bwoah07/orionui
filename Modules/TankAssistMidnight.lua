@@ -67,7 +67,7 @@ local MECHANIC_META = {
         ["Empowering Slam"] = { bossUnit = "boss1" },
         ["Bloodvenom Injection"] = { bossUnit = "boss2" },
         ["Vitriolic Stasis"] = {
-            resolveAfter = 30.0,
+            resolveAfter = 10.0,
             everyoneTitle = "STASIS — SOLVE TOXINS",
             everyoneDetail = "Resolve Vitriolic Stasis. Tanks exchange Sentinel assignments when Stasis ends.",
             spoken = "Move",
@@ -84,7 +84,7 @@ local MECHANIC_META = {
     explorers = {
         ["Shredding Shards"] = {
             bossUnit = "boss4",
-            resolveAfter = 3.5,
+            resolveAfter = 4.0,
             crossSwap = true,
             playerTitle = "HOLD IKU — SHREDDING SHARDS",
             playerDetail = "Keep Iku for the entire Shredding Shards sequence.",
@@ -95,7 +95,7 @@ local MECHANIC_META = {
     vashnik = {
         ["Dripping Fangs"] = {
             bossUnit = "boss1",
-            resolveAfter = 2.0,
+            resolveAfter = 3.0,
             playerTitle = "HOLD — DRIPPING FANGS",
             playerDetail = "Take the full cast, then hand Vashnik over.",
             offTitle = "WAIT — TAUNT AFTER FANGS",
@@ -104,25 +104,29 @@ local MECHANIC_META = {
     },
     sszorak = {
         ["Apex Predator"] = {
-            startOnly = true,
-            everyoneTitle = "APEX PREDATOR — TANK COMBO",
-            everyoneDetail = "Each tank takes one Ravage and one Mutilate. Tempest is not a taunt trigger.",
+            -- 2026-10-21 log: two of the four hits land before the swap, the second one about
+            -- 11.5 s after the combo starts (Tempest sits in between), 7 s once Dig In is over.
+            resolveAfter = 11.5,
+            resolveAfterDugIn = 7.0,
+            everyoneTitle = "APEX PREDATOR — SWAP AFTER 2 HITS",
+            everyoneDetail = "The tank on the boss takes the first Ravage and Mutilate; the other tank taunts after the second hit.",
             spoken = "Defensive",
         },
     },
     twinfangs = {
         ["Caustic Deluge"] = {
+            -- No swap on Deluge (2026-10-21 log: 0 of 5); the bosses trade after Stone Breaker.
             bossName = "vexhul",
-            resolveAfter = 5.0,
-            playerTitle = "HOLD VEXHUL — CAUSTIC DELUGE",
-            playerDetail = "Keep Vexhul for the full Deluge, then hand the boss over.",
-            offTitle = "WAIT — TAUNT VEXHUL AFTER DELUGE",
-            offDetail = "Do not taunt Vexhul during Deluge. Take Vexhul when it finishes.",
         },
         ["Stone Breaker"] = {
             bossName = "ithraz",
             defensive = false,
-            startOnly = true,
+            -- Three impacts 3 s apart, the third about 7.5 s after the first cast; both bosses
+            -- trade right after it.
+            resolveAfter = 8.5,
+            resolveEveryoneTitle = "SWAP BOSSES NOW",
+            resolveEveryoneDetail = "Stone Breaker 3/3 done: the Ithraz tank takes Vexhul, the Vexhul tank takes Ithraz.",
+            resolveEveryoneSpoken = "Swap",
             playerTitle = "STONE BREAKER — HOLD ALL 3",
             playerDetail = "Keep Ithraz for all three impacts. Exchange bosses only after 3/3.",
             offTitle = "WAIT — TAUNT AFTER 3/3",
@@ -148,7 +152,7 @@ local MECHANIC_META = {
         },
         ["Soul Sever"] = {
             bossName = "malacrass",
-            resolveAfter = 3.5,
+            resolveAfter = 5.0,
             playerTitle = "AIM SOUL SEVER — HOLD BOSS",
             playerDetail = "Aim Soul Sever at the assigned spirits. Swap only after the channel.",
             offTitle = "WAIT — TAUNT AFTER SOUL SEVER",
@@ -186,31 +190,29 @@ local MECHANIC_META = {
         },
         ["Negation"] = {
             bossUnit = "boss1",
-            resolveAfter = 0.5,
+            -- 2 s cast; the debuff lands as it ends and kills when it runs out.
+            resolveAfter = 2.2,
             playerTitle = "NEGATION — RUN INTO A NULL GATE",
             playerDetail = "Defensive, then run into a Null Gate away from melee to clear it before it expires.",
             playerSpoken = "Gate",
-            offTitle = "TAUNT NOW — NEGATION",
-            offDetail = "Take Kith'ix right away: the other tank is going to a Null Gate.",
-            offSpoken = "Taunt",
+            offTitle = "WAIT — TAUNT WHEN NEGATION LANDS",
+            offDetail = "Take Kith'ix as soon as the cast ends: the other tank is going to a Null Gate.",
         },
     },
     ulatek = {
         ["Caustic Waves"] = {
+            -- 6 s cast, swapped after 10 of 10 casts on 2026-10-21 (median taunt 6.2 s in).
             defensive = false,
-            startOnly = true,
-            everyoneTitle = "CAUSTIC WAVES — SAFE TANK TRADE",
-            everyoneDetail = "Use the safe movement window for the tank handoff; do not range-taunt through unsafe space.",
-            spoken = "Swap",
+            resolveAfter = 6.0,
+            playerTitle = "HOLD — CAUSTIC WAVES",
+            playerDetail = "Keep Ula'tek through the cast, then hand the boss over.",
+            offTitle = "WAIT — TAUNT AFTER CAUSTIC WAVES",
+            offDetail = "Take Ula'tek when the cast ends; do not range-taunt through unsafe space.",
         },
         ["Mother's Wrath"] = {
-            -- The red circle both tanks stand in (Stig, 2026-10-08): defensive for both.
+            -- The red circle both tanks stand in (Stig, 2026-10-08): defensive for both. Never a
+            -- swap, stage 3 included (2026-10-21 log: no taunt after 9 of 9 stage 3 casts).
             everyTank = true,
-            resolveAfter = 8.0,
-            playerTitle = "HOLD — MOTHER'S WRATH",
-            playerDetail = "Stay in melee for the full 5 sec cast + 3 sec wrath sequence, then hand Ula'tek over.",
-            offTitle = "WAIT — TAUNT AFTER WRATH",
-            offDetail = "Do not range-taunt. Take Ula'tek after the full Mother's Wrath sequence ends.",
         },
     },
 }
@@ -660,7 +662,7 @@ function TankAssist:ClassifyMidnightTimelineEventByTimer(rule, eventInfo)
     elseif rule.key == "twinfangs" then
         local mythic = self.activeDifficultyID == 16
         if not mythic and (duration == 9 or duration == 10) then
-            return BuildTankRecord("Caustic Deluge", "swap", MECHANIC_META.twinfangs["Caustic Deluge"])
+            return BuildTankRecord("Caustic Deluge", "defensive", MECHANIC_META.twinfangs["Caustic Deluge"])
         elseif (mythic and duration == 18) or (not mythic and (duration == 20 or duration == 22 or duration == 23)) then
             return BuildTankRecord("Stone Breaker", "stonebreaker", MECHANIC_META.twinfangs["Stone Breaker"])
         end
@@ -698,7 +700,7 @@ function TankAssist:ClassifyMidnightTimelineEventByTimer(rule, eventInfo)
             if platformBreak then
                 return { kind = "movement", action = "ulatek-platform", label = "Circling Prey / Platform Break" }
             elseif duration == 75 or duration == 76 then
-                return BuildTankRecord("Mother's Wrath", "swap", MECHANIC_META.ulatek["Mother's Wrath"])
+                return BuildTankRecord("Mother's Wrath", "defensive", MECHANIC_META.ulatek["Mother's Wrath"])
             end
         end
     end
@@ -1194,6 +1196,10 @@ function TankAssist:HandleTimelineFinished(tracked)
         return
     end
     if tracked.kind == "movement" then
+        if tracked.action == "sszorak-center" then
+            self.timelineState = self.timelineState or {}
+            self.timelineState.sszorakDugIn = true
+        end
         self:HandleMidnightMovement(tracked, rule)
         return
     end
@@ -1210,12 +1216,8 @@ function TankAssist:HandleTimelineFinished(tracked)
         return
     end
 
-    if rule.key == "ulatek" and tracked.label == "Mother's Wrath" then
-        local stage = self.timelineState and self.timelineState.ulatekStage or 1
-        if stage < 3 then
-            return
-        end
-        tracked.action = "swap"
+    if tracked.resolveAfterDugIn and self.timelineState and self.timelineState.sszorakDugIn then
+        tracked.resolveAfter = tracked.resolveAfterDugIn
     end
 
     -- Fall back to the owner seen at the pre-hit defensive warning when the
@@ -1228,8 +1230,8 @@ function TankAssist:HandleTimelineFinished(tracked)
         tracked.crossTargetUnit, tracked.crossTargetName = self:GetCrossSwapTarget()
     end
 
-    if tracked.startOnly or tracked.action == "stonebreaker"
-        or (tracked.action == "assignment" and not SafeNumber(tracked.resolveAfter))
+    if tracked.startOnly
+        or ((tracked.action == "stonebreaker" or tracked.action == "assignment") and not SafeNumber(tracked.resolveAfter))
     then
         self:ShowPersonalMechanicStart(tracked, owner, rule)
         return
