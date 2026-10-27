@@ -11,6 +11,7 @@ local Search = V2.Search
 local INDEX = {
     { label = "Show Top Bar and Dropdown", page = "interface", tab = "layout", path = "Interface > General", keywords = "launcher menu visibility hide open" },
     { label = "Enable Action Strip", page = "interface", tab = "action_strip", path = "Interface > Action Strip", keywords = "quick bar visibility" },
+    { label = "Loot Window", page = "interface", tab = "loot", path = "Interface > Loot Window", keywords = "loot window roll need greed transmog pass item drop" },
     { label = "Tank and Healer Role Marks", page = "interface", tab = "marks", path = "Interface > Role Marks", keywords = "mark tank healer square circle mythic dungeon auto marker role reminder button" },
     { label = "Marker Clicks", page = "interface", tab = "layout", path = "Interface > General", keywords = "raid target world marker modifier shift ctrl alt click dropdown action strip" },
     { label = "Show Blizzard Raid Tools", page = "interface", tab = "layout", path = "Interface > General", keywords = "default compact raid manager panel hide blizzard stupid raid tools" },

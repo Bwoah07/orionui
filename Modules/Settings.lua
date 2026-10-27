@@ -1760,7 +1760,70 @@ function Settings:BuildGeneral(container)
         { key = "buttons", label = L["Dropdown"] },
         { key = "action_strip", label = L["Action Strip"] },
         { key = "marks", label = L["Role Marks"] },
+        { key = "loot", label = L["Loot Window"] },
     }, "layout")
+
+    if subTab == "loot" then
+        local profile = RC.db.profile
+        local loot = RC:GetModule("Loot", true)
+        local function RefreshLoot()
+            if loot and loot.Refresh then loot:Refresh() end
+        end
+        local function Read(key, fallback)
+            local value = profile[key]
+            if value == nil or type(value) ~= type(fallback) then return fallback end
+            return value
+        end
+        local function Toggle(label, key, fallback)
+            AddCheckbox(container, label,
+                function() return Read(key, fallback) end,
+                function(value) profile[key] = value and true or false end,
+                RefreshLoot)
+        end
+        local function Number(label, key, fallback, minValue, maxValue, step)
+            AddSlider(container, label, minValue, maxValue, step,
+                function() return Read(key, fallback) end,
+                function(value) profile[key] = value; RefreshLoot() end)
+        end
+
+        AddSection(container, L["Loot Window"], L["RaidControl's own loot window in place of Blizzard's. /rc loot shows a preview; move it in Layout Mode."])
+        Toggle(L["Use RaidControl's Loot Window"], "lootEnabled", true)
+        AddDropdown(container, L["Open"], {
+            saved = L["Where you placed it in Layout Mode"],
+            cursor = L["At the mouse cursor"],
+        }, function() return Read("lootPosition", "saved") end,
+            function(value) profile.lootPosition = value or "saved" end,
+            RefreshLoot, { "saved", "cursor" })
+        Number(L["Width"], "lootWidth", 260, 180, 420, 2)
+        Number(L["Icon Size"], "lootIconSize", 30, 18, 44, 1)
+        AddSlider(container, L["Scale (%)"], 60, 160, 5,
+            function() return math.floor(Read("lootScale", 1) * 100 + 0.5) end,
+            function(value) profile.lootScale = value / 100; RefreshLoot() end)
+        Toggle(L["Show a Loot All Button"], "lootAllButton", true)
+        Toggle(L["Show Item Level and Slot Under the Name"], "lootShowItemLevel", true)
+
+        AddSection(container, L["Loot Rolls"], L["Need, Greed, Transmog and Pass on RaidControl's own frames."])
+        Toggle(L["Replace Blizzard's Loot Roll Frames"], "lootRolls", true)
+        Number(L["Roll Frame Width"], "lootRollWidth", 320, 240, 480, 2)
+        Number(L["Roll Icon Size"], "lootRollIconSize", 34, 24, 48, 1)
+        Toggle(L["Stack New Rolls Upwards"], "lootRollGrowUp", true)
+
+        AddSection(container, L["Highlight"])
+        AddDropdown(container, L["Glow Around"], {
+            rare = L["Rare and better"],
+            epic = L["Epic and better"],
+            legendary = L["Legendary and better"],
+            never = L["Never"],
+        }, function() return Read("lootGlowFrom", "epic") end,
+            function(value) profile.lootGlowFrom = value or "epic" end,
+            RefreshLoot, { "rare", "epic", "legendary", "never" })
+
+        AddActionToolbar(container, {
+            { text = L["Preview"], width = 140, onClick = function() if loot then loot:Preview() end end },
+            { text = L["Reset Position"], width = 140, onClick = function() if loot then loot:ResetPosition() end end },
+        }, { align = "left" })
+        return
+    end
 
     if subTab == "marks" then
         local autoMarker = RC:GetModule("AutoMarker", true)

@@ -9,6 +9,7 @@ local PREVIEW_MODULES = {
     "NoteReminders",
     "TankAssist",
     "BoneShield",
+    "Loot",
     "AutoMarker",
     "RaidLeadTools",
 }
@@ -605,6 +606,11 @@ function LayoutMode:UpdateFrameTags()
     local boneShield = RC:GetModule("BoneShield", true)
     if boneShield and boneShield.preview then
         self:ShowFrameTag(boneShield.frame, L["Bone Shield"])
+    end
+    local loot = RC:GetModule("Loot", true)
+    if loot and loot.active then
+        self:ShowFrameTag(loot.frame, L["Loot window"])
+        self:ShowFrameTag(loot.rollAnchor, L["Loot rolls"])
     end
 end
 

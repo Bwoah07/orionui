@@ -1892,6 +1892,10 @@ function RC:OnInitialize()
             local tankAssist = self:GetModule("TankAssist", true)
             if tankAssist and tankAssist.PrintLog then tankAssist:PrintLog(lower == "tanklog clear") end
             return
+        elseif lower == "loot" then
+            local loot = self:GetModule("Loot", true)
+            if loot then loot:Preview() end
+            return
         elseif lower == "bone" then
             local boneShield = self:GetModule("BoneShield", true)
             if boneShield then boneShield:PrintDiagnostics() end
@@ -2002,6 +2006,7 @@ local SLASH_HELP_LINES = {
     { "/rc layouts", L["List saved Raid Split layouts"] },
     { "/rc tank", L["Open the Tank settings"] },
     { "/rc bone", L["Bone Shield check (what the icon sees right now)"] },
+    { "/rc loot", L["Preview the loot window and loot rolls"] },
     { "/rc tanklog", L["Tank Assist log of the last boss pull"] },
     { "/rc screenshot", L["Take a max-quality screenshot"] },
     { "/rc version", L["Show the addon and client version"] },
