@@ -1761,67 +1761,131 @@ function Settings:BuildGeneral(container)
         { key = "action_strip", label = L["Action Strip"] },
         { key = "marks", label = L["Role Marks"] },
         { key = "loot", label = L["Loot Window"] },
+        { key = "lootHistory", label = L["Loot History"] },
+        { key = "appraiser", label = L["Loot Appraiser"] },
     }, "layout")
 
-    if subTab == "loot" then
+    if subTab == "loot" or subTab == "lootHistory" or subTab == "appraiser" then
         local profile = RC.db.profile
-        local loot = RC:GetModule("Loot", true)
-        local function RefreshLoot()
-            if loot and loot.Refresh then loot:Refresh() end
+        local moduleName = subTab == "loot" and "Loot" or subTab == "lootHistory" and "LootHistory" or "LootAppraiser"
+        local module = RC:GetModule(moduleName, true)
+        local defaults = module and module.DEFAULTS or {}
+        local function Refresh()
+            if module and module.Refresh then module:Refresh() end
         end
-        local function Read(key, fallback)
-            local value = profile[key]
-            if value == nil or type(value) ~= type(fallback) then return fallback end
+        local function Read(key)
+            local value, fallback = profile[key], defaults[key]
+            if value == nil or (fallback ~= nil and type(value) ~= type(fallback)) then return fallback end
             return value
         end
-        local function Toggle(label, key, fallback)
+        local function Toggle(label, key)
             AddCheckbox(container, label,
-                function() return Read(key, fallback) end,
+                function() return Read(key) == true end,
                 function(value) profile[key] = value and true or false end,
-                RefreshLoot)
+                Refresh)
         end
-        local function Number(label, key, fallback, minValue, maxValue, step)
+        local function Number(label, key, minValue, maxValue, step)
             AddSlider(container, label, minValue, maxValue, step,
-                function() return Read(key, fallback) end,
-                function(value) profile[key] = value; RefreshLoot() end)
+                function() return Read(key) end,
+                function(value) profile[key] = value; Refresh() end)
+        end
+        local function Percent(label, key, minValue, maxValue, step)
+            AddSlider(container, label, minValue, maxValue, step,
+                function() return math.floor((Read(key) or 1) * 100 + 0.5) end,
+                function(value) profile[key] = value / 100; Refresh() end)
+        end
+        local function Choice(label, key, list, order)
+            AddDropdown(container, label, list,
+                function() return Read(key) end,
+                function(value) profile[key] = value or defaults[key] end,
+                Refresh, order)
         end
 
-        AddSection(container, L["Loot Window"], L["RaidControl's own loot window in place of Blizzard's. /rc loot shows a preview; move it in Layout Mode."])
-        Toggle(L["Use RaidControl's Loot Window"], "lootEnabled", true)
-        AddDropdown(container, L["Open"], {
-            saved = L["Where you placed it in Layout Mode"],
-            cursor = L["At the mouse cursor"],
-        }, function() return Read("lootPosition", "saved") end,
-            function(value) profile.lootPosition = value or "saved" end,
-            RefreshLoot, { "saved", "cursor" })
-        Number(L["Width"], "lootWidth", 260, 180, 420, 2)
-        Number(L["Icon Size"], "lootIconSize", 30, 18, 44, 1)
-        AddSlider(container, L["Scale (%)"], 60, 160, 5,
-            function() return math.floor(Read("lootScale", 1) * 100 + 0.5) end,
-            function(value) profile.lootScale = value / 100; RefreshLoot() end)
-        Toggle(L["Show a Loot All Button"], "lootAllButton", true)
-        Toggle(L["Show Item Level and Slot Under the Name"], "lootShowItemLevel", true)
+        if subTab == "loot" then
+            AddSection(container, L["Loot Window"], L["RaidControl's own loot window in place of Blizzard's. /rc loot shows a preview; move it in Layout Mode."])
+            Toggle(L["Use RaidControl's Loot Window"], "lootEnabled")
+            Choice(L["Open"], "lootPosition", {
+                saved = L["Where you placed it in Layout Mode"],
+                cursor = L["At the mouse cursor"],
+            }, { "saved", "cursor" })
+            Number(L["Width"], "lootWidth", 220, 460, 2)
+            Number(L["Icon Size"], "lootIconSize", 22, 48, 1)
+            Percent(L["Scale (%)"], "lootScale", 60, 160, 5)
+            Toggle(L["Show a Loot All Button"], "lootAllButton")
+            Toggle(L["Show Item Level and Slot Under the Name"], "lootShowItemLevel")
+            Toggle(L["Show Auction Value (TSM or Auctionator)"], "lootShowValue")
 
-        AddSection(container, L["Loot Rolls"], L["Need, Greed, Transmog and Pass on RaidControl's own frames."])
-        Toggle(L["Replace Blizzard's Loot Roll Frames"], "lootRolls", true)
-        Number(L["Roll Frame Width"], "lootRollWidth", 320, 240, 480, 2)
-        Number(L["Roll Icon Size"], "lootRollIconSize", 34, 24, 48, 1)
-        Toggle(L["Stack New Rolls Upwards"], "lootRollGrowUp", true)
+            AddSection(container, L["Loot Rolls"], L["Need, Greed, Transmog and Pass on RaidControl's own frames."])
+            Toggle(L["Replace Blizzard's Loot Roll Frames"], "lootRolls")
+            Number(L["Roll Frame Width"], "lootRollWidth", 260, 500, 2)
+            Number(L["Roll Icon Size"], "lootRollIconSize", 28, 52, 1)
+            Toggle(L["Stack New Rolls Upwards"], "lootRollGrowUp")
 
-        AddSection(container, L["Highlight"])
-        AddDropdown(container, L["Glow Around"], {
-            rare = L["Rare and better"],
-            epic = L["Epic and better"],
-            legendary = L["Legendary and better"],
-            never = L["Never"],
-        }, function() return Read("lootGlowFrom", "epic") end,
-            function(value) profile.lootGlowFrom = value or "epic" end,
-            RefreshLoot, { "rare", "epic", "legendary", "never" })
+            AddSection(container, L["Highlight"])
+            Choice(L["Glow Around"], "lootGlowFrom", {
+                rare = L["Rare and better"],
+                epic = L["Epic and better"],
+                legendary = L["Legendary and better"],
+                never = L["Never"],
+            }, { "rare", "epic", "legendary", "never" })
+        elseif subTab == "lootHistory" then
+            AddSection(container, L["Loot History"], L["Cards that pop up for what you loot and fade out, with the auction value. /rc lootfeed shows a preview; move them in Layout Mode."])
+            Toggle(L["Show Loot History Cards"], "lootHistoryEnabled")
+            Number(L["Seconds Each Card Stays"], "lootHistoryDuration", 2, 30, 1)
+            Number(L["Cards at Most"], "lootHistoryLines", 1, 12, 1)
+            Number(L["Width"], "lootHistoryWidth", 180, 500, 2)
+            Number(L["Text Size"], "lootHistoryFontSize", 8, 18, 1)
+            Toggle(L["New Cards at the Bottom, Older Ones Move Up"], "lootHistoryGrowUp")
+            Toggle(L["Taller Card With a Glow for Epic and Better"], "lootHistoryBigEpic")
+            Toggle(L["Play a Sound for Epic and Better"], "lootHistoryEpicSound")
 
-        AddActionToolbar(container, {
-            { text = L["Preview"], width = 140, onClick = function() if loot then loot:Preview() end end },
-            { text = L["Reset Position"], width = 140, onClick = function() if loot then loot:ResetPosition() end end },
-        }, { align = "left" })
+            AddSection(container, L["What It Shows"])
+            Choice(L["Items"], "lootHistoryMinQuality", {
+                poor = L["Everything"], common = L["Common and better"], uncommon = L["Uncommon and better"],
+                rare = L["Rare and better"], epic = L["Epic and better"],
+            }, { "poor", "common", "uncommon", "rare", "epic" })
+            Toggle(L["Money"], "lootHistoryMoney")
+            Toggle(L["Currencies"], "lootHistoryCurrency")
+
+            AddSection(container, L["Prices"], L["Also used by the loot window and the loot appraiser."])
+            Toggle(L["Show the Item's Value on the Card"], "lootHistoryShowValue")
+            Choice(L["Value From"], "lootHistoryPriceSource", {
+                auto = L["Best available (TSM, then Auctionator, then vendor)"], tsm = L["TSM realm market"],
+                tsmRegion = L["TSM region average"], auctionator = L["Auctionator"], vendor = L["Vendor price"],
+            }, { "auto", "tsm", "tsmRegion", "auctionator", "vendor" })
+            Toggle(L["Item Tooltip With All Prices on Mouseover"], "lootHistoryTooltip")
+            Number(L["Ping for Loot Worth at Least (gold, 0 = off)"], "lootHistoryValuableGold", 0, 10000, 50)
+            Choice(L["Ping Sound"], "lootHistoryValuableSound", {
+                auction = L["Auction house ding"], coins = L["Coins"], epic = L["Epic loot fanfare"],
+            }, { "auction", "coins", "epic" })
+        else
+            AddSection(container, L["Loot Appraiser"], L["Everything you looted since the last reset and what it is worth. Open it with /rc la; needs Loot History on."])
+            Toggle(L["Use the Loot Appraiser"], "lootAppraiserEnabled")
+            Choice(L["Layout"], "lootAppraiserLayout", {
+                classic = L["Classic: list with totals under it"], compact = L["Compact: totals only"],
+                cards = L["Cards: big list with stat boxes"],
+            }, { "classic", "compact", "cards" })
+            Choice(L["Theme"], "lootAppraiserTheme", {
+                default = L["RaidControl (dark, accent colour)"], gold = L["Gold"], midnight = L["Midnight (navy, violet)"],
+                emerald = L["Emerald"], glass = L["Glass (see-through, white)"],
+            }, { "default", "gold", "midnight", "emerald", "glass" })
+            Percent(L["Background Opacity (%)"], "lootAppraiserOpacity", 20, 100, 5)
+            Percent(L["Window Scale (%)"], "lootAppraiserScale", 60, 160, 5)
+            Toggle(L["Lock the Window in Place"], "lootAppraiserLock")
+            AddSection(container, L["List"])
+            Number(L["Only List Items Worth at Least (gold, 0 = all)"], "lootAppraiserMinValue", 0, 10000, 5)
+            Toggle(L["Leave Grey Items Out of the List"], "lootAppraiserHideJunk")
+        end
+
+        local actions = {}
+        if subTab == "appraiser" then
+            actions[#actions + 1] = { text = L["Open Loot Appraiser"], width = 160, onClick = function() if module then module:Toggle(true) end end }
+            actions[#actions + 1] = { text = L["Reset Session"], width = 140, onClick = function() if module then module:Reset() end end }
+        else
+            actions[#actions + 1] = { text = L["Preview"], width = 140, onClick = function() if module then module:Preview() end end }
+            actions[#actions + 1] = { text = L["Reset Position"], width = 140, onClick = function() if module then module:ResetPosition() end end }
+        end
+        AddActionToolbar(container, actions, { align = "left" })
         return
     end
 

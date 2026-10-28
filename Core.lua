@@ -1892,6 +1892,14 @@ function RC:OnInitialize()
             local tankAssist = self:GetModule("TankAssist", true)
             if tankAssist and tankAssist.PrintLog then tankAssist:PrintLog(lower == "tanklog clear") end
             return
+        elseif lower == "lootfeed" then
+            local lootHistory = self:GetModule("LootHistory", true)
+            if lootHistory then lootHistory:Preview() end
+            return
+        elseif lower == "la" or lower == "appraiser" or lower == "la reset" or lower == "appraiser reset" then
+            local appraiser = self:GetModule("LootAppraiser", true)
+            if appraiser then appraiser:SlashCommand(lower:find("reset") and "reset" or nil) end
+            return
         elseif lower == "loot" then
             local loot = self:GetModule("Loot", true)
             if loot then loot:Preview() end
@@ -2007,6 +2015,8 @@ local SLASH_HELP_LINES = {
     { "/rc tank", L["Open the Tank settings"] },
     { "/rc bone", L["Bone Shield check (what the icon sees right now)"] },
     { "/rc loot", L["Preview the loot window and loot rolls"] },
+    { "/rc lootfeed", L["Preview the loot history cards"] },
+    { "/rc la", L["Loot appraiser window (/rc la reset starts over)"] },
     { "/rc tanklog", L["Tank Assist log of the last boss pull"] },
     { "/rc screenshot", L["Take a max-quality screenshot"] },
     { "/rc version", L["Show the addon and client version"] },

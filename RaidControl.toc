@@ -56,7 +56,10 @@ Modules\TankAssistAlertHUD.lua
 Modules\TankAssistCountdownAudio.lua
 Modules\TankAssistLog.lua
 Modules\BoneShield.lua
+Modules\LootKit.lua
 Modules\Loot.lua
+Modules\LootHistory.lua
+Modules\LootAppraiser.lua
 Modules\Roles.lua
 Modules\AutoMarker.lua
 Modules\RaidSplit.lua

@@ -10,6 +10,7 @@ local PREVIEW_MODULES = {
     "TankAssist",
     "BoneShield",
     "Loot",
+    "LootHistory",
     "AutoMarker",
     "RaidLeadTools",
 }
@@ -611,6 +612,10 @@ function LayoutMode:UpdateFrameTags()
     if loot and loot.active then
         self:ShowFrameTag(loot.frame, L["Loot window"])
         self:ShowFrameTag(loot.rollAnchor, L["Loot rolls"])
+    end
+    local lootHistory = RC:GetModule("LootHistory", true)
+    if lootHistory and lootHistory.active then
+        self:ShowFrameTag(lootHistory.anchor, L["Loot History"])
     end
 end
 
